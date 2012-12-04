@@ -28,11 +28,11 @@ int isTerminator( char c ) {
 	return ( c == '\0' /*|| c == '\n'*/ ); // Or EoF
 }
 
-int isListStart( char c ) {
+bool isListStart( char c ) {
 	return c == '(';
 }
 
-int isListEnd( char c ) {
+bool isListEnd( char c ) {
 	return c == ')';
 }
 

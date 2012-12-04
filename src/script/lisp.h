@@ -3,7 +3,7 @@
 
 #define DEBUG_PARSE 0
 #define DEBUG_CONTEXT 0
-#define DEBUG_LISP_STACK
+//#define DEBUG_LISP_STACK
 //#define DEBUG_LISP_VERBOSE
 
 #if DEBUG_PARSE

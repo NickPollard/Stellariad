@@ -15,7 +15,7 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_enabled	= false
-	debug_doodads_enabled	= true
+	debug_doodads_enabled	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -180,14 +180,19 @@ end
 
 function create_projectile( source, offset, model, speed ) 
 	-- Create a new Projectile
-	local projectile = gameobject_create( model )
-	--[[
+	--local projectile = gameobject_create( model )
+	---[[
 	local projectile = {}
 	projectile.transform = vcreateTransform()
+
+	projectile.model = vcreateModelInstanceNew( "dat/model/bullet_player.s" )
+	vmodel_setTransform( projectile.model, projectile.transform )
+	vscene_addModel( scene, projectile.model )
+
 	projectile.physic = vcreatePhysic()
 	vphysic_setTransform( projectile.physic, projectile.transform )
-	--projectile.body = vcreateBodySphere( projectile )
-	--vbody_setTransform( projectile.body, projectile.transform )
+	projectile.body = vcreateBodySphere( projectile )
+	vbody_setTransform( projectile.body, projectile.transform )
 	v = Vector( 0.0, 0.0, 0.0, 0.0 )
 	vphysic_setVelocity( projectile.physic, v )
 	vphysic_activate( engine, projectile.physic )

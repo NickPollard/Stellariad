@@ -599,25 +599,31 @@ term* eval( term* expr, void* _context ) {
 			h = eval( h, _context );
 
 		if ( isType( h, typeIntrinsic )) {
+			/*
 				printf( "Running lisp Intrinsic\n" );
 				term_debugPrint( expr );
 				printf( "\n" );
+				*/
 			result = exec( _context, h, tail( expr ));
 		}
 		// If it's a macro (the head evals to a list whos first element is typeMacro), then peel of the typeMacro
 		// term and just use the rest as the func to eval, but dont eval the args first
 		else if (isType( h, typeList ) && head( h ) && isType( head( h ), typeMacro )) {
+			/*
 			printf( "Running lisp macro \"%s\"\n", head( expr )->string );
 			term_debugPrint( expr );
 			printf( "\n" );
+			*/
 			result = exec( _context, tail( h ), tail( expr ));
 		}
 		else {
 //#ifdef DEBUG_LISP_VERBOSE
 			if ( isType( head( expr ), typeAtom )) {
+				/*
 				printf( "Running lisp function \"%s\"\n", head( expr )->string );
 				term_debugPrint( expr );
 				printf( "\n" );
+				*/
 			}
 //#endif // DEBUG_LISP_VERBOSE
 
@@ -1024,9 +1030,11 @@ term* lisp_func_length( context* c, term* raw_args ) {
 term* lisp_func_list( context* c, term* raw_args ) {
 	term* args = fmap_1( eval, c, raw_args );
 	term_validate( args );
+	/*
 	printf( "lisp_func_list: " );
 	term_debugPrint( args );
 	printf( "\n" );
+	*/
 	return args;
 	}
 
@@ -1093,23 +1101,27 @@ term* lisp_func_if( context* c, term* args ) {
 		term* result_then = second( args );
 		term* result_else = third( args );
 
+		/*
 		printf( "lisp func if: " );
 		term_debugPrint( cond );
 		printf ( "\n -- > \n" );
+		*/
 
 		term* first = eval( cond, c );
 
+		/*
 		term_debugPrint( first );
 		printf( "\n" );
+		*/
 
 		term_takeRef( first );
 		term* ret;
 		if ( isTrue( first )) {
-			printf( "lisp_func if: true\n" );
+			//printf( "lisp_func if: true\n" );
 			ret = eval( result_then, c );
 			}
 		else {
-			printf( "lisp_func if: false\n" );
+			//printf( "lisp_func if: false\n" );
 			ret = eval( result_else, c );
 			}
 		term_deref( first );
@@ -1360,7 +1372,7 @@ term* lisp_func_model( context* c, term* raw_args ) {
 }
 
 term* lisp_func_createModel( context* c, term* raw_args ) {
-	printf( "lisp_func_createModel\n" );
+	//printf( "lisp_func_createModel\n" );
 	(void)c;
 	term* args = NULL; 
 	if ( raw_args ) {
@@ -1469,7 +1481,7 @@ term* lisp_func_new_transform( context* c, term* raw_args ) {
 }
 
 term* lisp_func_add_transform_to_model( context* c, term* raw_args ) {
-	printf( "lisp_func_add_transform_to_model\n" );
+	//printf( "lisp_func_add_transform_to_model\n" );
 	(void)c; (void)raw_args;
 	term* args = fmap_1( eval, c, raw_args );
 	term_takeRef( args );
@@ -1482,9 +1494,11 @@ term* lisp_func_add_transform_to_model( context* c, term* raw_args ) {
 
 term* lisp_func_lambda( context* c, term* raw_args ) {
 	(void)c; (void)raw_args;
+	/*
 	printf( "Lisp_func_lambda\n" );
 	term_debugPrint( raw_args );
 	printf( "\n" );
+	*/
 	term_validate( raw_args );
 	// Should be quoted?
 	return raw_args;
@@ -1499,7 +1513,7 @@ void lisp_assertArgs_1( term* t, enum termType type ) {
 attributeSetter attributeFunction( const char* name ) {
 	void** func_ptr = map_find( attrFuncMap, mhash(name));
 	if ( !func_ptr )
-		printf( "ERROR: Cannot find lisp Attribute Function \"%s\"\n", name );
+		//printf( "ERROR: Cannot find lisp Attribute Function \"%s\"\n", name );
 	vAssert( func_ptr );
 	return *func_ptr;
 }
@@ -1891,7 +1905,7 @@ void test_lisp() {
 
 	//////// Tear down the context to measure free terms, then rebuild it
 	context_delete( c );
-	{
+	if ( 0 ) {
 		int total = kMaxLispTerms;
 		int free = term_countFree();
 		int used = total - free;
@@ -1922,7 +1936,7 @@ void test_lisp() {
 
 	//////// Tear down the context to measure free terms, then rebuild it
 	context_delete( c );
-	{
+	if ( 0 ) {
 		int total = kMaxLispTerms;
 		int free = term_countFree();
 		int used = total - free;
@@ -2096,7 +2110,7 @@ void test_lisp() {
 	context_delete( c );
 	printf( "Lisp heap storing " dPTRf " bytes in " dPTRf " allocations.\n", lisp_heap->total_allocated, lisp_heap->allocations );
 	printf( "Context heap storing " dPTRf " bytes in " dPTRf " allocations.\n", context_heap->total_allocated, context_heap->allocations );
-	{
+	if ( 0 ){
 		int total = kMaxLispTerms;
 		int free = term_countFree();
 		int used = total - free;

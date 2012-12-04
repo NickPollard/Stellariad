@@ -7,3 +7,4 @@
 
 mesh* mesh_loadObj( const char* filename );
 model* model_load( const char* filename );
+model* model_loadNew( const char* filename );

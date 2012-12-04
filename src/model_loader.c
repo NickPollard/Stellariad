@@ -4,6 +4,7 @@
 #include "scene.h"
 #include "model.h"
 #include "script/lisp.h"
+#include "script/sexpr.h"
 #include "system/file.h"
 #include "system/inputstream.h"
 #include "system/string.h"
@@ -137,16 +138,16 @@ mesh* mesh_loadObj( const char* filename ) {
 }
 
 model* model_load( const char* filename ) {
-	/*
-	sterm* s = parse_file( filename );
-	model* mdl = eval( s );
-	*/
-
 	context* c = lisp_newContext();
 	term* m = lisp_eval_file( c, filename );
 	term_takeRef( m );
 	model* mdl = m->data;
 	term_deref( m );
 
+	return mdl;
+}
+
+model* model_loadNew( const char* filename ) {
+	model* mdl = sexpr_loadFile( filename );
 	return mdl;
 }

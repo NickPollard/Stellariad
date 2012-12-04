@@ -18,6 +18,7 @@
 #include "system/file.h"
 #include "system/hash.h"
 #include "system/string.h"
+#include "script/sexpr.h"
 
 void test_lisp();
 
@@ -31,6 +32,7 @@ void runTests() {
 	test_hash();
 
 	// System Tests
+	test_sexpr();
 	//test_lisp();
 
 	test_maths();

@@ -19,3 +19,5 @@ bool	inputStream_endOfFile( inputStream* in );
 void	inputStream_nextLine( inputStream* in );
 void	inputStream_skipPast( inputStream* stream, const char* string );
 
+bool isListStart( char c );
+bool isListEnd( char c );

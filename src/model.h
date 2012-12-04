@@ -105,6 +105,7 @@ model* model_fromInstance( modelInstance* instance );
 // Handle lookups
 modelHandle model_getHandleFromID( int id );
 modelHandle model_getHandleFromFilename( const char* filename );
+modelHandle model_getHandleFromFilenameNew( const char* filename );
 void model_preload( const char* filename );
 
 // Sub-element lookups
