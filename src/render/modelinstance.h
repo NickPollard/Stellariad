@@ -25,8 +25,10 @@ struct modelInstance_s {
 	// Sub Elements
 	int		transform_count;
 	int		emitter_count;
+	int		ribbon_emitter_count;
 	transform*			transforms[kMaxSubTransforms];
 	particleEmitter*	emitters[kMaxSubEmitters];
+	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
 	aabb	bb;
 };
 

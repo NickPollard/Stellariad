@@ -59,8 +59,10 @@ struct model_s {
 //	transform*	hardpoints[kMaxHardPoints];
 	int	transform_count;
 	int emitter_count;
+	int ribbon_emitter_count;
 	transform*			transforms[kMaxSubTransforms];
 	particleEmitter*	emitters[kMaxSubEmitters];
+	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
 	obb					obb;
 };
 
@@ -96,6 +98,7 @@ void model_addMesh( model* m, int i, mesh* msh );
 void model_addTransform( model* m, transform* t );
 // Add a particle emitter to the model
 void model_addParticleEmitter( model* m, particleEmitter* p );
+void model_addRibbonEmitter( model* m, ribbonEmitter* p );
 
 // Draw each submesh of a model
 void model_draw(model* m);

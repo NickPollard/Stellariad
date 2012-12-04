@@ -59,7 +59,7 @@ C and only controlled remotely by Lua
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
 	-- Flight
-	player_ship_initial_speed	= 80.0
+	player_ship_initial_speed	= 30.0
 	player_ship_acceleration	= 1.0
 	max_allowed_roll			= 1.5
 	camera_roll_scale			= 0.1
@@ -237,6 +237,12 @@ enemy_gunfire = {
 	collisionType = "enemy"
 }
 
+enemy_homing_missile = { 
+	model = "dat/model/missile_enemy_homing.s",
+	speed = 150.0,
+	collisionType = "enemy"
+}
+
 function fire_missile( source, offset, bullet_type )
 	local projectile = create_projectile( source, offset, bullet_type.model, bullet_type.speed )
 	if bullet_type.collisionType == "player" then
@@ -261,16 +267,16 @@ function homing_missile_tick( target_transform )
 			local target_dir = vquaternion_look( target_direction )
 			--local new_dir = vquaternion_slerp( current_dir, target_dir, 1.0 * dt )
 			local new_dir = vquaternion_slerpAngle( current_dir, target_dir, homing_missile_turn_angle_per_second * dt )
-			local world_velocity = vquaternion_rotation( new_dir, Vector( 0.0, 0.0, homing_missile_speed, 0.0 ))
+			local world_velocity = vquaternion_rotation( new_dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 ))
 			vphysic_setVelocity( missile.physic, world_velocity )
 			vtransform_setRotation( missile.transform, new_dir )
 		end
 	end
 end
 
-function fire_enemy_homing_missile( source, offset, model, speed )
+function fire_enemy_homing_missile( source, offset, bullet_type )
 	-- Create a new Projectile
-	local projectile = gameobject_create( model )
+	local projectile = gameobject_create( bullet_type.model )
 	setCollision_enemyBullet( projectile )
 
 	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
@@ -285,7 +291,7 @@ function fire_enemy_homing_missile( source, offset, model, speed )
 	projectile.trail = vparticle_create( engine, projectile.transform, "dat/script/lisp/red_trail.s" )
 
 	-- Apply initial velocity
-	source_velocity = Vector( 0.0, 0.0, speed, 0.0 )
+	source_velocity = Vector( 0.0, 0.0, bullet_type.speed, 0.0 )
 	world_v = vtransformVector( source.transform, source_velocity )
 	vphysic_setVelocity( projectile.physic, world_v );
 
@@ -1053,7 +1059,7 @@ function interceptor_fire( interceptor )
 end
 
 function interceptor_fire_homing( interceptor )
-	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), projectile_model, homing_missile_speed )
+	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), enemy_homing_missile )
 end
 
 function create_interceptor()

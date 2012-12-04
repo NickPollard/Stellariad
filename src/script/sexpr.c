@@ -4,6 +4,7 @@
 #include "model.h"
 #include "model_loader.h"
 #include "particle.h"
+#include "ribbon.h"
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
@@ -221,6 +222,23 @@ particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
 	return NULL;
 }
 
+ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
+	(void)s;
+	printf( "Sexpr Loading ribbon emitter.\n" );
+	/*
+	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
+	if ( fileterm ) {
+		vAssert( fileterm->child );
+		const char* filename = fileterm->child->value;
+		particleEmitterDef* def = particle_loadAsset( filename );
+		particleEmitter* emitter = particle_newEmitter( def );
+		return emitter;
+	}
+	return NULL;
+	*/
+	return ribbonEmitter_create();
+}
+
 transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 	(void)s;
 	//printf( "Adding transform!\n" );
@@ -239,6 +257,12 @@ transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 		if ( sexpr_named( "particleEmitter", child ) ) {
 			particleEmitter* emitter =  sexpr_loadParticleEmitter( child );
 			model_addParticleEmitter( m, emitter );
+			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
+		}
+		
+		if ( sexpr_named( "ribbonEmitter", child ) ) {
+			ribbonEmitter* emitter =  sexpr_loadRibbonEmitter( child );
+			model_addRibbonEmitter( m, emitter );
 			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
 		}
 

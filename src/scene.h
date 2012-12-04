@@ -36,6 +36,9 @@ struct scene_s {
 	int					emitter_count;
 	particleEmitter**	emitters;
 	//
+	int					ribbon_emitter_count;
+	ribbonEmitter**	ribbon_emitters;
+	//
 	GLfloat		ambient[4];
 	vector		fog_color;
 	vector		sky_color;
@@ -114,6 +117,7 @@ void		scene_addLight( scene* s, light* l );
 
 // Emitter Access
 void scene_addEmitter( scene* s, particleEmitter* e );
+void scene_addRibbonEmitter( scene* s, ribbonEmitter* e );
 
 // Load & Save
 sceneData* scene_save( scene* s );

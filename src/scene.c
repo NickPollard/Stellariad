@@ -11,6 +11,7 @@
 #include "model_loader.h"
 #include "particle.h"
 #include "physic.h"
+#include "ribbon.h"
 #include "debug/debugtext.h"
 #include "input/keyboard.h"
 #include "maths/vector.h"
@@ -69,6 +70,16 @@ void scene_addModel( scene* s, modelInstance* instance ) {
 			startTick( s->eng, instance->emitters[i], particleEmitter_tick );
 		}
 	}
+	for ( int i = 0; i < instance->ribbon_emitter_count; i++ ) {
+		scene_addRibbonEmitter( s, instance->ribbon_emitters[i] );
+		if ( !instance->ribbon_emitters[i]->trans )
+			instance->ribbon_emitters[i]->trans = instance->trans;
+		// If the scene is active, activate components immediately
+		if ( s->eng ) {
+			engine_addRender( s->eng, instance->ribbon_emitters[i], ribbonEmitter_render );
+			startTick( s->eng, instance->ribbon_emitters[i], ribbonEmitter_tick );
+		}
+	}
 }
 
 // TODO: Thread-Safe
@@ -96,6 +107,10 @@ void scene_removeEmitter( scene* s, particleEmitter* e ) {
 
 void scene_addEmitter( scene* s, particleEmitter* e ) {
 	s->emitters[s->emitter_count++] = e;
+}
+
+void scene_addRibbonEmitter( scene* s, ribbonEmitter* e ) {
+	s->ribbon_emitters[s->ribbon_emitter_count++] = e;
 }
 
 // Add an existing light to the scene
@@ -201,6 +216,7 @@ scene* scene_create( engine* e ) {
 	s->transforms =		mem_alloc( sizeof( transform* ) * MAX_TRANSFORMS );
 	memset( s->transforms, 0, sizeof( transform* ) * MAX_TRANSFORMS );
 	s->emitters =		mem_alloc( sizeof( particleEmitter* ) * MAX_EMITTERS );
+	s->ribbon_emitters =		mem_alloc( sizeof( ribbonEmitter* ) * MAX_EMITTERS );
 	s->fog_color = Vector( 0.f, 1.f, 0.f, 1.f );
 	s->eng = e;
 	return s;

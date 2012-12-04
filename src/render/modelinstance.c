@@ -5,10 +5,13 @@
 //-----------------------
 #include "camera.h"
 #include "particle.h"
+#include "ribbon.h"
 #include "transform.h"
 #include "maths/vector.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
+
+#define NULL_INDEX UINTPTR_MAX
 
 IMPLEMENT_POOL( modelInstance )
 
@@ -39,7 +42,7 @@ void modelInstance_createSubTransforms( modelInstance* instance ) {
 	instance->transform_count = m->transform_count;
 }
 
-void modelInstance_createSubEmitters( modelInstance* instance ) {
+void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->emitter_count; i++ ) {
 		//printf( "Adding model particle emitter.\n" );
@@ -54,7 +57,6 @@ void modelInstance_createSubEmitters( modelInstance* instance ) {
 		// This is stored as an index rather than a pointer
 		uintptr_t transform_index = (uintptr_t)m->emitters[i]->trans;
 		//printf( "transform_index = %d.\n", (int)transform_index );
-#define NULL_INDEX UINTPTR_MAX
 		if ( transform_index == NULL_INDEX )
 			instance->emitters[i]->trans = NULL;
 		else
@@ -63,12 +65,29 @@ void modelInstance_createSubEmitters( modelInstance* instance ) {
 	instance->emitter_count = m->emitter_count;
 }
 
+void modelInstance_createSubRibbonEmitters( modelInstance* instance ) {
+	model* m = model_fromInstance( instance );
+	for ( int i = 0; i < m->ribbon_emitter_count; i++ ) {
+		instance->ribbon_emitters[i] = ribbonEmitter_create();
+
+		// Take parent transform if in model
+		// This is stored as an index rather than a pointer
+		uintptr_t transform_index = (uintptr_t)m->ribbon_emitters[i]->trans;
+		if ( transform_index == NULL_INDEX )
+			instance->ribbon_emitters[i]->trans = NULL;
+		else
+			instance->ribbon_emitters[i]->trans = instance->transforms[transform_index];
+	}
+	instance->ribbon_emitter_count = m->ribbon_emitter_count;
+}
+
 modelInstance* modelInstance_create( modelHandle m ) {
 	modelInstance* instance = modelInstance_createEmpty();
 	instance->model = m;
 
 	modelInstance_createSubTransforms( instance );
-	modelInstance_createSubEmitters( instance );
+	modelInstance_createSubParticleEmitters( instance );
+	modelInstance_createSubRibbonEmitters( instance );
 	
 	vAssert( !instance->trans );
 

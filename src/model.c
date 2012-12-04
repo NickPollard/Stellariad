@@ -252,9 +252,13 @@ void model_addTransform( model* m, transform* t ) {
 }
 
 void model_addParticleEmitter( model* m, particleEmitter* p ) {
-	//printf( "MODEL - adding particle emitter\n" );
 	m->emitters[m->emitter_count++] = p;
 }
+
+void model_addRibbonEmitter( model* m, ribbonEmitter* p ) {
+	m->ribbon_emitters[m->ribbon_emitter_count++] = p;
+}
+
 
 obb obb_calculate( int vert_count, vector* verts ) {
 	//printf( "obb calculate!\n" );
