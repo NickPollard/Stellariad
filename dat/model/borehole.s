@@ -1,6 +1,7 @@
 (model (mesh (filename "dat/model/borehole.obj" )
 				(diffuse_texture "dat/img/borehole.tga" ))
-		(transform (translation (vector 0.0 0.0 0.0 1.0))))
+		(transform (translation (vector 0.0 0.0 0.0 1.0))
+					(particleEmitter (filename "dat/script/lisp/borehole.s"))))
 #(model (object_process (meshLoadFile "dat/model/borehole.obj" )
 			 #(quote (attribute "diffuse_texture" "dat/img/borehole.tga")))
 		#(transform

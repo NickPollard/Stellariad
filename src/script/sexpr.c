@@ -3,6 +3,7 @@
 //--------------------------------------------------------
 #include "model.h"
 #include "model_loader.h"
+#include "particle.h"
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
@@ -194,7 +195,6 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 vector sexpr_loadVector( sexpr* s ) {
 	vector v = Vector( 0.0, 0.0, 0.0, 1.0 );
 	if ( sexpr_named( "vector", s )) {
-		//printf( "loading vector\n" );
 		sexpr* child = s->child;
 		for ( int i = 0; i < 4; ++i ) {
 			vAssert( child );
@@ -205,20 +205,44 @@ vector sexpr_loadVector( sexpr* s ) {
 			child = child->next;
 		}
 	}
-	vector_printf( "Sexpr Loading vector ", &v );
 	return v;
 }
 
-transform* sexpr_loadTransform( sexpr* s ) {
+particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
+	printf( "Sexpr Loading particle emitter.\n" );
+	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
+	if ( fileterm ) {
+		vAssert( fileterm->child );
+		const char* filename = fileterm->child->value;
+		particleEmitterDef* def = particle_loadAsset( filename );
+		particleEmitter* emitter = particle_newEmitter( def );
+		return emitter;
+	}
+	return NULL;
+}
+
+transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 	(void)s;
 	//printf( "Adding transform!\n" );
 	transform* t = transform_create();
-	
+	model_addTransform( m, t );
+
 	sexpr* trans_term = sexpr_findChildNamed( "translation", s );
 	if ( trans_term ) {
 		vAssert( trans_term->child );
 		vector translation = sexpr_loadVector( trans_term->child );
 		transform_setLocalTranslation( t, &translation );
+	}
+
+	sexpr* child = s->child;
+	while ( child ) {
+		if ( sexpr_named( "particleEmitter", child ) ) {
+			particleEmitter* emitter =  sexpr_loadParticleEmitter( child );
+			model_addParticleEmitter( m, emitter );
+			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
+		}
+
+		child = child->next;
 	}
 
 	return t;
@@ -235,7 +259,8 @@ model* sexpr_loadModel( sexpr* s ) {
 			model_addMesh( m, mesh_index++, sexpr_loadMesh( child ));
 		}
 		else if ( sexpr_named( "transform", child )) {
-			model_addTransform( m, sexpr_loadTransform( child ));
+			// This will add the transform to the model
+			sexpr_loadModelTransform( m, child );
 		}
 
 		child = child->next;
