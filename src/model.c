@@ -162,8 +162,8 @@ mesh* model_getMesh(model* m, int i) {
 	return m->meshes[i];
 }
 
-void model_addMesh( model* m, mesh* msh ) {
-	m->meshes[m->meshCount++] = msh;
+void model_addMesh( model* m, int i, mesh* msh ) {
+	m->meshes[i] = msh;
 }
 
 // Draw each submesh of a model
