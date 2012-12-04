@@ -1,4 +1,5 @@
-(model (mesh (filename "dat/model/borehole.obj" )))
+(model (mesh (filename "dat/model/borehole.obj" )
+				(diffuse_texture "dat/img/borehole.tga" )))
 #(model (object_process (meshLoadFile "dat/model/borehole.obj" )
 			 #(quote (attribute "diffuse_texture" "dat/img/borehole.tga")))
 		#(transform

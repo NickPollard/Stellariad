@@ -6,6 +6,7 @@
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/texture.h"
 #include "system/hash.h"
 #include "system/file.h"
 #include "system/inputstream.h"
@@ -163,12 +164,21 @@ sexpr* sexpr_findChildNamed( const char* name, sexpr* parent ) {
 mesh* sexpr_loadMesh( sexpr* s ) {
 	(void)s;
 	const char* filename = "dat/model/smoothsphere2.obj";
+
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
 	if ( fileterm ) {
 		vAssert( fileterm->child );
 		filename = fileterm->child->value;
 	}
+	
 	mesh* m = mesh_loadObj( filename );
+	
+	sexpr* diffuse_term = sexpr_findChildNamed( "diffuse_texture", s );
+	if ( diffuse_term ) {
+		vAssert( diffuse_term->child );
+		m->texture_diffuse = texture_load( diffuse_term->child->value );
+	}
+	
 	return m;
 }
 
