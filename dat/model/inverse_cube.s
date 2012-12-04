@@ -1,1 +1,1 @@
-(model (meshLoadFile "dat/model/inverse_cube.obj"))
+(model (mesh (filename "dat/model/inverse_cube.obj")))

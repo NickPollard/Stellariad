@@ -189,10 +189,6 @@ model* model_loadFromFileSync( const char* filename ) {
 	return model_load( filename );
 }
 
-model* model_loadFromFileSyncNew( const char* filename ) {
-	return model_loadNew( filename );
-}
-
 const char* model_getFileNameFromID( int id ) {
 	(void)id;
 	// TODO: Implement
@@ -228,22 +224,6 @@ modelHandle model_getHandleFromFilename( const char* filename ) {
 	modelHandle handle = (modelHandle)model_count;
 	modelFiles[handle] = string_createCopy( filename );
 	models[handle] = model_loadFromFileSync( filename );
-	model_count++;
-	return handle;
-}
-
-modelHandle model_getHandleFromFilenameNew( const char* filename ) {
-	// If the model is already in the array, return it
-	for ( int i = 0; i < model_count; i++ ) {
-		if ( string_equal( filename, modelFiles[i] )) {
-			return (modelHandle)i;
-		}
-	}
-	// Otherwise add it and return
-	assert( model_count < kMaxModels );
-	modelHandle handle = (modelHandle)model_count;
-	modelFiles[handle] = string_createCopy( filename );
-	models[handle] = model_loadFromFileSyncNew( filename );
 	model_count++;
 	return handle;
 }

@@ -272,7 +272,7 @@ void engine_init(engine* e, int argc, char** argv) {
 	canyon_staticInit();
 	canyon_generateInitialPoints();
 
-#define kNumWorkerThreads 2
+#define kNumWorkerThreads 1
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
 		vthread_create( worker_threadFunc, NULL );
 	}

@@ -74,18 +74,6 @@ int LUA_createModelInstance( lua_State* l ) {
 	}
 }
 
-int LUA_createModelInstanceNew( lua_State* l ) {
-	if ( lua_isstring( l, 1 ) ) {
-		const char* filename = lua_tostring( l, 1 );
-		modelInstance* m = modelInstance_create( model_getHandleFromFilenameNew( filename ) );
-		lua_pushptr( l, m );
-		return 1;
-	} else {
-		printf( "Error: LUA: No filename specified for vcreateModelInstanceNew().\n" );
-		return 0;
-	}
-}
-
 int LUA_modelPreload( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
 		const char* filename = lua_tostring( l, 1 );
@@ -926,7 +914,6 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_gesture_performed, "vgesture_performed" );
 	// *** Scene
 	lua_registerFunction( l, LUA_createModelInstance, "vcreateModelInstance" );
-	lua_registerFunction( l, LUA_createModelInstanceNew, "vcreateModelInstanceNew" );
 	lua_registerFunction( l, LUA_modelPreload, "vmodel_preload" );
 	lua_registerFunction( l, LUA_deleteModelInstance, "vdeleteModelInstance" );
 	lua_registerFunction( l, LUA_model_setTransform, "vmodel_setTransform" );

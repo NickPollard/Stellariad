@@ -138,16 +138,6 @@ mesh* mesh_loadObj( const char* filename ) {
 }
 
 model* model_load( const char* filename ) {
-	context* c = lisp_newContext();
-	term* m = lisp_eval_file( c, filename );
-	term_takeRef( m );
-	model* mdl = m->data;
-	term_deref( m );
-
-	return mdl;
-}
-
-model* model_loadNew( const char* filename ) {
 	model* mdl = sexpr_loadFile( filename );
 	return mdl;
 }

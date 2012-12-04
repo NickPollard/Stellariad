@@ -91,6 +91,6 @@ void* worker_threadFunc( void* args ) {
 		}
 
 		//usleep( 5 );
-		//vthread_yield();
+		vthread_yield();
 	}
 }
