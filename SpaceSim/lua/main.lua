@@ -14,8 +14,8 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * math.pi
 
 -- Debug settings
-	debug_spawning_enabled	= false
-	debug_doodads_enabled	= false
+	debug_spawning_enabled	= true
+	debug_doodads_enabled	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -185,7 +185,7 @@ function create_projectile( source, offset, model, speed )
 	local projectile = {}
 	projectile.transform = vcreateTransform()
 
-	projectile.model = vcreateModelInstanceNew( "dat/model/bullet_player.s" )
+	projectile.model = vcreateModelInstance( "dat/model/bullet_player.s" )
 	vmodel_setTransform( projectile.model, projectile.transform )
 	vscene_addModel( scene, projectile.model )
 
@@ -307,7 +307,7 @@ end
 
 -- Create a player. The player is a specialised form of Gameobject
 function playership_create()
-	local p = gameobject_create( "dat/model/ship_hd.s" )
+	local p = gameobject_create( "dat/model/ship_new.s" )
 	p.speed = 0.0
 	p.cooldown = 0.0
 	p.missile_cooldown = 0.0
@@ -1057,7 +1057,7 @@ function interceptor_fire_homing( interceptor )
 end
 
 function create_interceptor()
-	local interceptor = gameobject_create( "dat/model/ship_hd.s" )
+	local interceptor = gameobject_create( "dat/model/ship_new.s" )
 	interceptor.cooldown = 0.0
 	
 	-- Init Collision

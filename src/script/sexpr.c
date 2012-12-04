@@ -25,6 +25,12 @@ sexpr* sexpr_create( enum sexprType type, const char* name ) {
 	return s;
 }
 
+sexpr* sexpr_createFloat( float number ) {
+	sexpr* s = sexpr_create( sexprTypeFloat, NULL );
+	s->number_value = number;
+	return s;
+}
+
 char* sexpr_nextToken( inputStream* stream ) {
 	char* token = inputStream_nextToken( stream );
 	while ( isLineComment( token ) || isNewLine( *token )) {
@@ -87,6 +93,9 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 		sexpr_formatSpacing( spacing, depth );
 		printf( "Adding child %s%s\n", spacing, token );
 		return sexpr_create( sexprTypeString, (void*)sstring_create( token ));
+	}
+	else if ( token_isFloat( token )) {
+		return sexpr_createFloat( strtof( token, NULL ));
 	}
 	else {
 		// When it's an atom, we keep the token, don't free it
@@ -182,6 +191,39 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 	return m;
 }
 
+vector sexpr_loadVector( sexpr* s ) {
+	vector v = Vector( 0.0, 0.0, 0.0, 1.0 );
+	if ( sexpr_named( "vector", s )) {
+		//printf( "loading vector\n" );
+		sexpr* child = s->child;
+		for ( int i = 0; i < 4; ++i ) {
+			vAssert( child );
+			vAssert( child->type == sexprTypeFloat );
+			float n = child->number_value;
+			v.val[i] = n;
+
+			child = child->next;
+		}
+	}
+	vector_printf( "Sexpr Loading vector ", &v );
+	return v;
+}
+
+transform* sexpr_loadTransform( sexpr* s ) {
+	(void)s;
+	//printf( "Adding transform!\n" );
+	transform* t = transform_create();
+	
+	sexpr* trans_term = sexpr_findChildNamed( "translation", s );
+	if ( trans_term ) {
+		vAssert( trans_term->child );
+		vector translation = sexpr_loadVector( trans_term->child );
+		transform_setLocalTranslation( t, &translation );
+	}
+
+	return t;
+}
+
 model* sexpr_loadModel( sexpr* s ) {
 	int mesh_index = 0;
 	int mesh_count = sexpr_countChildrenByType( s, "mesh" );
@@ -192,6 +234,10 @@ model* sexpr_loadModel( sexpr* s ) {
 		if ( sexpr_named( "mesh", child ) ) {
 			model_addMesh( m, mesh_index++, sexpr_loadMesh( child ));
 		}
+		else if ( sexpr_named( "transform", child )) {
+			model_addTransform( m, sexpr_loadTransform( child ));
+		}
+
 		child = child->next;
 	}
 	return m;

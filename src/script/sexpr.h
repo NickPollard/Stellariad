@@ -14,7 +14,10 @@ struct sexpr_s {
 	sexpr* child;
 	sexpr* next;
 	enum sexprType type;
-	const char* value;
+	union {
+		const char* value;
+		float number_value;
+	};
 };
 
 void* sexpr_loadFile( const char* filename );
