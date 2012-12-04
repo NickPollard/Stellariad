@@ -162,6 +162,10 @@ mesh* model_getMesh(model* m, int i) {
 	return m->meshes[i];
 }
 
+void model_addMesh( model* m, mesh* msh ) {
+	m->meshes[m->meshCount++] = msh;
+}
+
 // Draw each submesh of a model
 void model_draw( model* m ) {
 	glDepthMask( GL_TRUE );

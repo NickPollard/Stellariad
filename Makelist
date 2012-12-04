@@ -41,6 +41,7 @@ SRCS =	src/camera.c \
 		src/render/shader.c \
 		src/render/texture.c \
 		src/script/lisp.c \
+		src/script/sexpr.c \
 		src/system/file.c \
 		src/system/hash.c \
 		src/system/inputstream.c \

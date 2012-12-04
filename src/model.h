@@ -90,6 +90,8 @@ model* model_createTestCube( );
 // Create an empty model with meshCount submeshes
 model* model_createModel(int meshCount);
 
+void model_addMesh( model* m, mesh* msh );
+
 // Add a transform to the model
 void model_addTransform( model* m, transform* t );
 // Add a particle emitter to the model
