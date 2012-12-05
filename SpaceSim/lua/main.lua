@@ -97,6 +97,25 @@ function gameobject_create( model_file )
 	return g
 end
 
+function gameobject_createAt( model_file, matrix )
+	local g = {}
+	g.model = vcreateModelInstance( model_file )
+	g.physic = vcreatePhysic()
+	g.transform = vcreateTransform()
+	vtransform_setWorldSpaceByMatrix( g.transform, matrix )
+	g.body = vcreateBodySphere( g )
+	--g.body = vcreateBodyMesh( g, g.model )
+	vmodel_setTransform( g.model, g.transform )
+	vphysic_setTransform( g.physic, g.transform )
+	vbody_setTransform( g.body, g.transform )
+	vscene_addModel( scene, g.model )
+	vphysic_activate( engine, g.physic )
+	v = Vector( 0.0, 0.0, 0.0, 0.0 )
+	vphysic_setVelocity( g.physic, v )
+
+	return g
+end
+
 function gameobject_destroy( g )
 	inTime( 0.2, function() gameobject_delete( g ) end )
 
@@ -179,31 +198,20 @@ function setCollision_enemyBullet( object )
 end
 
 function create_projectile( source, offset, model, speed ) 
+	-- Position it at the correct muzzle position and rotation
+	local muzzle_world_pos = vtransformVector( source.transform, offset )
+	local muzzle_matrix = vtransformWorldMatrix( source.transform )
+	vmatrix_setTranslation ( muzzle_matrix, muzzle_world_pos )
+
+	--vtransform_setWorldSpaceByMatrix( projectile.transform, muzzle_matrix )
 	-- Create a new Projectile
-	--local projectile = gameobject_create( model )
-	---[[
-	local projectile = {}
-	projectile.transform = vcreateTransform()
-
-	projectile.model = vcreateModelInstance( "dat/model/bullet_player.s" )
-	vmodel_setTransform( projectile.model, projectile.transform )
-	vscene_addModel( scene, projectile.model )
-
-	projectile.physic = vcreatePhysic()
-	vphysic_setTransform( projectile.physic, projectile.transform )
-	projectile.body = vcreateBodySphere( projectile )
-	vbody_setTransform( projectile.body, projectile.transform )
-	v = Vector( 0.0, 0.0, 0.0, 0.0 )
-	vphysic_setVelocity( projectile.physic, v )
-	vphysic_activate( engine, projectile.physic )
-	--]]
+	local projectile = gameobject_createAt( model, muzzle_matrix )
 	
 	projectile.tick = nil
 
-	-- Position it at the correct muzzle position and rotation
-	local muzzle_world_pos = vtransformVector( source.transform, offset )
-	vtransform_setWorldSpaceByTransform( projectile.transform, source.transform )
-	vtransform_setWorldPosition( projectile.transform, muzzle_world_pos )
+
+	--vtransform_setWorldSpaceByTransform( projectile.transform, source.transform )
+	--vtransform_setWorldPosition( projectile.transform, muzzle_world_pos )
 
 	-- Apply initial velocity
 	local source_velocity = Vector( 0.0, 0.0, speed, 0.0 )
@@ -224,14 +232,14 @@ player_gunfire = {
 }
 
 player_missile = { 
-	model = "dat/model/missile.s",
+	model = "dat/model/bullet_player.s",
  	particle = "dat/script/lisp/red_bullet.s",
 	speed = 100.0,
 	collisionType = "player"
 }
 
 enemy_gunfire = { 
-	model = "dat/model/missile.s",
+	model = "dat/model/bullet_player.s",
  	particle = "dat/vfx/particles/bullet.s",
 	speed = 150.0,
 	collisionType = "enemy"

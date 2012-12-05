@@ -10,12 +10,15 @@
 #include "system/file.h"
 #include "system/string.h"
 
-#define MAX_LUA_VECTORS 64
-vector lua_vectors[MAX_LUA_VECTORS];
+#define kLuaMaxVectors 64
+vector lua_vectors[kLuaMaxVectors];
 int lua_vector_count = 0;
-#define MAX_LUA_QUATERNIONS 64
-quaternion lua_quaternions[MAX_LUA_QUATERNIONS];
+#define kLuaMaxQuaternions 64
+quaternion lua_quaternions[kLuaMaxQuaternions];
 int lua_quaternion_count = 0;
+#define kLuaMaxMatrices 64
+matrix lua_matrices[kLuaMaxMatrices];
+int lua_matrix_count = 0;
 
 const char* game_lua_path = NULL;
 
@@ -129,17 +132,25 @@ vector lua_tovector3( lua_State* l, int i ) {
 }
 
 vector* lua_createVector( ) {
-	if ( !(lua_vector_count < 64) )
+	if ( !(lua_vector_count < kLuaMaxVectors) )
 		lua_vector_count = 0;
-	assert( lua_vector_count < 64 );
+	assert( lua_vector_count < kLuaMaxVectors );
 	vector* v = &lua_vectors[lua_vector_count++];
 	return v;
 }
 
+matrix* lua_createMatrix() {
+	if ( lua_matrix_count >= kLuaMaxMatrices )
+		lua_matrix_count = 0;
+	vAssert( lua_matrix_count < kLuaMaxMatrices );
+	matrix* m = &lua_matrices[lua_matrix_count++];
+	return m;
+}
+
 quaternion* lua_createQuaternion( ) {
-	if ( !(lua_quaternion_count < 64) )
+	if ( !(lua_quaternion_count < kLuaMaxQuaternions) )
 		lua_quaternion_count = 0;
-	assert( lua_quaternion_count < 64 );
+	assert( lua_quaternion_count < kLuaMaxQuaternions );
 	quaternion* q = &lua_quaternions[lua_quaternion_count++];
 	return q;
 }

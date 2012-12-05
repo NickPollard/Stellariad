@@ -578,6 +578,13 @@ int LUA_transform_setRotation( lua_State* l ) {
 	return 0;
 }
 
+int LUA_transform_setWorldSpaceByMatrix( lua_State* l ) {
+	transform* t = lua_toptr( l, 1 );
+	matrix* m = lua_toptr( l, 2 );
+	transform_setWorldSpace( t, *m );
+	return 0;
+}
+
 int LUA_transform_facingWorld( lua_State* l ) {
 	transform* t = lua_toptr( l, 1 );
 	const vector* look_at = lua_toptr( l, 2 );
@@ -760,6 +767,23 @@ int LUA_vector_scale( lua_State* l ) {
 	return 1;
 }
 
+// *** Matrix
+
+int LUA_transformWorldMatrix( lua_State* l ) {
+	matrix* m = lua_createMatrix();
+	transform* t = lua_toptr( l, 1 );
+	matrix_cpy( *m, t->world );
+	lua_pushptr( l, m );
+	return 1;
+}
+
+int LUA_matrix_setTranslation( lua_State* l ) {
+	matrix* m = lua_toptr( l, 1 );
+	vector* v = lua_toptr( l, 2 );
+	matrix_setTranslation( *m, v );
+	return 0;
+}
+
 // *** Quaternions
 
 int LUA_quaternion_fromTransform( lua_State* l ) {
@@ -895,6 +919,10 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_vector_normalize, "vvector_normalize" );
 	lua_registerFunction( l, LUA_vector_scale, "vvector_scale" );
 
+	// *** Matrix
+	lua_registerFunction( l, LUA_transformWorldMatrix, "vtransformWorldMatrix" );
+	lua_registerFunction( l, LUA_matrix_setTranslation, "vmatrix_setTranslation" );
+
 	// *** Quaternion
 	lua_registerFunction( l, LUA_quaternion_fromTransform, "vquaternion_fromTransform" );
 	lua_registerFunction( l, LUA_quaternion_look, "vquaternion_look" );
@@ -912,6 +940,7 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_touchPadDragged, "vtouchPadDragged" );
 	lua_registerFunction( l, LUA_createGesture, "vgesture_create" );
 	lua_registerFunction( l, LUA_gesture_performed, "vgesture_performed" );
+
 	// *** Scene
 	lua_registerFunction( l, LUA_createModelInstance, "vcreateModelInstance" );
 	lua_registerFunction( l, LUA_modelPreload, "vmodel_preload" );
@@ -944,6 +973,7 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_transform_eulerAngles, "vtransform_eulerAngles" );
 	lua_registerFunction( l, LUA_transform_distance, "vtransform_distance" );
 	lua_registerFunction( l, LUA_transform_setRotation, "vtransform_setRotation" );
+	lua_registerFunction( l, LUA_transform_setWorldSpaceByMatrix, "vtransform_setWorldSpaceByMatrix" );
 
 	// *** Particles
 	lua_registerFunction( l, LUA_particle_create, "vparticle_create" );

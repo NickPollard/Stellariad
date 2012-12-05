@@ -18,6 +18,8 @@ ribbonEmitter* ribbonEmitter_create() {
 	r->diffuse = texture_load( "dat/img/star_rgba64.tga" );
 	//r->diffuse = texture_load( "dat/img/vitae_sky2_export_flattened.tga" );
 
+	r->pair_count = 0;
+
 	r->begin	= Vector( 0.5f, 0.f, 0.f, 1.f );
 	r->end		= Vector( -0.5f, 0.f, 0.f, 1.f );
 
@@ -27,6 +29,7 @@ ribbonEmitter* ribbonEmitter_create() {
 void ribbonEmitter_tick( void* emitter_void, float dt, engine* eng ) {
 	(void)dt; (void)eng;
 	ribbonEmitter* r = emitter_void;
+
 	// Emit a new ribbon vertex pair
 	int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
 	vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );

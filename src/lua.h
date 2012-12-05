@@ -1,5 +1,7 @@
 #pragma once
 
+#include "maths/mathstypes.h"
+
 // Lua Libraries
 #include <lauxlib.h>
 #include <lualib.h>
@@ -83,6 +85,7 @@ int lua_store( lua_State* l );
 void* lua_toptr( lua_State* l, int index );
 void lua_assertnumber( lua_State* l, int index );
 vector* lua_createVector( );
+matrix* lua_createMatrix();
 quaternion* lua_createQuaternion( );
 void lua_setConstant_bool( lua_State* l, const char* name, bool b );
 
