@@ -14,7 +14,7 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * math.pi
 
 -- Debug settings
-	debug_spawning_enabled	= true
+	debug_spawning_enabled	= false
 	debug_doodads_enabled	= true
 
 -- Load Modules
@@ -341,39 +341,6 @@ function playership_create()
 	return p
 end
 
-function playership_addEngineGlows( p )
-	local engine_trail = "dat/script/lisp/engine_trail.s"
-	local engine_glow = "dat/script/lisp/engine_glow.s"
-
-	local t_a = vcreateTransform( p.transform )
-	local offset = Vector( 4.5, -0.1, -1.2, 0.0 )
-	vtransform_setLocalPosition( t_a, offset )
-	
-	local t_b = vcreateTransform( p.transform )
-	local offset = Vector( -4.5, -0.1, -1.2, 0.0 )
-	vtransform_setLocalPosition( t_b, offset )
-	
-	local t_c = vcreateTransform( p.transform )
-	local offset = Vector( 0.2, 0.7, -1.9, 0.0 )
-	vtransform_setLocalPosition( t_c, offset )
-	
-	local t_d = vcreateTransform( p.transform )
-	local offset = Vector( -0.2, 0.7, -1.9, 0.0 )
-	vtransform_setLocalPosition( t_d, offset )
-
-	p.engine_trail_a = vparticle_create( engine, t_a, engine_trail )
-	p.engine_trail_b = vparticle_create( engine, t_b, engine_trail )
-	p.engine_trail_c = vparticle_create( engine, t_c, engine_trail )
-	p.engine_trail_d = vparticle_create( engine, t_d, engine_trail )
-	p.engine_glow_a = vparticle_create( engine, t_a, engine_glow )
-	p.engine_glow_b = vparticle_create( engine, t_b, engine_glow )
-	p.engine_glow_c = vparticle_create( engine, t_c, engine_glow )
-	p.engine_glow_d = vparticle_create( engine, t_d, engine_glow )
-
-	p.engine_trail_ribbon = vribbon_create( engine, t_a )
-	p.engine_trail_ribbon = vribbon_create( engine, t_b )
-end
-
 starting = true
 
 -- Set up the Lua State
@@ -452,16 +419,6 @@ function player_ship_collisionHandler( ship, collider )
 							ship.physic = nil
 				end )
 	vdestroyBody( ship.body )
-
-	-- destroy engine glows
-	vparticle_destroy( ship.engine_glow_a )
-	vparticle_destroy( ship.engine_glow_b )
-	vparticle_destroy( ship.engine_glow_c )
-	vparticle_destroy( ship.engine_glow_d )
-	vparticle_destroy( ship.engine_trail_a )
-	vparticle_destroy( ship.engine_trail_b )
-	vparticle_destroy( ship.engine_trail_c )
-	vparticle_destroy( ship.engine_trail_d )
 
 	-- queue a restart
 	inTime( 2.0, function ()

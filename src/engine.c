@@ -13,6 +13,7 @@
 #include "maths/maths.h"
 #include "model.h"
 #include "particle.h"
+#include "ribbon.h"
 #include "scene.h"
 #include "skybox.h"
 #include "transform.h"
@@ -143,7 +144,7 @@ void engine_tick( engine* e ) {
 	time += dt;
 	time = time / 10.f;
 
-	//printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
+	printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
 
 	debugdraw_preTick( dt );
 	lua_preTick( e->lua, dt );
@@ -262,6 +263,7 @@ void engine_init(engine* e, int argc, char** argv) {
 
 	// *** Start up Core Systems
 	particle_init();
+	ribbonEmitter_staticInit();
 	//font_init();
 
 	// *** Initialise Lua
@@ -272,7 +274,7 @@ void engine_init(engine* e, int argc, char** argv) {
 	canyon_staticInit();
 	canyon_generateInitialPoints();
 
-#define kNumWorkerThreads 1
+#define kNumWorkerThreads 2
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
 		vthread_create( worker_threadFunc, NULL );
 	}

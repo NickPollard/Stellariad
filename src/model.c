@@ -153,7 +153,7 @@ void mesh_render( mesh* m ) {
 		drawCall* draw = drawCall_create( &renderPass_main, m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
-		(void)draw;
+		//drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 	}
 }
 

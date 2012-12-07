@@ -22,11 +22,11 @@ typedef struct particle_s {
 	float rotation;
 } particle;
 
-typedef struct property_s {
+struct property_s {
 	int count;
 	int stride;
 	float* data;
-} property;
+};
 
 typedef uint8_t particle_flags_t;
 
@@ -75,10 +75,13 @@ void particleEmitter_delete( particleEmitter* e );
 particleEmitterDef* particle_loadAsset( const char* particle_file );
 
 property* property_create( int stride );
+void property_delete( property* p );
 property* property_copy( property* p );
 void property_addf( property* p, float time, float value );
 void property_addfv( property* p, float time, float* values );
 void property_addv( property* p, float time, vector value );
+vector property_samplev( property* p, float time );
+float property_samplef( property* p, float time );
 
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 void particleEmitter_assertActive( particleEmitter* e );

@@ -55,6 +55,8 @@ void sexpr_formatSpacing( char* buffer, int depth ) {
 }
 
 sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
+	char spacing[256];
+	sexpr_formatSpacing( spacing, depth );
 	if ( inputStream_endOfFile( stream )) {
 		printf( "ERROR: End of file reached during sexpr parse, with incorrect number of closing parentheses.\n" );
 		vAssert( 0 );
@@ -71,9 +73,7 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 		inputStream_freeToken( stream, token ); // It's a bracket, discard it
 		token = sexpr_nextToken( stream );
 		sexpr* parent = sexpr_create( sexprTypeAtom, (void*)string_createCopy( token ));
-		char spacing[256];
-		sexpr_formatSpacing( spacing, depth );
-		printf( "Sexpr parse: %s%s\n", spacing, token );
+		//printf( "Sexpr parse: %s%s\n", spacing, token );
 		parent->child = NULL;
 		sexpr* last_child = NULL;
 		sexpr* child = sexpr_parseStream( stream, depth + 2 );
@@ -91,47 +91,18 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 	}
 	else if ( token_isString( token )) {
 		// When it's an atom, we keep the token, don't free it
-		char spacing[256];
-		sexpr_formatSpacing( spacing, depth );
-		printf( "Adding child %s%s\n", spacing, token );
+		//printf( "Adding child %s%s\n", spacing, token );
 		return sexpr_create( sexprTypeString, (void*)sstring_create( token ));
 	}
 	else if ( token_isFloat( token )) {
+		//printf( "Adding child %s%2f (float )\n", spacing, strtof( token, NULL ));
 		return sexpr_createFloat( strtof( token, NULL ));
 	}
 	else {
 		// When it's an atom, we keep the token, don't free it
-		char spacing[256];
-		sexpr_formatSpacing( spacing, depth );
-		printf( "Adding child %s%s\n", spacing, token );
+		//printf( "Adding child %s%s\n", spacing, token );
 		return sexpr_create( sexprTypeAtom, (void*)string_createCopy( token ));
 	}
-
-		
-		
-		
-		
-	/*
-		
-
-		sexpr* list = sexpr_create( typeList, sexpr_parse( stream ));
-		sexpr* s = list;
-
-		if ( !s->head ) { // The Empty list () 
-			return list;
-		}
-
-		while ( true ) {
-			sexpr* sub_expr = sexpr_parse( stream );				// parse a subexpr
-			if ( sub_expr ) {								// If a valid return
-				s->tail = sexpr_create( typeList, sub_expr );	// Add it to the tail
-				s = s->tail;
-			} else {
-				return list;
-			}
-		}
-	}
-	*/
 }
 
 sexpr* sexpr_parse( const char* string ) {
@@ -210,7 +181,6 @@ vector sexpr_loadVector( sexpr* s ) {
 }
 
 particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
-	printf( "Sexpr Loading particle emitter.\n" );
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
 	if ( fileterm ) {
 		vAssert( fileterm->child );
@@ -225,18 +195,54 @@ particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
 ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
 	(void)s;
 	printf( "Sexpr Loading ribbon emitter.\n" );
-	/*
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
 	if ( fileterm ) {
 		vAssert( fileterm->child );
 		const char* filename = fileterm->child->value;
-		particleEmitterDef* def = particle_loadAsset( filename );
-		particleEmitter* emitter = particle_newEmitter( def );
+		ribbonEmitter* emitter = ribbon_loadAsset( filename );
 		return emitter;
 	}
+	vAssert( 0 );
 	return NULL;
-	*/
-	return ribbonEmitter_create();
+}
+
+property* sexpr_loadVectorProperty( sexpr* s ) {
+	property* p = property_create( 5 );
+	sexpr* child = s->child;
+	while ( child ) {
+		vAssert( sexpr_named( "property_key", child ));
+		vAssert( child->child );
+		vAssert( child->child->type == sexprTypeFloat );
+		float time = child->child->number_value;
+		vector v = sexpr_loadVector( child->child->next );
+		vector_print( &v );
+		printf ( "\n" );
+		property_addfv( p, time, (float*)&v );
+		child = child->next;
+	}
+	return p;
+}
+
+ribbonEmitter* sexpr_loadRibbonEmitterDef( sexpr* s ) {
+	(void)s;
+	printf( "Sexpr Loading ribbon emitter def.\n" );
+	ribbonEmitter* emitter = ribbonEmitter_create();
+	sexpr* color_term = sexpr_findChildNamed( "color", s );
+	if ( color_term ) {
+		sexpr* property_term = sexpr_findChildNamed( "vector_property", color_term );
+		property* color = sexpr_loadVectorProperty( property_term );
+		ribbonEmitter_setColor( emitter, color );
+	}
+	
+	sexpr* diffuse_term = sexpr_findChildNamed( "diffuse_texture", s );
+	if ( diffuse_term ) {
+		const char* texture_path = diffuse_term->child->value;
+		textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+		properties->wrap_s = GL_CLAMP_TO_EDGE;
+		properties->wrap_t = GL_CLAMP_TO_EDGE;
+		emitter->diffuse = texture_loadWithProperties( texture_path, properties );
+	}
+	return emitter;
 }
 
 transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
@@ -261,7 +267,7 @@ transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 		}
 		
 		if ( sexpr_named( "ribbonEmitter", child ) ) {
-			ribbonEmitter* emitter =  sexpr_loadRibbonEmitter( child );
+			ribbonEmitter* emitter = sexpr_loadRibbonEmitter( child );
 			model_addRibbonEmitter( m, emitter );
 			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
 		}
@@ -275,7 +281,6 @@ transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 model* sexpr_loadModel( sexpr* s ) {
 	int mesh_index = 0;
 	int mesh_count = sexpr_countChildrenByType( s, "mesh" );
-	printf( "SEXPR: Creating model with %d meshes.\n", mesh_count );
 	model* m = model_createModel( mesh_count );
 	sexpr* child = s->child;
 	while ( child ) {
@@ -295,6 +300,9 @@ model* sexpr_loadModel( sexpr* s ) {
 void* sexpr_load( sexpr* s ) {
 	if ( sexpr_named( "model", s )) {
 		return sexpr_loadModel( s );
+	}
+	if ( sexpr_named( "ribbonEmitterDef", s )) {
+		return sexpr_loadRibbonEmitterDef( s );
 	}
 	return NULL;
 }

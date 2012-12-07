@@ -26,6 +26,8 @@ float sun_fog( vec4 local_sun_dir, vec4 fragment_position ) {
 void main() {
 	// light-invariant calculations
 	vec4 material_diffuse = texture2D( tex, texcoord );
+	gl_FragColor = material_diffuse;
+	/*
 
 	// color = top * blue
 	// then blend in cloud (white * green, blend alpha )
@@ -42,5 +44,6 @@ void main() {
 	vec4 local_fog_color = fog_color + (sun_color * fog_sun_factor);
 	
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
+	*/
 }
 

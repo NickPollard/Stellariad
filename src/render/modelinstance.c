@@ -69,6 +69,8 @@ void modelInstance_createSubRibbonEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->ribbon_emitter_count; i++ ) {
 		instance->ribbon_emitters[i] = ribbonEmitter_create();
+		ribbonEmitter_setColor( instance->ribbon_emitters[i], m->ribbon_emitters[i]->color );
+		instance->ribbon_emitters[i]->diffuse = m->ribbon_emitters[i]->diffuse;
 
 		// Take parent transform if in model
 		// This is stored as an index rather than a pointer

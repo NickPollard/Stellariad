@@ -266,6 +266,10 @@ property* property_create( int stride ) {
 	return p;
 }
 
+void property_delete( property* p ) {
+	mem_free ( p );
+}
+
 property* property_copy( property* p ) {
 	//printf( "Copying property with stride %d\n", p->stride );
 	property* p_copy = property_create( p->stride );

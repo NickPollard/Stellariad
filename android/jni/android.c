@@ -30,7 +30,7 @@ void runTests() {
 	test_hash();
 
 	// System Tests
-	test_lisp();
+	//test_lisp();
 
 	test_maths();
 

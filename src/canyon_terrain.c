@@ -148,6 +148,8 @@ void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
 
 		draw->vertex_VBO = *b->vertex_VBO;
 		draw->element_VBO = *b->element_VBO;
+
+		//drawCall_create( &renderPass_depth, resources.shader_depth, b->element_count_render, b->element_buffer, b->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
 	}
 }
 
@@ -935,6 +937,6 @@ void canyonTerrainBlock_calculateCollision( canyonTerrainBlock* b ) {
 	shape* s = shape_heightField_create( h );
 	b->collision = body_create( s, transform_create());
 	b->collision->layers |= kCollisionLayerTerrain;
-	b->collision->collide_with |= kCollisionLayerPlayer;
+	//b->collision->collide_with |= kCollisionLayerPlayer;
 	collision_addBody( b->collision );
 }

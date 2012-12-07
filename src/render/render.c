@@ -402,6 +402,7 @@ void renderPass_clearBuffers( renderPass* pass ) {
 
 void render_clearCallBuffer( ) {
 	renderPass_clearBuffers( &renderPass_main );
+	renderPass_clearBuffers( &renderPass_depth );
 	renderPass_clearBuffers( &renderPass_alpha );
 	renderPass_clearBuffers( &renderPass_debug );
 }
@@ -763,6 +764,7 @@ void render_drawBatch( drawCall* draw ) {
 		if ( *resources.uniforms.tex_d ) {
 			render_setUniform_texture( *resources.uniforms.tex_d,		draw->texture_d );
 		}
+		/*
 		if ( *resources.uniforms.tex_normal ) {
 			render_setUniform_texture( *resources.uniforms.tex_normal,		draw->texture_normal );
 		}
@@ -772,6 +774,7 @@ void render_drawBatch( drawCall* draw ) {
 		if ( *resources.uniforms.tex_lookup ) {
 			render_setUniform_texture( *resources.uniforms.tex_lookup,		draw->texture_lookup );
 		}
+		*/
 		render_setUniform_matrix( *resources.uniforms.modelview,	draw->modelview );
 		render_drawCall_draw( draw );
 	}
@@ -817,12 +820,14 @@ void render_draw( window* w, engine* e ) {
 	render_set3D( w->width, w->height );
 	render_clear();
 	
+	/*
 	memcpy( &renderPass_depth, &renderPass_main, sizeof( renderPass ));
 	for ( int i = 0; i < kCallBufferCount; ++i ) {
 		for ( int j = 0; j < kMaxDrawCalls; ++j ) {
 			renderPass_depth.call_buffer[i][j].vitae_shader = resources.shader_depth;
 		}
 	}
+	*/
 
 	glEnable( GL_DEPTH_TEST );
 	glDisable( GL_BLEND );
