@@ -65,6 +65,7 @@ struct engine_s {
 	luaCallback* onTick;			//!< OnTick event handler
 
 	delegatelist* tickers;	
+	delegatelist* post_tickers;	
 	delegatelist* renders;
 	delegatelist* inputs;
 

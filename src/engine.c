@@ -55,7 +55,6 @@ xwindow xwindow_main = { NULL, 0x0, false };
 void engine_tickTickers( engine* e, float dt );
 void engine_renderRenders( engine* e );
 void engine_inputInputs( engine* e );
-void engine_addTicker( engine* e, void* entity, tickfunc tick );
 
 /*
  *
@@ -64,15 +63,7 @@ void engine_addTicker( engine* e, void* entity, tickfunc tick );
  */
 
 void test_engine_init( engine* e ) {
-#if 0
-	debugtextframe* f = debugtextframe_create( 10.f, 10.f, 20.f );
-	engine_addTicker( e, (void*)f, debugtextframe_tick );
-	engine_addRender( e, (void*)f, debugtextframe_render );
-	e->debugtext = f;
-#endif
-	
 	theScene = test_scene_init( e );
-//	theScene->debugtext = e->debugtext;
 	lua_setScene( e->lua, theScene );
 
 	{
@@ -173,7 +164,8 @@ void engine_tick( engine* e ) {
 	collision_queueWorkerTick( e->frame_counter+1, dt );
 
 	engine_tickTickers( e, dt );
-	
+	//engine_tickPostTickers( e, dt );
+
 	// This happens last, as transform concatenation needs to take into account every other input
 	scene_tick( theScene, dt );
 	
@@ -440,14 +432,22 @@ void engine_run(engine* e) {
 #endif
 }
 
-// Run through all the delegates, ticking each of them
-void engine_tickTickers( engine* e, float dt ) {
-	delegatelist* d = e->tickers;
+void engine_tickDelegateList( delegatelist* d, engine* e, float dt ) {
 	while (d != NULL) {
 		assert( d->head );	// Should never be NULL heads
 		delegate_tick( d->head, dt, e ); // tick the whole of this delegate
 		d = d->tail;
 	}
+}
+
+// Run through all the delegates, ticking each of them
+void engine_tickTickers( engine* e, float dt ) {
+	engine_tickDelegateList( e->tickers, e, dt );
+}
+
+// Run through all the post-tick delegates, ticking each of them
+void engine_tickPostTickers( engine* e, float dt ) {
+	engine_tickDelegateList( e->post_tickers, e, dt );
 }
 
 void engine_renderRenders( engine* e ) {
@@ -526,14 +526,14 @@ delegate* engine_addInputDelegate( engine* e, inputfunc in ) {
 	return engine_addDelegate( &e->inputs, in );
 }
 
-// Look for a delegate of the right type to add this entity too
-// If one is not found, create one
-void engine_addTicker( engine* e, void* entity, tickfunc tick ) {
-	delegate* d = engine_findTickDelegate( e, tick );
+void engine_addTicker( delegatelist* d_list, void* entity, tickfunc tick ) {
+	delegate* d = engine_findDelegate( d_list, tick );
 	if ( !d )
-		d = engine_addTickDelegate( e, tick );
+		d = engine_addDelegate( &d_list, tick );
 	delegate_add( d, entity);
 }
+// Look for a delegate of the right type to add this entity too
+// If one is not found, create one
 
 void engine_removeDelegateEntry( delegatelist* d, void* entity, void* delegate_func ) {
 	delegatelist* d_list = d;
@@ -546,8 +546,13 @@ void engine_removeDelegateEntry( delegatelist* d, void* entity, void* delegate_f
 }
 
 void startTick( engine* e, void* entity, tickfunc tick ) {
-	engine_addTicker( e, entity, tick );
+	engine_addTicker( e->tickers, entity, tick );
 }
+
+void startPostTick( engine* e, void* entity, tickfunc tick ) {
+	engine_addTicker( e->post_tickers, entity, tick );
+}
+
 void stopTick( engine* e, void* entity, tickfunc tick ) {
 	engine_removeDelegateEntry( e->tickers, entity, tick );
 }
