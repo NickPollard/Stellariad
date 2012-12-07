@@ -32,7 +32,6 @@ ribbonEmitter* ribbonEmitter_create() {
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	(void)dt; (void)eng; (void)emitter;
-	/*
 	ribbonEmitter* r = emitter;
 
 	transform_concatenate( r->trans );
@@ -51,10 +50,9 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	else {
 		++r->pair_first;
 	}
-	*/
 
 	// Build render arrays
-	//r->render_pair_count = 0;
+	r->render_pair_count = 0;
 	/*
 	float max_time = 1.f;
 	for ( int i = 0; i < r->pair_count; ++i ) {
@@ -65,7 +63,7 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 		}
 	}
 	*/
-#if 0
+#if 1
 	r->render_pair_count = r->pair_count;
 
 	int j = 0;
@@ -77,14 +75,14 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 		//if ( r->vertex_ages[real_index] < max_time ) {
 			r->vertex_buffer[j*2+0].position = r->vertex_array[real_index][0];
 			r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
-			//r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
-			r->vertex_buffer[j*2+0].color = color_green;
+			r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
+			//r->vertex_buffer[j*2+0].color = color_green;
 			r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
 			r->vertex_buffer[j*2+1].position = r->vertex_array[real_index][1];
 			r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
-			//r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
-			r->vertex_buffer[j*2+1].color = color_green;
+			r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
+			//r->vertex_buffer[j*2+1].color = color_green;
 			r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
 			v += v_delta;
@@ -122,74 +120,20 @@ void ribbonEmitter_staticInit() {
 
 void ribbonEmitter_render( void* emitter ) {
 	ribbonEmitter* r = emitter;
-	//transform_concatenate( r->trans );
-
-	// Emit a new ribbon vertex pair
-	int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
-	vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );
-
-	r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->begin );
-	r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->end );
-	r->vertex_ages[vertex_last] = 0.f;
-
-	if ( r->pair_count < kMaxRibbonPairs ) {
-		++r->pair_count;
+	
+	if ( billboard ) {
+		// for each position (we only store the centre)
+		// create a matrix (that's the position, use the 
 	}
 	else {
-		++r->pair_first;
-	}
-
-
-	// Build render arrays
-	r->render_pair_count = 0;
-	/*
-	float max_time = 1.f;
-	for ( int i = 0; i < r->pair_count; ++i ) {
-		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-		r->vertex_ages[real_index] += dt;
-		if ( r->vertex_ages[real_index] < max_time ) {
-			++r->render_pair_count;
+		// Reset modelview; our positions are in world space
+		render_resetModelView();
+		int index_count = ( r->render_pair_count - 1 ) * 12; // 6 if single-sided
+		if ( r->diffuse->gl_tex && r->render_pair_count > 1 ) {
+			drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
+					r->diffuse->gl_tex, modelview );
+			draw->depth_mask = GL_FALSE;
 		}
-	}
-	*/
-	r->render_pair_count = r->pair_count;
-
-	int j = 0;
-	float v = 0.f;
-	float v_delta = 1.f / (float)( r->render_pair_count - 1 );
-	for ( int i = 0; i < r->pair_count; ++i ) {
-		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-
-		//if ( r->vertex_ages[real_index] < max_time ) {
-			r->vertex_buffer[j*2+0].position = r->vertex_array[real_index][0];
-			r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
-			//r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
-			r->vertex_buffer[j*2+0].color = color_green;
-			r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
-
-			r->vertex_buffer[j*2+1].position = r->vertex_array[real_index][1];
-			r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
-			//r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
-			r->vertex_buffer[j*2+1].color = color_green;
-			r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
-
-			v += v_delta;
-			++j;
-			/*
-		}
-		else {
-			continue;
-		}
-		*/
-	}
-
-	// Reset modelview; our positions are in world space
-	render_resetModelView();
-	int index_count = ( r->render_pair_count - 1 ) * 12; // 6 if single-sided
-	if ( r->diffuse->gl_tex && r->render_pair_count > 1 ) {
-		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
-				r->diffuse->gl_tex, modelview );
-		draw->depth_mask = GL_FALSE;
 	}
 }
 

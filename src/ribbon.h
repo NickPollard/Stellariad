@@ -3,7 +3,7 @@
 #include "maths/vector.h"
 #include "render/vgl.h"
 
-#define kMaxRibbonPairs 2
+#define kMaxRibbonPairs 32
 
 struct ribbonEmitter_s { 
 	transform*	trans;

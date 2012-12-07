@@ -125,6 +125,7 @@ void engine_handleKeyPress(engine* e, uchar key, int x, int y);
 // Look for a delegate of the right type to add this entity too
 // If one is not found, create one
 void startTick( engine* e, void* entity, tickfunc tick );
+void startPostTick( engine* e, void* entity, tickfunc tick );
 
 void startInput( engine* e, void* entity, inputfunc input );
 

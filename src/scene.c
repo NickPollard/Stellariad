@@ -67,7 +67,7 @@ void scene_addModel( scene* s, modelInstance* instance ) {
 		// If the scene is active, activate components immediately
 		if ( s->eng ) {
 			engine_addRender( s->eng, instance->emitters[i], particleEmitter_render );
-			startTick( s->eng, instance->emitters[i], particleEmitter_tick );
+			startPostTick( s->eng, instance->emitters[i], particleEmitter_tick );
 		}
 	}
 	for ( int i = 0; i < instance->ribbon_emitter_count; i++ ) {
@@ -79,7 +79,7 @@ void scene_addModel( scene* s, modelInstance* instance ) {
 		transform_concatenate( instance->ribbon_emitters[i]->trans );
 		if ( s->eng ) {
 			engine_addRender( s->eng, instance->ribbon_emitters[i], ribbonEmitter_render );
-			startTick( s->eng, instance->ribbon_emitters[i], ribbonEmitter_tick );
+			startPostTick( s->eng, instance->ribbon_emitters[i], ribbonEmitter_tick );
 		}
 	}
 }

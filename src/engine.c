@@ -53,6 +53,7 @@ xwindow xwindow_main = { NULL, 0x0, false };
 
 // Function Declarations
 void engine_tickTickers( engine* e, float dt );
+void engine_tickPostTickers( engine* e, float dt );
 void engine_renderRenders( engine* e );
 void engine_inputInputs( engine* e );
 
@@ -164,7 +165,8 @@ void engine_tick( engine* e ) {
 	collision_queueWorkerTick( e->frame_counter+1, dt );
 
 	engine_tickTickers( e, dt );
-	//engine_tickPostTickers( e, dt );
+
+	engine_tickPostTickers( e, dt );
 
 	// This happens last, as transform concatenation needs to take into account every other input
 	scene_tick( theScene, dt );
@@ -445,12 +447,10 @@ void engine_tickTickers( engine* e, float dt ) {
 	engine_tickDelegateList( e->tickers, e, dt );
 }
 
-/*
 // Run through all the post-tick delegates, ticking each of them
 void engine_tickPostTickers( engine* e, float dt ) {
 	engine_tickDelegateList( e->post_tickers, e, dt );
 }
-*/
 
 void engine_renderRenders( engine* e ) {
 	delegatelist* d = e->renders;
@@ -551,14 +551,16 @@ void startTick( engine* e, void* entity, tickfunc tick ) {
 	engine_addTicker( &e->tickers, entity, tick );
 }
 
-/*
 void startPostTick( engine* e, void* entity, tickfunc tick ) {
 	engine_addTicker( &e->post_tickers, entity, tick );
 }
-*/
 
 void stopTick( engine* e, void* entity, tickfunc tick ) {
 	engine_removeDelegateEntry( e->tickers, entity, tick );
+}
+
+void stopPostTick( engine* e, void* entity, tickfunc tick ) {
+	engine_removeDelegateEntry( e->post_tickers, entity, tick );
 }
 
 void startInput( engine* e, void* entity, inputfunc in ) {
