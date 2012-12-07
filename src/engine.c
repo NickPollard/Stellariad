@@ -445,10 +445,12 @@ void engine_tickTickers( engine* e, float dt ) {
 	engine_tickDelegateList( e->tickers, e, dt );
 }
 
+/*
 // Run through all the post-tick delegates, ticking each of them
 void engine_tickPostTickers( engine* e, float dt ) {
 	engine_tickDelegateList( e->post_tickers, e, dt );
 }
+*/
 
 void engine_renderRenders( engine* e ) {
 	delegatelist* d = e->renders;
@@ -526,10 +528,10 @@ delegate* engine_addInputDelegate( engine* e, inputfunc in ) {
 	return engine_addDelegate( &e->inputs, in );
 }
 
-void engine_addTicker( delegatelist* d_list, void* entity, tickfunc tick ) {
-	delegate* d = engine_findDelegate( d_list, tick );
+void engine_addTicker( delegatelist** d_list, void* entity, tickfunc tick ) {
+	delegate* d = engine_findDelegate( *d_list, tick );
 	if ( !d )
-		d = engine_addDelegate( &d_list, tick );
+		d = engine_addDelegate( d_list, tick );
 	delegate_add( d, entity);
 }
 // Look for a delegate of the right type to add this entity too
@@ -546,12 +548,14 @@ void engine_removeDelegateEntry( delegatelist* d, void* entity, void* delegate_f
 }
 
 void startTick( engine* e, void* entity, tickfunc tick ) {
-	engine_addTicker( e->tickers, entity, tick );
+	engine_addTicker( &e->tickers, entity, tick );
 }
 
+/*
 void startPostTick( engine* e, void* entity, tickfunc tick ) {
-	engine_addTicker( e->post_tickers, entity, tick );
+	engine_addTicker( &e->post_tickers, entity, tick );
 }
+*/
 
 void stopTick( engine* e, void* entity, tickfunc tick ) {
 	engine_removeDelegateEntry( e->tickers, entity, tick );
