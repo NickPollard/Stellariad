@@ -43,11 +43,8 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );
 
 	if ( r->billboard ) {
-		//r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
-		//r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
-		vector v = Vector( 0.f, 0.f, 0.f, 1.f );
-		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &v );
-		r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &v );
+		r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
+		r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
 	}
 	else {
 		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->begin );
@@ -73,15 +70,6 @@ void ribbonEmitter_staticInit() {
 			ribbon_element_buffer[i*12-9] = i * 2 + 1;
 			ribbon_element_buffer[i*12-8] = i * 2 + 0;
 			ribbon_element_buffer[i*12-7] = i * 2 - 1;
-
-			/*
-			ribbon_element_buffer[i*12-6] = i * 2 - 1;
-			ribbon_element_buffer[i*12-5] = i * 2 - 2;
-			ribbon_element_buffer[i*12-4] = i * 2 + 0;
-			ribbon_element_buffer[i*12-3] = i * 2 + 0;
-			ribbon_element_buffer[i*12-2] = i * 2 + 1;
-			ribbon_element_buffer[i*12-1] = i * 2 - 1;
-			*/
 		}
 	}
 }
@@ -118,7 +106,6 @@ void ribbonEmitter_render( void* emitter ) {
 		}
 		r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
 		r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
-		//r->vertex_buffer[j*2+0].color = color_green;
 		r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
 		if ( !r->billboard ) {
@@ -126,7 +113,6 @@ void ribbonEmitter_render( void* emitter ) {
 		}
 		r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
 		r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
-		//r->vertex_buffer[j*2+1].color = color_green;
 		r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
 		v += v_delta;
@@ -161,31 +147,7 @@ void ribbonEmitter_render( void* emitter ) {
 			vector normal = normalized( vector_cross( view_dir, ribbon_dir ));
 			r->vertex_buffer[i*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->radius ));
 			r->vertex_buffer[i*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));
-
-			/*
-			vector a = r->vertex_buffer[j*2+0].position;
-			vector b = vector_add ( a, vector_scaled( normal, -r->radius ));
-			debugdraw_line3d( a, b, color_blue );
-
-			a = r->vertex_buffer[j*2+1].position;
-			b = vector_add ( a, vector_scaled( normal, r->radius ));
-			debugdraw_line3d( a, b, color_green );
-			++j;
-			*/
 		}
-
-		/*
-		for ( int i = 1; i < kMaxRibbonPairs; ++i ) {
-			//int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-			int j = i;
-			vector a = r->vertex_buffer[j*2-2].position;
-			vector b = r->vertex_buffer[j*2+0].position;
-			debugdraw_line3d( a, b, color_red );
-			a = r->vertex_buffer[j*2-1].position;
-			b = r->vertex_buffer[j*2+1].position;
-			debugdraw_line3d( a, b, color_red );
-		}
-		*/
 	}
 
 	// Reset modelview; our positions are in world space
