@@ -185,6 +185,10 @@ const vector* transform_getWorldPosition( transform* t ) {
 	return matrix_getTranslation( t->world );
 }
 
+const vector* transform_worldTranslation( transform* t ) {
+	return matrix_getTranslation( t->world );
+}
+
 quaternion transform_getWorldRotation( transform* t ) {
 	return matrix_getRotation( t->world );
 }

@@ -63,6 +63,12 @@ void Cross(vector* dst, const vector* srcA, const vector* srcB) {
 	dst->coord.w = 0.f; // If we're getting the cross product, it's a vector not a point
 }
 
+vector vector_cross( vector a, vector b ) {
+	vector c;
+	Cross( &c, &a, &b );
+	return c;
+}
+
 vector vector_add( vector a, vector b ) {
 	vector r = Vector( a.coord.x + b.coord.x,
 						a.coord.y + b.coord.y,

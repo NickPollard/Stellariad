@@ -166,10 +166,10 @@ void engine_tick( engine* e ) {
 
 	engine_tickTickers( e, dt );
 
-	engine_tickPostTickers( e, dt );
-
 	// This happens last, as transform concatenation needs to take into account every other input
 	scene_tick( theScene, dt );
+	
+	engine_tickPostTickers( e, dt );
 	
 	//countVisibleParticleEmitters( e );
 	//countActiveParticleEmitters( e );

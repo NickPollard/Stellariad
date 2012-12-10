@@ -111,6 +111,7 @@ struct window_s {
 extern gl_resources resources;
 extern matrix modelview;
 extern matrix camera_inverse;
+extern matrix camera_mtx;
 extern matrix perspective;
 extern bool	render_initialised;
 extern vmutex	gl_mutex;

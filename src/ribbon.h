@@ -9,17 +9,18 @@ struct ribbonEmitter_s {
 	transform*	trans;
 	vector	begin;
 	vector	end;
+	float	radius;
 	vector	vertex_array[kMaxRibbonPairs][2];
 	float	vertex_ages[kMaxRibbonPairs];
 	int		render_pair_count;
 	int		pair_count;
 	int		pair_first;
+	bool	billboard;
 	texture*	diffuse;
 	property*	color;
 
 	// Render
 	vertex*		vertex_buffer;
-	//GLushort*	element_buffer;
 };
 
 void ribbonEmitter_staticInit();

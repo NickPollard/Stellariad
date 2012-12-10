@@ -42,7 +42,7 @@ bool	render_initialised = false;
 
 // *** Shader Pipeline
 
-matrix modelview, camera_inverse;
+matrix modelview, camera_mtx, camera_inverse;
 matrix perspective;
 vector viewspace_up;
 vector directional_light_direction;
@@ -632,6 +632,7 @@ void render( scene* s ) {
 	camera_calculateFrustum( cam, frustum );
 
 	render_validateMatrix( cam->trans->world );
+	matrix_cpy( camera_mtx, cam->trans->world );
 	matrix_inverse( camera_inverse, cam->trans->world );
 	render_resetModelView();
 	render_validateMatrix( modelview );

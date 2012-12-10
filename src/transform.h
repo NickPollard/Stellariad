@@ -53,6 +53,7 @@ void transform_printDebug( transform* t, debugtextframe* f );
 void transform_setWorldSpace( transform* t, matrix world );
 void transform_setWorldSpacePosition( transform* t, vector* position );
 const vector* transform_getWorldPosition( transform* t );
+const vector* transform_worldTranslation( transform* t );
 quaternion transform_getWorldRotation( transform* t );
 
 void transform_yaw( transform* t, float yaw );

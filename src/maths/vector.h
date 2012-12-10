@@ -25,6 +25,7 @@ float Dot( const vector* A, const vector* B );
 float Dot4( const vector* A, const vector* B );
 void Cross(vector* dst, const vector* srcA, const vector* srcB);
 
+vector vector_cross( vector a, vector b );
 vector vector_add( vector a, vector b );
 vector vector_sub( vector a, vector b );
 vector vector_scaled( vector a, float f );
