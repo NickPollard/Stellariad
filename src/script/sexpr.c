@@ -242,6 +242,16 @@ ribbonEmitter* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 		properties->wrap_t = GL_CLAMP_TO_EDGE;
 		emitter->diffuse = texture_loadWithProperties( texture_path, properties );
 	}
+
+	sexpr* radius_term = sexpr_findChildNamed( "radius", s );
+	if ( radius_term ) {
+		emitter->radius = radius_term->child->number_value;
+	}
+
+	sexpr* lifetime_term = sexpr_findChildNamed( "lifetime", s );
+	if ( lifetime_term ) {
+		emitter->lifetime = lifetime_term->child->number_value;
+	}
 	return emitter;
 }
 

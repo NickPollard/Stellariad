@@ -30,8 +30,16 @@ ribbonEmitter* ribbonEmitter_create() {
 
 	r->billboard = true;
 	r->radius = 0.5f;
+	r->lifetime = 1.f;
 
 	return r;
+}
+
+void ribbonEmitter_tickTimes( ribbonEmitter* r, float dt ) {
+	for ( int i = 0; i < r->pair_count; ++i ) {
+		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
+		r->vertex_ages[real_index] += dt;
+	}
 }
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
@@ -58,6 +66,8 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	else {
 		++r->pair_first;
 	}
+
+	ribbonEmitter_tickTimes( r, dt );
 }
 
 void ribbonEmitter_staticInit() {
@@ -78,56 +88,67 @@ void ribbonEmitter_render( void* emitter ) {
 	ribbonEmitter* r = emitter;
 	
 	// Build render arrays
-	r->render_pair_count = 0;
+	int render_pair_count = 0;
 
-	/*
-	float max_time = 1.f;
 	for ( int i = 0; i < r->pair_count; ++i ) {
 		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-		r->vertex_ages[real_index] += dt;
-		if ( r->vertex_ages[real_index] < max_time ) {
-			++r->render_pair_count;
+		if ( r->vertex_ages[real_index] < r->lifetime ) {
+			++render_pair_count;
 		}
 	}
-	*/
-#if 1
-	r->render_pair_count = r->pair_count;
 
 	int j = 0;
 	float v = 0.f;
-	float v_delta = 1.f / (float)( r->render_pair_count - 1 );
+	float v_delta = 1.f / (float)( render_pair_count - 1 );
 	for ( int i = 0; i < r->pair_count; ++i ) {
-		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-		j = i;
+		int this = ( i + r->pair_first ) % kMaxRibbonPairs;
 
-		//if ( r->vertex_ages[real_index] < max_time ) {
-		if ( !r->billboard ) {
-			r->vertex_buffer[j*2+0].position = r->vertex_array[real_index][0];
+		if ( r->vertex_ages[this] < r->lifetime ) {
+			if ( !r->billboard ) {
+				r->vertex_buffer[j*2+0].position = r->vertex_array[this][0];
+			}
+			r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
+			r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
+			r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
+
+			if ( !r->billboard ) {
+				r->vertex_buffer[j*2+1].position = r->vertex_array[this][1];
+			}
+			r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
+			r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
+			r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
+
+			if ( r->billboard ) {
+				vector last_pos, current_pos;
+				if ( i > 0 ) {
+					int last = ( this + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
+					last_pos = r->vertex_array[last][0];
+					current_pos = r->vertex_array[this][0];
+				}
+				else {
+					int next = ( this + 1 ) % kMaxRibbonPairs;
+					last_pos = r->vertex_array[this][0];
+					current_pos = r->vertex_array[next][0];
+				}
+
+				vector view_dir = vector_sub( current_pos, *matrix_getTranslation( camera_mtx ));
+				vector ribbon_dir = vector_sub( current_pos, last_pos );
+				vector normal = normalized( vector_cross( view_dir, ribbon_dir ));
+				r->vertex_buffer[j*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->radius ));
+				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));
+			}
+
+			v += v_delta;
+			++j;
 		}
-		r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
-		r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
-		r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
-
-		if ( !r->billboard ) {
-			r->vertex_buffer[j*2+1].position = r->vertex_array[real_index][1];
+		else {
+			continue;
 		}
-		r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
-		r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
-		r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
-
-		v += v_delta;
-		//++j;
-		/*
-		   }
-		   else {
-		   continue;
-		   }
-		   */
 	}
-#endif
+	vAssert( j == render_pair_count );
 
+	/*
 	if ( r->billboard ) {
-		int j = 0;
 		for ( int i = 0; i < r->pair_count; ++i ) {
 			int this = ( i + r->pair_first ) % kMaxRibbonPairs;
 			vector last_pos, current_pos;
@@ -149,11 +170,12 @@ void ribbonEmitter_render( void* emitter ) {
 			r->vertex_buffer[i*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));
 		}
 	}
+	*/
 
 	// Reset modelview; our positions are in world space
 	render_resetModelView();
-	int index_count = ( r->render_pair_count - 1 ) * 12; // 6 if single-sided
-	if ( r->diffuse->gl_tex && r->render_pair_count > 1 ) {
+	int index_count = ( render_pair_count - 1 ) * 12; // 6 if single-sided
+	if ( r->diffuse->gl_tex && render_pair_count > 1 ) {
 		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
 				r->diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
@@ -189,4 +211,13 @@ ribbonEmitter* ribbon_loadAsset( const char* filename ) {
 	map_add( ribbonEmitterAssets, key, &emitter );
 	return emitter;
 	*/
+}
+
+ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
+	ribbonEmitter* dst = ribbonEmitter_create();
+	ribbonEmitter_setColor( dst, src->color );
+	dst->diffuse = src->diffuse;
+	dst->radius = src->radius;
+	dst->billboard = src->billboard;
+	return dst;
 }

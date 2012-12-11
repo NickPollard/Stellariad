@@ -59,7 +59,7 @@ C and only controlled remotely by Lua
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
 	-- Flight
-	player_ship_initial_speed	= 30.0
+	player_ship_initial_speed	= 50.0
 	player_ship_acceleration	= 1.0
 	max_allowed_roll			= 1.5
 	camera_roll_scale			= 0.1
@@ -232,7 +232,7 @@ player_gunfire = {
 }
 
 player_missile = { 
-	model = "dat/model/bullet_player.s",
+	model = "dat/model/missile_enemy_homing.s",
  	particle = "dat/script/lisp/red_bullet.s",
 	speed = 100.0,
 	collisionType = "player"
@@ -470,7 +470,7 @@ end
 function loadParticles( )
 	local t = vcreateTransform()
 	local particle
-	particle = vparticle_create( engine, t, "dat/script/lisp/missile_explosion.s" )
+	particle = vparticle_create( engine, t, "dat/vfx/particles/missile_explosion.s" )
 	vparticle_destroy( particle )
 	particle = vparticle_create( engine, t, "dat/script/lisp/explosion.s" )
 	vparticle_destroy( particle )
@@ -593,7 +593,12 @@ function playership_weaponsTick( ship, dt )
 	if fired then
 		player_fire( ship )
 	end
-	local missile_fired = vgesture_performed( player_ship.fire_trigger, player_ship.missile_swipe )
+	local missile_fired = false
+	if touch_enabled then
+		missile_fired = vgesture_performed( player_ship.fire_trigger, player_ship.missile_swipe )
+	else
+		missile_fired = vkeyPressed( input, key.q )
+	end
 	if missile_fired then
 		if ship.missile_cooldown <= 0.0 then
 			if ship.aileron_roll then

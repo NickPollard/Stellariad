@@ -6,18 +6,21 @@
 #define kMaxRibbonPairs 32
 
 struct ribbonEmitter_s { 
+	// Definition properties
+	float	radius;
+	texture*	diffuse;
+	property*	color;
+	bool	billboard;
+	float	lifetime;
+
+	// Runtime properties
 	transform*	trans;
 	vector	begin;
 	vector	end;
-	float	radius;
 	vector	vertex_array[kMaxRibbonPairs][2];
 	float	vertex_ages[kMaxRibbonPairs];
-	int		render_pair_count;
 	int		pair_count;
 	int		pair_first;
-	bool	billboard;
-	texture*	diffuse;
-	property*	color;
 
 	// Render
 	vertex*		vertex_buffer;
@@ -26,6 +29,8 @@ struct ribbonEmitter_s {
 void ribbonEmitter_staticInit();
 
 ribbonEmitter* ribbonEmitter_create();
+ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src );
+
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng );
 void ribbonEmitter_render( void* emitter );
 

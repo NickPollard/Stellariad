@@ -1,3 +1,4 @@
-(model (mesh (filename "dat/model/smoothsphere2.obj" ))
+(model 
 		(transform (translation (vector 0.0 0.0 0.0 1.0))
-					(ribbonEmitter (filename "dat/vfx/ribbons/ribbon_bullet_player.s"))))
+					(particleEmitter (filename "dat/vfx/particles/glow_missile_homing.s" ))
+					(ribbonEmitter (filename "dat/vfx/ribbons/ribbon_missile_homing.s"))))

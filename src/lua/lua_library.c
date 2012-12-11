@@ -886,6 +886,7 @@ void lua_keycodes( lua_State* l ) {
 	lua_setfieldi( l, "a", KEY_A );
 	lua_setfieldi( l, "s", KEY_S );
 	lua_setfieldi( l, "d", KEY_D );
+	lua_setfieldi( l, "q", KEY_Q );
 	lua_setfieldi( l, "c", KEY_C );
 	lua_setfieldi( l, "up", KEY_UP );
 	lua_setfieldi( l, "down", KEY_DOWN );
