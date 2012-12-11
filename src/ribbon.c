@@ -216,8 +216,9 @@ ribbonEmitter* ribbon_loadAsset( const char* filename ) {
 ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
 	ribbonEmitter* dst = ribbonEmitter_create();
 	ribbonEmitter_setColor( dst, src->color );
-	dst->diffuse = src->diffuse;
-	dst->radius = src->radius;
-	dst->billboard = src->billboard;
+	dst->diffuse	= src->diffuse;
+	dst->radius		= src->radius;
+	dst->billboard	= src->billboard;
+	dst->lifetime	= src->lifetime;
 	return dst;
 }

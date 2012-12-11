@@ -53,9 +53,6 @@ C and only controlled remotely by Lua
 
 -- Settings
 	-- Weapons
-	player_bullet_speed		= 250.0
-	enemy_bullet_speed		= 150.0
-	homing_missile_speed	= 50.0
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
 	-- Flight
@@ -148,10 +145,12 @@ projectile_model = "dat/model/missile.s"
 
 function player_fire( ship )
 	if ship.cooldown <= 0.0 then
-		muzzle_position = Vector( 1.2, 0.0, 0.0, 1.0 );
+		local muzzle_position	= Vector( 1.2, 1.0, 1.0, 1.0 );
 		fire_missile( ship, muzzle_position, player_gunfire )
-		muzzle_position = Vector( -1.2, 0.0, 0.0, 1.0 );
+		fx.muzzle_flare( ship, muzzle_position )
+		muzzle_position			= Vector( -1.2, 1.0, 1.0, 1.0 );
 		fire_missile( ship, muzzle_position, player_gunfire )
+		fx.muzzle_flare( ship, muzzle_position )
 		ship.cooldown = player_gun_cooldown
 	end
 end
@@ -189,7 +188,8 @@ end
 
 function setCollision_playerBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
-	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
+	--vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
+	vbody_setCollidableLayers( object.body, collision_layer_enemy )
 end
 
 function setCollision_enemyBullet( object )
@@ -227,7 +227,7 @@ end
 player_gunfire = { 
 	model = "dat/model/bullet_player.s",
  	particle = "dat/vfx/particles/bullet.s",
-	speed = 250.0,
+	speed = 350.0,
 	collisionType = "player"
 }
 
