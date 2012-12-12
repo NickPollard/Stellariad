@@ -45,7 +45,7 @@ struct block_s {
 #ifdef MEM_GUARD_BLOCK
 	unsigned int	guard;	// Guard block for Canary purposes
 #endif
-};
+}__attribute__ ((aligned (8)));
 
 typedef struct passthroughAllocator_s {
 	heapAllocator* heap;

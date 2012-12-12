@@ -29,6 +29,7 @@ scene* scene_loadFile( const char* filename );
 
 void scene_removeTransform( scene* s, transform* e );
 void scene_removeEmitter( scene* s, particleEmitter* e );
+void scene_removeRibbonEmitter( scene* s, ribbonEmitter* e );
 
 // *** Constants
 
@@ -84,23 +85,43 @@ void scene_addModel( scene* s, modelInstance* instance ) {
 	}
 }
 
-// TODO: Thread-Safe
-void scene_removeModel( scene* s, modelInstance* instance ) {
-	vAssert( instance );
-	array_remove( (void**)s->modelInstances, &s->model_count, instance );
-
+void scene_removeModelInstanceTransforms( scene* s, modelInstance* instance ) {
 	for ( int i = 0; i < instance->transform_count; i++ ) {
 		scene_removeTransform( s, instance->transforms[i] );
 	}
+}
+
+void scene_removeModelInstanceParticleEmitters( scene* s, modelInstance* instance ) {
 	for ( int i = 0; i < instance->emitter_count; i++ ) {
 		scene_removeEmitter( s, instance->emitters[i] );
 		// If the scene is active, deactivate components immediately
 		if ( s->eng ) {
 			engine_removeRender( s->eng, instance->emitters[i], particleEmitter_render );
-			// TODO
-			//stopTick( s->eng, instance->emitters[i], particleEmitter_tick );
+			stopPostTick( s->eng, instance->emitters[i], particleEmitter_tick );
 		}
 	}
+}
+
+void scene_removeModelInstanceRibbonEmitters( scene* s, modelInstance* instance ) {
+	for ( int i = 0; i < instance->ribbon_emitter_count; i++ ) {
+		scene_removeRibbonEmitter( s, instance->ribbon_emitters[i] );
+		// If the scene is active, deactivate components immediately
+		if ( s->eng ) {
+			engine_removeRender( s->eng, instance->ribbon_emitters[i], ribbonEmitter_render );
+			stopPostTick( s->eng, instance->ribbon_emitters[i], ribbonEmitter_tick );
+		}
+	}
+}
+
+// TODO: Thread-Safe
+void scene_removeModel( scene* s, modelInstance* instance ) {
+	vAssert( instance );
+	array_remove( (void**)s->modelInstances, &s->model_count, instance );
+
+	// *** Remove Sub Elements
+	scene_removeModelInstanceTransforms( s, instance );
+	scene_removeModelInstanceParticleEmitters( s, instance );
+	scene_removeModelInstanceRibbonEmitters( s, instance );
 }
 
 void scene_removeEmitter( scene* s, particleEmitter* e ) {
@@ -113,6 +134,10 @@ void scene_addEmitter( scene* s, particleEmitter* e ) {
 
 void scene_addRibbonEmitter( scene* s, ribbonEmitter* e ) {
 	s->ribbon_emitters[s->ribbon_emitter_count++] = e;
+}
+
+void scene_removeRibbonEmitter( scene* s, ribbonEmitter* e ) {
+	array_remove( (void**)s->ribbon_emitters, &s->ribbon_emitter_count, e );
 }
 
 // Add an existing light to the scene

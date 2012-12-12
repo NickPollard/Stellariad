@@ -133,6 +133,7 @@ void engine_addRender( engine* e, void* entity, renderfunc render );
 
 void engine_removeRender( engine* e, void* entity, renderfunc render );
 void stopTick( engine* e, void* entity, tickfunc tick );
+void stopPostTick( engine* e, void* entity, tickfunc tick );
 
 // *** Array funcs
 int array_find( void** array, int count, void* ptr );

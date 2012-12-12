@@ -908,8 +908,7 @@ float canyonTerrain_sample( float x, float z ) {
 	terrain_canyonSpaceFromWorld( x, z, &u, &v );
 
 	float mountains = terrain_mountainHeight( x, z, u, v );
-	//float detail = terrain_detailHeight( u, v );
-	float detail = 0.f;
+	float detail = terrain_detailHeight( u, v );
 	float canyon = terrain_canyonHeight( x, z, u, v );
 	return mountains + detail - canyon;
 }
