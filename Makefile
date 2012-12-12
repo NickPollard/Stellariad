@@ -10,6 +10,7 @@ EXECUTABLE = vitae
 include Makelist
 OBJS = $(SRCS:src/%.c=bin/release/%.o)
 OBJS_DBG = $(SRCS:src/%.c=bin/debug/%.o)
+OBJS_PROF = $(SRCS:src/%.c=bin/profile/%.o)
 
 all : $(EXECUTABLE)_release
 
@@ -17,6 +18,7 @@ all : $(EXECUTABLE)_release
 #-include $(OBJS:.o=.d)
 -include $(SRCS:src/%.c=bin/release/%.d)
 -include $(SRCS:src/%.c=bin/debug/%.d)
+-include $(SRCS:src/%.c=bin/profile/%.d)
 
 .PHONY : clean cleandebug android cleanandroid
 
@@ -47,10 +49,28 @@ cleanandroid :
 	@find /home/nick/Projects/Vitae/android/obj/local/armeabi/objs-debug -name '*.o' -exec rm {} \;
 	@ant clean -f android/build.xml
 
+android_release : 
+	@echo "--- Building Native Code for Android NDK ---"
+	@ndk-build -C android NDK_DEBUG=1 APP_OPTIM=release
+	@echo "--- Compiling Android Java and packaging APK ---"
+	@ant debug -v -f android/build.xml
+	@echo "--- Installing APK to device ---"
+	@android/install.sh
+
+cleanandroid_release :
+	@echo "--- Cleaning Android ---"
+	@find /home/nick/Projects/Vitae/android/obj/local/armeabi/objs -name '*.o' -exec rm {} \;
+	@ant clean -f android/build.xml
+
 $(EXECUTABLE)_release : $(SRCS) $(OBJS)
 	@echo "- Linking $@"
 	@$(C) $(LFLAGS) -O2 -o $(EXECUTABLE)_release $(OBJS) $(LIBS)
 
+profile : $(EXECUTABLE)_profile
+
+$(EXECUTABLE)_profile : $(SRCS) $(OBJS_PROF)
+	@echo "- Linking $@"
+	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_profile $(OBJS_PROF) $(LIBS)
 
 debug : $(EXECUTABLE)_debug
 
@@ -63,6 +83,12 @@ bin/debug/%.o : src/%.c
 	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
 	@echo "- Compiling $@"
 	@$(C) -g $(CFLAGS) -MD -D DEBUG -c -o $@ $<
+
+bin/profile/%.o : src/%.c
+#	Calculate the directory required and create it
+	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
+	@echo "- Compiling $@"
+	@$(C) $(CFLAGS) -g -O2 -MD -c -o $@ $<
 
 bin/release/%.o : src/%.c
 #	Calculate the directory required and create it

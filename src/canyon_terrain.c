@@ -877,10 +877,8 @@ float terrain_mountainFunc( float x ) {
 }
 
 // Returns a value between 0.f and height_m
-float terrain_mountainHeight( float x, float z ) {
-	float u, v;
-	terrain_canyonSpaceFromWorld( x, z, &u, &v );
-
+float terrain_mountainHeight( float x, float z, float u, float v ) {
+	(void)v;
 	const float mountain_gradient_scale = 0.00001f;
 	const float base_mountain_scale = 2.f;
 	const float offset = ( max( 0.0, fabsf( u ) - canyon_base_radius ));
@@ -905,11 +903,14 @@ float terrain_detailHeight( float u, float v ) {
 }
 
 // The procedural function
-float canyonTerrain_sample( float u, float v ) {
-	float mountains = terrain_mountainHeight( u, v );
+float canyonTerrain_sample( float x, float z ) {
+	float u, v;
+	terrain_canyonSpaceFromWorld( x, z, &u, &v );
+
+	float mountains = terrain_mountainHeight( x, z, u, v );
 	//float detail = terrain_detailHeight( u, v );
 	float detail = 0.f;
-	float canyon = terrain_canyonHeight( u, v );
+	float canyon = terrain_canyonHeight( x, z, u, v );
 	return mountains + detail - canyon;
 }
 

@@ -4,6 +4,7 @@
 # Compiled
 vitae_debug
 vitae_release
+vitae_profile
 bin
 *.o
 *.so
