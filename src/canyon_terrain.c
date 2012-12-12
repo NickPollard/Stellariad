@@ -14,6 +14,8 @@
 
 #define CANYON_TERRAIN_INDEXED 1
 #define TERRAIN_USE_WORKER_THREAD 1
+
+//#define TERRAIN_FORCE_NO_LOD
 	
 const float texture_scale = 0.0325f;
 const float texture_repeat = 10.f;
@@ -224,8 +226,12 @@ int canyonTerrain_lodLevelForBlock( canyonTerrain* t, int coord[2] ) {
 }
 
 void canyonTerrainBlock_calculateSamplesForLoD( canyonTerrainBlock* b, canyonTerrain* t, int coord[2] ) {
+#ifdef TERRAIN_FORCE_NO_LOD
+	(void)coord;
+	int lod_level = 0;
+#else
 	int lod_level = canyonTerrain_lodLevelForBlock( t, coord );
-	//lod_level = 0;
+#endif
 	// Set samples based on U offset
 	// We add one so that we always get a centre point
 	switch( lod_level ) {
@@ -839,10 +845,13 @@ void canyonTerrain_updateBlocks( canyonTerrain* t ) {
 		canyonTerrainBlock* b = new_blocks[i];
 		// if not in old bounds
 		// Or if we need to change lod level
+#ifdef TERRAIN_FORCE_NO_LOD
+		if ( !boundsContains( intersection, coord ))
+#else
 		if ( !boundsContains( intersection, coord ) || 
-				( !b->pending && ( b->lod_level != canyonTerrain_lodLevelForBlock( t, coord ))) ||
-				// Force regeneration on all blocks to fix LODing
-				true ) {
+				( !b->pending && ( b->lod_level != canyonTerrain_lodLevelForBlock( t, coord ))))
+#endif
+		{
 			memcpy( b->coord, coord, sizeof( int ) * 2 );
 			// mark it as new, buffers will be filled in later
 			b->pending = true;
