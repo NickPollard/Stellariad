@@ -58,6 +58,7 @@ C and only controlled remotely by Lua
 	-- Flight
 	player_ship_initial_speed	= 50.0
 	player_ship_acceleration	= 1.0
+	player_ship_max_speed		= 150.0
 	max_allowed_roll			= 1.5
 	camera_roll_scale			= 0.1
 	aileron_roll_duration		= 0.8
@@ -728,7 +729,7 @@ function playership_tick( ship, dt )
 	-- throttle
 	width = 100
 	delta_speed = player_ship_acceleration * dt;
-	ship.speed = ship.speed + delta_speed
+	ship.speed = math.min( ship.speed + delta_speed, player_ship_max_speed )
 
 	playership_weaponsTick( ship, dt )
 
