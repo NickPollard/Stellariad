@@ -70,35 +70,36 @@ vector vector_cross( vector a, vector b ) {
 }
 
 vector vector_add( vector a, vector b ) {
-	vector r = Vector( a.coord.x + b.coord.x,
+	vector r = {{ a.coord.x + b.coord.x,
 						a.coord.y + b.coord.y,
 						a.coord.z + b.coord.z,
-						a.coord.w + b.coord.w );
+						a.coord.w + b.coord.w }};
 	return r;
 }
 
 
 vector vector_sub( vector a, vector b ) {
-	vector r = Vector( a.coord.x - b.coord.x,
+	vector r = {{ a.coord.x - b.coord.x,
 						a.coord.y - b.coord.y,
 						a.coord.z - b.coord.z,
-						a.coord.w - b.coord.w );
+						a.coord.w - b.coord.w }};
 	return r;
 }
 
 vector normalized( vector v ) {
 	float inv_mag = 1.f / vector_length( &v );
-	vector n = Vector( v.coord.x * inv_mag,
+	vector n = {{ v.coord.x * inv_mag,
 						v.coord.y * inv_mag,
 						v.coord.z * inv_mag,
-						v.coord.w * inv_mag );
+						v.coord.w * inv_mag }};
 	return n;
 }
-vector vector_scaled( vector v, float f ) {
-	return Vector( v.coord.x * f,
-					v.coord.y * f,
-					v.coord.z * f,
-					v.coord.w * f );
+vector vector_scaled( vector v, float scale ) {
+	vector scaled = {{ v.coord.x * scale,
+					v.coord.y * scale,
+					v.coord.z * scale,
+					v.coord.w * scale }};
+	return scaled;
 }
 
 float vector_lengthI( vector v ) {

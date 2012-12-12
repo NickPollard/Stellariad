@@ -907,7 +907,8 @@ float terrain_detailHeight( float u, float v ) {
 // The procedural function
 float canyonTerrain_sample( float u, float v ) {
 	float mountains = terrain_mountainHeight( u, v );
-	float detail = terrain_detailHeight( u, v );
+	//float detail = terrain_detailHeight( u, v );
+	float detail = 0.f;
 	float canyon = terrain_canyonHeight( u, v );
 	return mountains + detail - canyon;
 }

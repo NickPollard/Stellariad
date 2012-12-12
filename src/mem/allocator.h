@@ -4,7 +4,7 @@
 //#define MEM_DEBUG_VERBOSE
 #define MEM_GUARD_BLOCK
 #define MEM_FORCE_ALIGNED
-#define MEM_STACK_TRACE
+//#define MEM_STACK_TRACE
 
 #ifdef MEM_STACK_TRACE
 #define mem_pushStack( string ) mem_pushStackString( string )

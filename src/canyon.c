@@ -194,6 +194,7 @@ void terrain_canyonSpaceFromWorld( float x, float z, float* u, float* v ) {
 		float earliest_z = z - sqrt( closest_d );
 		start = search_index;
 		float current_z = canyon_point( &canyon_streaming_buffer, start ).coord.z;
+		// TODO - just binary search this?
 		while ( current_z > earliest_z && start > default_start ) {
 			int min_delta = (int)fmax( 1.f, ( current_z - earliest_z ) / kCanyonSegmentLength );
 			start = max( start - min_delta, default_start );
@@ -226,6 +227,8 @@ void terrain_canyonSpaceFromWorld( float x, float z, float* u, float* v ) {
 		if ( fabsf(test_point.coord.z - point.coord.z) * (test_point.coord.z - point.coord.z) > closest_d ) {
 			break;
 		}
+
+		// TODO - do we skip everything behind or have we already done that?
 
 		vector displacement = vector_sub( point, test_point );
 		float d = vector_lengthSq( &displacement );
