@@ -72,4 +72,7 @@ texture* texture_loadWithProperties( const char* filename, textureProperties* pr
 texture* texture_loadFromMem( int w, int h, int stride, uint8_t* bitmap );
 void texture_delete( texture* t );
 
+// For offline skybox rendering, or anything else that needs source images
+uint8_t* read_tga( const char* file, int* w, int* h );
+
 #endif // __TEXTURE_H__
