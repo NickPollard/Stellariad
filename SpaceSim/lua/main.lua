@@ -56,7 +56,7 @@ C and only controlled remotely by Lua
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
 	-- Flight
-	player_ship_initial_speed	= 50.0
+	player_ship_initial_speed	= 30.0
 	player_ship_acceleration	= 1.0
 	player_ship_max_speed		= 150.0
 	max_allowed_roll			= 1.5
@@ -189,8 +189,8 @@ end
 
 function setCollision_playerBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
-	--vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
-	vbody_setCollidableLayers( object.body, collision_layer_enemy )
+	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
+--	vbody_setCollidableLayers( object.body, collision_layer_enemy )
 end
 
 function setCollision_enemyBullet( object )
@@ -229,27 +229,30 @@ player_gunfire = {
 	model = "dat/model/bullet_player.s",
  	particle = "dat/vfx/particles/bullet.s",
 	speed = 350.0,
-	collisionType = "player"
+	collisionType = "player",
+	time_to_live = 2.0
 }
 
 player_missile = { 
 	model = "dat/model/missile_enemy_homing.s",
  	particle = "dat/script/lisp/red_bullet.s",
 	speed = 100.0,
-	collisionType = "player"
+	collisionType = "player",
+	time_to_live = 3.0
 }
 
 enemy_gunfire = { 
 	model = "dat/model/bullet_player.s",
- 	particle = "dat/vfx/particles/bullet.s",
 	speed = 150.0,
-	collisionType = "enemy"
+	collisionType = "enemy",
+	time_to_live = 2.0
 }
 
 enemy_homing_missile = { 
 	model = "dat/model/missile_enemy_homing.s",
 	speed = 150.0,
-	collisionType = "enemy"
+	collisionType = "enemy",
+	time_to_live = 3.0
 }
 
 function fire_missile( source, offset, bullet_type )
@@ -260,8 +263,7 @@ function fire_missile( source, offset, bullet_type )
 		setCollision_enemyBullet( projectile )
 	end
 	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-	inTime( 2.0, function () missile_destroy( projectile ) end )
-	--projectile.glow = vparticle_create( engine, projectile.transform, bullet_type.particle )
+	inTime( bullet_type.time_to_live, function () missile_destroy( projectile ) end )
 	return projectile
 end
 
@@ -284,31 +286,7 @@ function homing_missile_tick( target_transform )
 end
 
 function fire_enemy_homing_missile( source, offset, bullet_type )
-	-- Create a new Projectile
-	local projectile = gameobject_create( bullet_type.model )
-	setCollision_enemyBullet( projectile )
-
-	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-
-	-- Position it at the correct muzzle position and rotation
-	muzzle_world_pos = vtransformVector( source.transform, offset )
-	vtransform_setWorldSpaceByTransform( projectile.transform, source.transform )
-	vtransform_setWorldPosition( projectile.transform, muzzle_world_pos )
-
-	-- Attach a particle effect to the object
-	projectile.glow = vparticle_create( engine, projectile.transform, "dat/script/lisp/red_bullet.s" )
-	projectile.trail = vparticle_create( engine, projectile.transform, "dat/script/lisp/red_trail.s" )
-
-	-- Apply initial velocity
-	source_velocity = Vector( 0.0, 0.0, bullet_type.speed, 0.0 )
-	world_v = vtransformVector( source.transform, source_velocity )
-	vphysic_setVelocity( projectile.physic, world_v );
-
-	-- Queue up delete
-	inTime( 5.0, function () missile_destroy( projectile ) end )
-
-	-- Store the projectile so it doesn't get garbage collected
-	array.add( missiles, projectile )
+	local projectile = fire_missile( source, offset, bullet_type )
 	projectile.tick = homing_missile_tick( player_ship.transform )
 end
 
@@ -318,6 +296,12 @@ end
 
 function triggerWhen( trigger, action )
 	triggers.add( triggers.create( trigger, action ))
+end
+
+function playership_cleanup( p )
+	if p and p.camera_transform then
+		vdestroyTransform( scene, p.camera_transform )
+	end
 end
 
 -- Create a player. The player is a specialised form of Gameobject
@@ -449,6 +433,7 @@ function restart()
 	entities_despawnAll()
 	-- We create a player object which is a game-specific Lua class
 	-- The player class itself creates several native C classes in the engine
+	playership_cleanup( player_ship )
 	player_ship = playership_create()
 
 	-- Init position
@@ -481,7 +466,10 @@ function loadParticles( )
 	vparticle_destroy( particle )
 	particle = vparticle_create( engine, t, "dat/vfx/particles/bullet.s" )
 	vparticle_destroy( particle )
+	vdestroyTransform( scene, t )
 	vmodel_preload( projectile_model )
+	vmodel_preload( "dat/model/bullet_player.s" )
+	vmodel_preload( "dat/model/missile_enemy_homing.s" )
 end
 
 function splash_intro()
@@ -820,8 +808,14 @@ end
 turret_cooldown = 0.4
 
 function turret_fire( turret )
-	fire_missile( turret, Vector(  4.0, 6.0, 0.0, 1.0), enemy_gunfire )
-	fire_missile( turret, Vector( -4.0, 6.0, 0.0, 1.0), enemy_gunfire )
+	-- right
+	local muzzle_position = Vector( 4.6, 5.0, 5.0, 1.0 )
+	fx.muzzle_flare_large( turret, muzzle_position )
+	fire_missile( turret, muzzle_position, enemy_gunfire )
+	-- left
+	muzzle_position = Vector( -4.6, 5.0, 5.0, 1.0 )
+	fx.muzzle_flare_large( turret, muzzle_position )
+	fire_missile( turret, muzzle_position, enemy_gunfire )
 end
 
 function turret_tick( turret, dt )
@@ -1025,8 +1019,14 @@ function interceptor_attack_homing( x, y, z )
 end
 
 function interceptor_fire( interceptor )
-	fire_missile( interceptor, Vector(  4.0, 0.0, 0.0, 1.0 ), enemy_gunfire )
-	fire_missile( interceptor, Vector( -4.0, 0.0, 0.0, 1.0 ), enemy_gunfire )
+	-- Right
+	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
+	fx.muzzle_flare_large( interceptor, muzzle_position )
+	fire_missile( interceptor, muzzle_position, enemy_gunfire )
+	-- Left
+	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 );
+	fx.muzzle_flare_large( interceptor, muzzle_position )
+	fire_missile( interceptor, muzzle_position, enemy_gunfire )
 end
 
 function interceptor_fire_homing( interceptor )

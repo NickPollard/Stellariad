@@ -37,10 +37,11 @@ void main() {
 	local_fog_color = fog_color + (sun_color * fog_sun_factor);
 
 	// We can calculate fog per vertex as long as the verts are close enough together (fine for sky-dome)
-	float fog_height	= 160.0;
+	float fog_height	= 460.0;
+	float fog_min		= 50.0;
 	float fog_max		= 0.4;
 
 	//float distance = sqrt( frag_position.z * frag_position.z + frag_position.x * frag_position.x );
-	fog = clamp( ( fog_height - position.y ) / fog_height, 0.0, 1.0 );
+	fog = clamp( ( fog_height - (position.y - fog_min) ) / ( fog_height - fog_min ), 0.0, 1.0 );
 	//fog = clamp( 100.0 / ( max( 1.0, position.y + 120.0 )), 0.0, 1.0 );
 }

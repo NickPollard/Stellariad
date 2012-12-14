@@ -6,9 +6,10 @@
 #include "transform.h"
 #include "maths/vector.h"
 
-// Debug
+#ifdef DEBUG_PHYSIC_LIVENESS_TEST
 physic* active_physics[1024];
 int active_physic_count;
+#endif // DEBUG_PHYSIC_LIVENESS_TEST
 
 physic* physic_create()  {
 	physic* p = mem_alloc( sizeof( physic ));
@@ -17,7 +18,9 @@ physic* physic_create()  {
 	p->mass = 0.f;
 	p->to_delete = false;
 
+#ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	array_add( (void**)active_physics, &active_physic_count, (void*)p );
+#endif // DEBUG_PHYSIC_LIVENESS_TEST
 
 	return p;
 }
@@ -38,7 +41,9 @@ void physic_tick( void* data, float dt, engine* eng ) {
 	if ( p->to_delete ) {
 		mem_free( p );
 		stopTick( eng, p, physic_tick );
+#ifdef DEBUG_PHYSIC_LIVENESS_TEST
 		array_remove( (void**)active_physics, &active_physic_count, (void*)p );
+#endif // DEBUG_PHYSIC_LIVENESS_TEST
 		return;
 	}
 

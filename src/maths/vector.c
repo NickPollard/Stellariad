@@ -15,6 +15,7 @@ const vector neg_z_axis = {{ 0.f, 0.f, -1.f, 0.f }};
 const vector color_red = {{ 1.f, 0.f, 0.f, 1.f }};
 const vector color_green = {{ 0.f, 1.f, 0.f, 1.f }};
 const vector color_blue = {{ 0.f, 0.f, 1.f, 1.f }};
+const vector color_black = {{ 0.f, 0.f, 0.f, 1.f }};
 
 vector Vector(float x, float y, float z, float w) {
 	vector v;

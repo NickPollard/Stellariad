@@ -25,15 +25,15 @@ int			skybox_height = 0;
 void skybox_init( ) {
 	//skybox_texture = texture_load( "dat/img/vitae_sky2_export_flattened.tga" );
 	//skybox_image = read_tga( "dat/img/vitae_sky2_export_flattened.tga", &skybox_width, &skybox_height );
-	skybox_image = read_tga( "dat/img/CGSkies_0037_free.tga", &skybox_width, &skybox_height );
+	skybox_image = read_tga( "dat/img/vitae_sky_dome.tga", &skybox_width, &skybox_height );
 	vector sky_color_bottom	= Vector( 0.f, 0.4f, 0.3f, 1.f );
 	vector sky_color_top	= Vector( 0.4f, 0.55f, 0.7f, 1.f );
 	static const int stride = 4;
 	(void)sky_color_bottom; (void)sky_color_top;
 
 	uint8_t* bitmap = skybox_generateSkybox( sky_color_bottom, sky_color_top );
-	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
-	//skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
+	//skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
+	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
 
 	mem_free( bitmap );
 	mem_free( skybox_image );
@@ -70,6 +70,8 @@ vector skybox_fragmentShader( vector src_color, vector sky_color_bottom, vector 
 	vector frag_color = vector_add(	vector_scaled( sky_color_top, src_color.coord.z * ( 1.f - src_color.coord.w )),
 			vector_scaled( cloud_color, src_color.coord.y * src_color.coord.w ));
 	// then add bottom * red
+	//vector frag_color = color_black;
+	//(void)cloud_color; (void)sky_color_top;
 	frag_color = vector_add( frag_color, vector_scaled( sky_color_bottom , src_color.coord.x ));
 	//vector_printf( "color: ", &src_color );
 	frag_color.coord.w = 1.0;

@@ -62,7 +62,6 @@ void transform_delete( transform* t ) {
 }
 
 transform* transform_createAndAdd( scene* s ) {
-	assert( s->transform_count < MAX_TRANSFORMS );
 	transform* t = transform_create();
 	scene_addTransform( s, t );
 	return t;

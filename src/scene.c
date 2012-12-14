@@ -149,11 +149,11 @@ void scene_addLight( scene* s, light* l ) {
 // Add an existing transform to the scene
 void scene_addTransform( scene* s, transform* t ) {
 	assert( s->transform_count < MAX_TRANSFORMS );
-	s->transforms[s->transform_count++] = t;
+	array_add( (void**)s->transforms, &s->transform_count, t );
 }
 
-void scene_removeTransform( scene* s, transform* e ) {
-	array_remove( (void**)s->transforms, &s->transform_count, e );
+void scene_removeTransform( scene* s, transform* t ) {
+	array_remove( (void**)s->transforms, &s->transform_count, t );
 }
 
 int scene_transformIndex( scene* s, transform* t ) {

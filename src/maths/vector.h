@@ -14,6 +14,7 @@ extern const vector neg_z_axis;
 extern const vector color_red;
 extern const vector color_green;
 extern const vector color_blue;
+extern const vector color_black;
 
 vector Vector(float x, float y, float z, float w);
 
