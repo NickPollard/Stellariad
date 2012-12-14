@@ -33,7 +33,7 @@ void main() {
 	frag_position = modelview * position;
 	texcoord = uv.xy;
 
-	float fog_sun_factor = sun_fog( camera_space_sun_direction, position );
+	float fog_sun_factor = sun_fog( camera_space_sun_direction, frag_position );
 	local_fog_color = fog_color + (sun_color * fog_sun_factor);
 
 	// We can calculate fog per vertex as long as the verts are close enough together (fine for sky-dome)
@@ -42,4 +42,5 @@ void main() {
 
 	//float distance = sqrt( frag_position.z * frag_position.z + frag_position.x * frag_position.x );
 	fog = clamp( ( fog_height - position.y ) / fog_height, 0.0, 1.0 );
+	//fog = clamp( 100.0 / ( max( 1.0, position.y + 120.0 )), 0.0, 1.0 );
 }

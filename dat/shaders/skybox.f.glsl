@@ -23,5 +23,6 @@ const vec4 cloud_color = vec4( 1.0, 1.0, 1.0, 1.0 );
 void main() {
 	vec4 tex_color = texture2D( tex, texcoord );
 	gl_FragColor = mix( tex_color, local_fog_color, fog );
+	//gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 );
 }
 

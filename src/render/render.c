@@ -745,7 +745,11 @@ void render_drawCall_draw( drawCall* draw ) {
 	// Now Draw!
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 	vAssert( draw->element_count > 0 );
-	//render_printShader( draw->vitae_shader );
+	/*
+	render_printShader( draw->vitae_shader );
+	printf( "Vertex buffer " xPTRf ", element_buffer " xPTRf ".\n", (uintptr_t)draw->vertex_buffer, (uintptr_t)draw->element_buffer );
+	printf( "element count %d, element_buffer_offset %d.\n", draw->element_count, draw->element_buffer_offset );
+	*/
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 }

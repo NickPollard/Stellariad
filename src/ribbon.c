@@ -11,7 +11,7 @@
 #include "render/texture.h"
 #include "script/sexpr.h"
 
-GLushort*	ribbon_element_buffer;
+GLushort*	ribbon_element_buffer = NULL;
 
 ribbonEmitter* ribbonEmitter_create() {
 	ribbonEmitter* r = mem_alloc( sizeof( ribbonEmitter ));
@@ -71,16 +71,14 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 }
 
 void ribbonEmitter_staticInit() {
-	ribbon_element_buffer = mem_alloc( sizeof( GLushort ) * ( kMaxRibbonPairs - 1 ) * 12 );
-	for ( int i = 0; i < kMaxRibbonPairs; ++i ) {
-		if ( i > 0 ) {
-			ribbon_element_buffer[i*12-12] = i * 2 - 2;
-			ribbon_element_buffer[i*12-11] = i * 2 - 1;
-			ribbon_element_buffer[i*12-10] = i * 2 + 0;
-			ribbon_element_buffer[i*12-9] = i * 2 + 1;
-			ribbon_element_buffer[i*12-8] = i * 2 + 0;
-			ribbon_element_buffer[i*12-7] = i * 2 - 1;
-		}
+	ribbon_element_buffer = mem_alloc( sizeof( GLushort ) * ( kMaxRibbonPairs - 1 ) * 6 );
+	for ( int i = 1; i < kMaxRibbonPairs; ++i ) {
+		ribbon_element_buffer[i*6-6] = i * 2 - 2;
+		ribbon_element_buffer[i*6-5] = i * 2 - 1;
+		ribbon_element_buffer[i*6-4] = i * 2 + 0;
+		ribbon_element_buffer[i*6-3] = i * 2 + 1;
+		ribbon_element_buffer[i*6-2] = i * 2 + 0;
+		ribbon_element_buffer[i*6-1] = i * 2 - 1;
 	}
 }
 
@@ -174,7 +172,7 @@ void ribbonEmitter_render( void* emitter ) {
 
 	// Reset modelview; our positions are in world space
 	render_resetModelView();
-	int index_count = ( render_pair_count - 1 ) * 12; // 6 if single-sided
+	int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
 	if ( r->diffuse->gl_tex && render_pair_count > 1 ) {
 		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
 				r->diffuse->gl_tex, modelview );

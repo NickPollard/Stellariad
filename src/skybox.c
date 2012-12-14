@@ -24,16 +24,22 @@ int			skybox_height = 0;
 // Initialise static data for the skybox system
 void skybox_init( ) {
 	//skybox_texture = texture_load( "dat/img/vitae_sky2_export_flattened.tga" );
-	skybox_image = read_tga( "dat/img/vitae_sky2_export_flattened.tga", &skybox_width, &skybox_height );
+	//skybox_image = read_tga( "dat/img/vitae_sky2_export_flattened.tga", &skybox_width, &skybox_height );
+	skybox_image = read_tga( "dat/img/CGSkies_0037_free.tga", &skybox_width, &skybox_height );
 	vector sky_color_bottom	= Vector( 0.f, 0.4f, 0.3f, 1.f );
 	vector sky_color_top	= Vector( 0.4f, 0.55f, 0.7f, 1.f );
 	static const int stride = 4;
 	(void)sky_color_bottom; (void)sky_color_top;
 
 	uint8_t* bitmap = skybox_generateSkybox( sky_color_bottom, sky_color_top );
-	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
+	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
+	//skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
 
-	skybox_model = model_load( "dat/model/inverse_cube.s" );
+	mem_free( bitmap );
+	mem_free( skybox_image );
+
+	//skybox_model = model_load( "dat/model/inverse_cube.s" );
+	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 	skybox_model->meshes[0]->shader = resources.shader_skybox;
 }
