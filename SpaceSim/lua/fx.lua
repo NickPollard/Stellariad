@@ -20,17 +20,25 @@ end
 function fx.muzzle_flare( ship, offset )
 	local t = vcreateTransform( ship.transform )
 	vtransform_setLocalPosition( t, offset )
-	vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare.s" )
-	vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_glow.s" )
-	inTime( 2.0, function () vdestroyTransform( scene, t ) end )
+	local flare = vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare.s" )
+	local glow = vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_glow.s" )
+	inTime( 2.0, function () 
+		vdestroyTransform( scene, t )
+		vparticle_destroy( flare )
+		vparticle_destroy( glow )
+	end )
 end
 
 function fx.muzzle_flare_large( ship, offset )
 	local t = vcreateTransform( ship.transform )
 	vtransform_setLocalPosition( t, offset )
-	vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_large.s" )
-	vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_glow_large.s" )
-	inTime( 2.0, function () vdestroyTransform( scene, t ) end )
+	local flare = vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_large.s" )
+	local glow = vparticle_create( engine, t, "dat/vfx/particles/muzzle_flare_glow_large.s" )
+	inTime( 2.0, function () 
+		vdestroyTransform( scene, t )
+		vparticle_destroy( flare )
+		vparticle_destroy( glow )
+	end )
 end
 
 return fx

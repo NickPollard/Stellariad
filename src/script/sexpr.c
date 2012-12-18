@@ -194,7 +194,7 @@ particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
 
 ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
 	(void)s;
-	printf( "Sexpr Loading ribbon emitter.\n" );
+	//printf( "Sexpr Loading ribbon emitter.\n" );
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
 	if ( fileterm ) {
 		vAssert( fileterm->child );
@@ -215,8 +215,8 @@ property* sexpr_loadVectorProperty( sexpr* s ) {
 		vAssert( child->child->type == sexprTypeFloat );
 		float time = child->child->number_value;
 		vector v = sexpr_loadVector( child->child->next );
-		vector_print( &v );
-		printf ( "\n" );
+		//vector_print( &v );
+		//printf ( "\n" );
 		property_addfv( p, time, (float*)&v );
 		child = child->next;
 	}
@@ -225,7 +225,7 @@ property* sexpr_loadVectorProperty( sexpr* s ) {
 
 ribbonEmitter* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 	(void)s;
-	printf( "Sexpr Loading ribbon emitter def.\n" );
+	//printf( "Sexpr Loading ribbon emitter def.\n" );
 	ribbonEmitter* emitter = ribbonEmitter_create();
 	sexpr* color_term = sexpr_findChildNamed( "color", s );
 	if ( color_term ) {

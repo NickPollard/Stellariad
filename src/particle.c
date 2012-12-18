@@ -19,7 +19,8 @@ float property_valuef( property* p, int key );
 property* property_range( property* p, float from, float to, property* buffer );
 
 // Debug
-particleEmitter* active_particles[1024];
+#define kMaxActiveParticles 1024
+particleEmitter* active_particles[kMaxActiveParticles];
 int active_particle_count = 0;
 
 particleEmitterDef* particleEmitterDef_create() {
@@ -55,6 +56,7 @@ particleEmitter* particleEmitter_create() {
 	p->destroyed = false;
 	
 	//printf( "Adding particle 0x" xPTRf ".\n", (uintptr_t)p );
+	vAssert( active_particle_count < kMaxActiveParticles );
 	array_add( (void**)active_particles, &active_particle_count, (void*)p );
 
 	return p;
@@ -153,14 +155,6 @@ void particleEmitter_tick( void* data, float dt, engine* eng ) {
 		}
 	}
 	e->emitter_age += dt;
-
-	// TEST
-	/*
-	if ( e->emitter_age > 5.f ) {
-		engine_removeRender( eng, e, particleEmitter_render );
-		stopTick( eng, e, particleEmitter_tick );
-	}
-	*/
 }
 
 // Output the 4 verts of the quad to the target vertex array

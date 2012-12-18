@@ -29,6 +29,10 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, matrix matrix_heightfield, matrix matrix_sphere );
 vector heightField_vertex( heightField* h, int x, int z );
 
+void body_delete( body* b ) {
+	mem_free( b );
+}
+
 void collision_clearEvents() {
 	memset( collision_events, 0, sizeof( collisionEvent ) * kMaxCollisionEvents );
 	event_count = 0;
@@ -889,10 +893,6 @@ body* body_create( shape* s, transform* t ) {
 	b->trans = t;
 	b->disabled = false;
 	return b;
-}
-
-void body_delete( body* b ) {
-	mem_free( b );
 }
 
 void collision_init() {

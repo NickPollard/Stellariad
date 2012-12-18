@@ -14,7 +14,7 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * math.pi
 
 -- Debug settings
-	debug_spawning_enabled	= false
+	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
 
 -- Load Modules

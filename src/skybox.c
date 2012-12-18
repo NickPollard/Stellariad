@@ -35,7 +35,7 @@ void skybox_init( ) {
 	//skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
 	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
 
-	mem_free( bitmap );
+	texture_free( bitmap );
 	mem_free( skybox_image );
 
 	//skybox_model = model_load( "dat/model/inverse_cube.s" );

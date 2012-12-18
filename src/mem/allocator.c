@@ -13,6 +13,7 @@
 #define static_heap_size (128 * 1024 * 1024) // In MegaBytes
 heapAllocator* static_heap = NULL;
 vmutex allocator_mutex = kMutexInitialiser;
+#define kMaxAlignmentSpace 8
 
 static const char* mem_stack_string = NULL;
 
@@ -130,6 +131,9 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment 
 	block_recordAlloc( b, mem_stack_string );
 #endif // MEM_STACK_TRACE
 
+	vAssert( !b->next || b->next->prev == b );
+	vAssert( !b->prev || b->prev->next == b );
+
 	return b->data;
 }
 
@@ -209,6 +213,8 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 	vAssert( b->guard == kGuardValue );
 #endif // MEM_GUARD_BLOCK
 	vAssert( b );
+	vAssert( !b->next || b->next->prev == b );
+	vAssert( !b->prev || b->prev->next == b );
 #ifdef MEM_DEBUG_VERBOSE
 	printf("Allocator freed address: " xPTRf ".\n", (uintptr_t)b->data );
 #endif
@@ -232,12 +238,12 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 // Afterwards, only *first* will remain valid
 // but will have size equal to both plus sizeof( block )
 void block_merge( heapAllocator* heap, block* first, block* second ) {
-//	printf( "Allocator: Merging Blocks\n" );
+	//printf( "Allocator: Merging Blocks 0x" xPTRf " and 0x " xPTRf "\n", (uintptr_t)first, (uintptr_t)second );
 
 	vAssert( first );
 	vAssert( second );
-	vAssert( first->free );								// Both must be empty
-	vAssert( second == (first->data + first->size) );	// Contiguous
+	vAssert( first->free && second->free );								// Both must be empty
+	vAssert( ((char*)second - ((char*)first->data + first->size)) < kMaxAlignmentSpace );	// Contiguous
 	vAssert( first->next == second );
 	if ( second->prev != first ) {
 		printf( "Second: 0x" xPTRf ", first: 0x" xPTRf ", second->prev: 0x" xPTRf "\n", (uintptr_t)second, (uintptr_t)first, (uintptr_t)second->prev );
@@ -268,9 +274,10 @@ void block_merge( heapAllocator* heap, block* first, block* second ) {
 		second->next->prev = first;
 	first->free = true;
 
+	memset( second, 0xED, sizeof( block ));
 	vAssert( !first->next || first->next == first->data + first->size );
-
-//	vAssert( first->size < total_size + 128 );	
+	vAssert( !first->next || first->next->prev == first );
+	vAssert( !first->prev || first->prev->next == first );
 }
 
 // Create a heapAllocator of *size* bytes

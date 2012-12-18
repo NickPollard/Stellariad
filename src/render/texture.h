@@ -75,4 +75,7 @@ void texture_delete( texture* t );
 // For offline skybox rendering, or anything else that needs source images
 uint8_t* read_tga( const char* file, int* w, int* h );
 
+void* texture_allocate( size_t size );
+void texture_free( void* tex );
+
 #endif // __TEXTURE_H__

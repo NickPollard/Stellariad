@@ -14,6 +14,7 @@
 
 #define RENDER_USE_MIPMAPPING
 #define RENDER_TEXTURE_LOAD_ASYNC
+#define kTextureHeapSize 1024*1024*48
 
 // *** Forward Declarations
 uint8_t* read_tga( const char* file, int* w, int* h );
@@ -22,6 +23,7 @@ void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap,
 // Globals
 GLuint g_texture_default = 0;
 vmutex	texture_mutex = kMutexInitialiser;
+static heapAllocator*	texture_heap = NULL;
 
 typedef struct textureRequest_s {
 	GLuint* tex;
@@ -54,7 +56,7 @@ void texture_tick() {
 					vAssert( r.bitmap );
 					*(r.tex) = texture_loadBitmap( r.width, r.height, r.stride, r.bitmap, r.properties.wrap_s, r.properties.wrap_t );
 					// Need to clear up where we free this - we won't always want to do it but we might
-					//mem_free( r.bitmap );
+					texture_free( r.bitmap );
 					break;
 			}
 		}
@@ -75,6 +77,8 @@ void* texture_workerLoadFile( void* args ) {
 
 	int stride = 4; // Currently we only support RGBA8
 	texture_requestMem( tex, w, h, stride, bitmap, properties->wrap_s, properties->wrap_t );
+	// texture_requestMem copies image data, so we can safely free now
+	texture_free( bitmap );
 
 	// Args were allocated when task was created, so we can safely free them here
 	mem_free( args );
@@ -91,7 +95,7 @@ void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap,
 		*request->tex = kInvalidGLTexture;
 		request->type = kTextureMemRequest;
 		size_t bitmap_size = sizeof( uint8_t ) * w * h * stride;
-		request->bitmap = mem_alloc( bitmap_size );
+		request->bitmap = texture_allocate( bitmap_size );
 		memcpy( request->bitmap, bitmap, bitmap_size );
 		request->width = w;
 		request->height = h;
@@ -230,7 +234,8 @@ uint8_t* read_tga( const char* file, int* w, int* h ) {
 
 	int pixel_bytes = header->pixel_depth / 8;
 	int size = width * height * pixel_bytes;
-	uint8_t* tex = mem_alloc( size );
+	printf( "Read TGA: Loading file \"%s\"\n", file );
+	uint8_t* tex = texture_allocate( size );
 	memcpy( tex, pixels, size );
 
 	bool swizzle = true;
@@ -291,7 +296,7 @@ GLuint texture_loadTGA( const char* filename ) {
 	glGenerateMipmap( GL_TEXTURE_2D );
 #endif // RENDER_USE_MIPMAPPING
 
-	mem_free( img );	// OpenGL copies the data, so we can free this here
+	texture_free( img );	// OpenGL copies the data, so we can free this here
 
 	return tex;
 }
@@ -334,11 +339,25 @@ GLuint texture_loadBitmap( int w, int h, int stride, uint8_t* bitmap, GLuint wra
 	glGenerateMipmap( GL_TEXTURE_2D );
 #endif // RENDER_USE_MIPMAPPING
 
-	mem_free( bitmap );	// OpenGL copies the data, so we can free this here
 	return tex;
 }
 
+void* texture_allocate( size_t size ) {
+	void* mem = heap_allocate( texture_heap, size );
+	//printf( "TEXTURE: Allocating " dPTRf " bytes as 0x" xPTRf "\n", size, (uintptr_t)mem );
+	return mem;
+}
+
+void texture_free( void* tex ) {
+	//printf( "TEXTURE: Freeing 0x" xPTRf " bytes\n", (uintptr_t)tex );
+	heap_deallocate( texture_heap, tex );
+}
+
 void texture_staticInit() {
+	texture_heap = heap_create( kTextureHeapSize );
+	assert( texture_heap->total_allocated == 0 );
+
 	g_texture_default = texture_loadTGA( "dat/img/test64rgba.tga" );
+
 	textureCache_init();
 }
