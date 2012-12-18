@@ -19,7 +19,7 @@ float property_valuef( property* p, int key );
 property* property_range( property* p, float from, float to, property* buffer );
 
 // Debug
-#define kMaxActiveParticles 1024
+#define kMaxActiveParticles 512
 particleEmitter* active_particles[kMaxActiveParticles];
 int active_particle_count = 0;
 

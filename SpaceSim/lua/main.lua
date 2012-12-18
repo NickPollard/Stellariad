@@ -14,7 +14,7 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * math.pi
 
 -- Debug settings
-	debug_spawning_enabled	= true
+	debug_spawning_enabled	= false
 	debug_doodads_enabled	= true
 
 -- Load Modules
@@ -171,14 +171,6 @@ end
 
 function missile_destroy( missile )
 	gameobject_destroy( missile )
-	if missile.glow then
-		vparticle_destroy( missile.glow )
-		missile.glow = nil
-	end
-	if missile.trail then
-		vparticle_destroy( missile.trail )
-		missile.trail = nil
-	end
 end
 
 function missile_collisionHandler( missile, other )

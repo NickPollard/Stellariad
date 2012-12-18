@@ -220,3 +220,9 @@ ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
 	dst->lifetime	= src->lifetime;
 	return dst;
 }
+
+void ribbonEmitter_destroy( ribbonEmitter* r ) {
+	vAssert( r && r->vertex_buffer );
+	mem_free( r->vertex_buffer );
+	mem_free( r );
+}

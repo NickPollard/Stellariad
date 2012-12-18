@@ -30,6 +30,7 @@ void ribbonEmitter_staticInit();
 
 ribbonEmitter* ribbonEmitter_create();
 ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src );
+void ribbonEmitter_destroy( ribbonEmitter* r );
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng );
 void ribbonEmitter_render( void* emitter );
@@ -37,3 +38,4 @@ void ribbonEmitter_render( void* emitter );
 // Load a ribbon definition asset
 ribbonEmitter* ribbon_loadAsset( const char* filename );
 void ribbonEmitter_setColor( ribbonEmitter* r, property* color );
+

@@ -27,8 +27,34 @@ modelInstance* modelInstance_createEmpty( ) {
 	return i;
 }
 
-void modelInstance_delete( modelInstance* t ) {
-	pool_modelInstance_free( static_modelInstance_pool, t );
+void modelInstance_deleteSubRibbonEmitters( modelInstance* instance ) {
+	for ( int i = 0; i < instance->ribbon_emitter_count; i++ ) {
+		ribbonEmitter* e = instance->ribbon_emitters[i];
+		ribbonEmitter_destroy( e );
+	}
+}
+
+void modelInstance_deleteSubParticleEmitters( modelInstance* instance ) { 
+	for ( int i = 0; i < instance->emitter_count; i++ ) {
+		particleEmitter* e = instance->emitters[i];
+		particleEmitter_destroy( e );
+	}
+}
+
+void modelInstance_deleteSubTransforms( modelInstance* instance ) {
+	for ( int i = 0; i < instance->transform_count; i++ ) {
+		transform* t = instance->transforms[i];
+		transform_delete( t );
+	}
+}
+
+void modelInstance_delete( modelInstance* instance ) {
+	// *** Delete sub-elements
+	modelInstance_deleteSubRibbonEmitters( instance );
+	modelInstance_deleteSubParticleEmitters( instance );
+	modelInstance_deleteSubTransforms( instance );
+
+	pool_modelInstance_free( static_modelInstance_pool, instance );
 }
 
 
@@ -45,11 +71,8 @@ void modelInstance_createSubTransforms( modelInstance* instance ) {
 void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->emitter_count; i++ ) {
-		//printf( "Adding model particle emitter.\n" );
 		instance->emitters[i] = particleEmitter_create();
 
-		// TEST setup particle stuff
-		// TODO cleanup particle/particleDef split (inc. creation)
 		vAssert( m->emitters[i]->definition );
 		instance->emitters[i]->definition = m->emitters[i]->definition;
 
@@ -69,12 +92,6 @@ void modelInstance_createSubRibbonEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->ribbon_emitter_count; i++ ) {
 		instance->ribbon_emitters[i] = ribbonEmitter_copy( m->ribbon_emitters[i]);
-
-		/*
-		instance->ribbon_emitters[i] = ribbonEmitter_create();
-		ribbonEmitter_setColor( instance->ribbon_emitters[i], m->ribbon_emitters[i]->color );
-		instance->ribbon_emitters[i]->diffuse = m->ribbon_emitters[i]->diffuse;
-		*/
 
 		// Take parent transform if in model
 		// This is stored as an index rather than a pointer
