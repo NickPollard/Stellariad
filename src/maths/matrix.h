@@ -36,6 +36,8 @@ void matrix_cpy(matrix dst, matrix src);
 
 // Build a rotation matrix from given Euler Angles
 void matrix_fromEuler( matrix m, vector* euler_angles );
+// Extract Euler angles from the given matrix (returned as Vector YPR0)
+vector matrix_toEuler( matrix m );
 
 // Normalize a matrix (so the 3x3 rotation component consists of 3 unit axes)
 void matrix_normalize( matrix m );

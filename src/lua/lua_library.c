@@ -784,6 +784,27 @@ int LUA_matrix_setTranslation( lua_State* l ) {
 	return 0;
 }
 
+int LUA_matrix_facing( lua_State* l ) {
+	vector* facing = lua_toptr( l, 1 );
+	vector* from = lua_toptr( l, 2 );
+	vector displacement = normalized( vector_sub( *facing, *from ));
+	
+	matrix* m = lua_createMatrix();
+	matrix_look( *m, displacement );
+	matrix_setTranslation( *m, from );
+	lua_pushptr( l, m );
+	return 1;
+}
+
+int LUA_matrix_toEulerAngles( lua_State* l ) {
+	matrix *m = lua_toptr( l, 1 );
+	vector ypr = matrix_toEuler( *m );
+	lua_pushnumber( l, ypr.coord.x );
+	lua_pushnumber( l, ypr.coord.y );
+	lua_pushnumber( l, ypr.coord.z );
+	return 3;
+}
+
 // *** Quaternions
 
 int LUA_quaternion_fromTransform( lua_State* l ) {
@@ -923,6 +944,8 @@ void luaLibrary_import( lua_State* l ) {
 	// *** Matrix
 	lua_registerFunction( l, LUA_transformWorldMatrix, "vtransformWorldMatrix" );
 	lua_registerFunction( l, LUA_matrix_setTranslation, "vmatrix_setTranslation" );
+	lua_registerFunction( l, LUA_matrix_toEulerAngles, "vmatrix_toEulerAngles" );
+	lua_registerFunction( l, LUA_matrix_facing, "vmatrix_facing" );
 
 	// *** Quaternion
 	lua_registerFunction( l, LUA_quaternion_fromTransform, "vquaternion_fromTransform" );

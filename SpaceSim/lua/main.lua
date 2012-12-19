@@ -17,6 +17,7 @@ C and only controlled remotely by Lua
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
 	debug_player_immortal	= true
+	debug_player_autofly	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -621,7 +622,23 @@ function playership_tick( ship, dt )
 	local yaw_per_second = 1.5 
 	local pitch_per_second = 1.5
 
-	local input_yaw, input_pitch = ship.steering_input()
+	local input_yaw, input_pitch
+	if debug_player_autofly then
+		local current_pos = vtransform_getWorldPosition( ship.transform )
+		local current_u, current_v = vcanyon_fromWorld( current_pos )
+		local target_delta_v = 50
+		local target_u = 0
+		local target_v = current_v + target_delta_v
+		local x, y, z = vcanyon_position( target_u, target_v )
+		local target_pos = Vector( x, y, z, 1.0 )
+		local m = vmatrix_facing( target_pos, current_pos )
+		local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
+		vprint( "target yaw: " .. target_yaw )
+		input_yaw = target_yaw - ship.yaw
+		input_pitch = target_pitch - ship.pitch
+	else
+		input_yaw, input_pitch = ship.steering_input()
+	end
 
 	-- set to -1.0 to invert
 	local invert_pitch = 1.0

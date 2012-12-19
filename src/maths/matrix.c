@@ -503,6 +503,13 @@ void matrix_fromEuler( matrix m, vector* euler_angles ) {
 	matrix_fromQuaternion( m, q );
 }
 
+vector matrix_toEuler( matrix m ) {
+	(void)m;
+	vector line_of_nodes = vector_cross( *matrix_getCol( m, 2 ), *matrix_getCol( m, 0 ));
+	float yaw = atan2( line_of_nodes.coord.x, line_of_nodes.coord.z );
+	return Vector( yaw, 0.f, 0.f, 0.f );
+}
+
 // Quaternion->Matrix conversion, inspired by http://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
 // Can easily be derived through matrix representations of quaternion pre- and post- multiplication
 // Works for any Quaternion, even non-unit or zero
