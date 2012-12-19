@@ -14,8 +14,9 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * math.pi
 
 -- Debug settings
-	debug_spawning_enabled	= false
+	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
+	debug_player_immortal	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -56,7 +57,7 @@ C and only controlled remotely by Lua
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
 	-- Flight
-	player_ship_initial_speed	= 30.0
+	player_ship_initial_speed	= 50.0
 	player_ship_acceleration	= 1.0
 	player_ship_max_speed		= 150.0
 	max_allowed_roll			= 1.5
@@ -169,14 +170,10 @@ function player_fire_missile( ship )
 	fire_missile( ship, muzzle_position, player_missile )
 end
 
-function missile_destroy( missile )
-	gameobject_destroy( missile )
-end
-
 function missile_collisionHandler( missile, other )
 	fx.spawn_missile_explosion( missile.transform )
 	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
-	missile_destroy( missile )
+	gameobject_destroy( missile )
 end
 
 function setCollision_playerBullet( object )
@@ -242,7 +239,7 @@ enemy_gunfire = {
 
 enemy_homing_missile = { 
 	model = "dat/model/missile_enemy_homing.s",
-	speed = 150.0,
+	speed = 100.0,
 	collisionType = "enemy",
 	time_to_live = 3.0
 }
@@ -255,7 +252,7 @@ function fire_missile( source, offset, bullet_type )
 		setCollision_enemyBullet( projectile )
 	end
 	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-	inTime( bullet_type.time_to_live, function () missile_destroy( projectile ) end )
+	inTime( bullet_type.time_to_live, function () gameobject_destroy( projectile ) end )
 	return projectile
 end
 
@@ -382,28 +379,30 @@ function setup_controls()
 end
 
 function player_ship_collisionHandler( ship, collider )
-	-- stop the ship
-	ship.speed = 0.0
-	local no_velocity = Vector( 0.0, 0.0, 0.0, 0.0 )
-	vphysic_setVelocity( ship.physic, no_velocity )
+	if not debug_player_immortal then
+		-- stop the ship
+		ship.speed = 0.0
+		local no_velocity = Vector( 0.0, 0.0, 0.0, 0.0 )
+		vphysic_setVelocity( ship.physic, no_velocity )
 
-	-- destroy it
-	fx.spawn_explosion( ship.transform )
+		-- destroy it
+		fx.spawn_explosion( ship.transform )
 
-	-- not using gameobject_destroy as we need to sync transform dying with camera rejig
-	inTime( 0.2, function () vdeleteModelInstance( ship.model ) 
-							vphysic_destroy( ship.physic )
-							ship.physic = nil
-				end )
-	vdestroyBody( ship.body )
+		-- not using gameobject_destroy as we need to sync transform dying with camera rejig
+		inTime( 0.2, function () vdeleteModelInstance( ship.model ) 
+			vphysic_destroy( ship.physic )
+			ship.physic = nil
+		end )
+		vdestroyBody( ship.body )
 
-	-- queue a restart
-	inTime( 2.0, function ()
-		vprint( "Restarting" )
-		vdestroyTransform( scene, ship.transform )
-		restart() 
-		gameplay_start()
-	end )
+		-- queue a restart
+		inTime( 2.0, function ()
+			vprint( "Restarting" )
+			vdestroyTransform( scene, ship.transform )
+			restart() 
+			gameplay_start()
+		end )
+	end
 end
 
 function gameplay_start()
@@ -445,25 +444,6 @@ function restart()
 	setup_controls()
 end
 
-function loadParticles( )
-	local t = vcreateTransform()
-	local particle
-	particle = vparticle_create( engine, t, "dat/vfx/particles/missile_explosion.s" )
-	vparticle_destroy( particle )
-	particle = vparticle_create( engine, t, "dat/script/lisp/explosion.s" )
-	vparticle_destroy( particle )
-	particle = vparticle_create( engine, t, "dat/script/lisp/explosion_b.s" )
-	vparticle_destroy( particle )
-	particle = vparticle_create( engine, t, "dat/script/lisp/explosion_c.s" )
-	vparticle_destroy( particle )
-	particle = vparticle_create( engine, t, "dat/vfx/particles/bullet.s" )
-	vparticle_destroy( particle )
-	vdestroyTransform( scene, t )
-	vmodel_preload( projectile_model )
-	vmodel_preload( "dat/model/bullet_player.s" )
-	vmodel_preload( "dat/model/missile_enemy_homing.s" )
-end
-
 function splash_intro()
 	vtexture_preload( "dat/img/splash_author.tga" )
 	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga" )
@@ -482,7 +462,7 @@ function test()
 end
 
 function start()
-	loadParticles()
+	fx.preload()
 
 	test()
 
@@ -851,7 +831,7 @@ function entities_spawnRange( near, far )
 	local spawn_v = i * spawn_interval
 	while library.contains( spawn_v, near, far ) do
 		local interceptor_offset_u = 20.0
-		spawn.spawnGroup( spawn.spawnGroupForIndex( i ), spawn_v )
+		spawn.spawnGroup( spawn.spawnGroupForIndex( i, player_ship ), spawn_v )
 		i = i + 1
 		spawn_v = i * spawn_interval
 	end

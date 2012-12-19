@@ -258,6 +258,7 @@ void engine_init(engine* e, int argc, char** argv) {
 	// *** Start up Core Systems
 	particle_init();
 	ribbonEmitter_staticInit();
+	particle_staticInit();
 	//font_init();
 
 	// *** Initialise Lua

@@ -123,6 +123,12 @@ function spawn.spawnTurret( u, v )
 	turret.tick = turret_tick
 	turret.cooldown = turret_cooldown
 
+	-- TEMP tweak collision position
+	turret.collision_transform = vcreateTransform( turret.transform )
+	local position = Vector( 0.0, 6.0, 0.0, 1.0 )
+	vtransform_setLocalPosition( turret.collision_transform, position )
+	vbody_setTransform( turret.body, turret.collision_transform )
+
 	-- ai
 	turret.behaviour = turret_state_inactive
 
@@ -135,8 +141,8 @@ local interceptor_spawn_v_offset = -200
 local interceptor_spawn_y_offset = 100
 local interceptor_target_v_offset = 100
 
-function spawn.spawnInterceptor( u, v, height, attack_type )
-	local trigger_v = v - 300.0
+function spawn.spawnInterceptor( u, v, height, player_speed, attack_type )
+	local trigger_v = v - ( 300.0 + player_speed * 5 )
 	triggerWhen( function()
 			local position = vtransform_getWorldPosition( player_ship.transform )
 			local unused, player_v = vcanyon_fromWorld( position ) 
@@ -158,23 +164,24 @@ function spawn.spawnInterceptor( u, v, height, attack_type )
 		)
 end
 
-function spawn.spawnGroupForIndex( i )
-	return spawn.generateSpawnGroupForDifficulty( i )
+function spawn.spawnGroupForIndex( i, player_ship )
+	return spawn.generateSpawnGroupForDifficulty( i, player_ship )
 end
 
 
-function spawn.randomEnemy()
+function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
+	r = 0.7
 	if r > 0.75 then
-		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, interceptor_attack_homing ) end, spawn.positionerInterceptor
+		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, interceptor_attack_homing ) end, spawn.positionerInterceptor
 	elseif r > 0.4 then
-		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, interceptor_attack_gun ) end, spawn.positionerInterceptor
+		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, interceptor_attack_gun ) end, spawn.positionerInterceptor
 	else
 		return function( coord ) spawn.spawnTurret( coord.u, coord.v ) end, spawn.positionerTurret
 	end
 end
 
-function spawn.generateSpawnGroupForDifficulty( difficulty )
+function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
 	-- For now, assume difficulty is number of units to spawn
 	local count = math.min( difficulty, 16 )
 	local group = {}
@@ -182,7 +189,7 @@ function spawn.generateSpawnGroupForDifficulty( difficulty )
 	group.positioners = { count = count }
 	local i = 1
 	while i <= count do
-		group.spawners[i], group.positioners[i] = spawn.randomEnemy()
+		group.spawners[i], group.positioners[i] = spawn.randomEnemy( player_ship.speed )
 		i = i + 1
 	end
 	return group

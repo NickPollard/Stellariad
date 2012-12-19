@@ -1,7 +1,7 @@
 // particle.h
 #pragma once
 #include "maths/maths.h"
-#include "render/vgl.h"
+#include "render/render.h"
 
 //#define DEBUG_PARTICLE_LIVENESS_TEST
 
@@ -44,16 +44,15 @@ typedef struct particleEmitterDef_s {
 
 struct particleEmitter_s {
 	transform*	trans;
-	particle	particles[kMaxParticles];
+	particleEmitterDef*	definition;
 	int		start;
 	int		count;
 	float	next_spawn;
 	float	emitter_age;
-	particleEmitterDef*	definition;
 	bool	destroyed;
 
-	vertex*		vertex_buffer;
-	GLushort*	element_buffer;
+	particle	particles[kMaxParticles];
+	vertex		vertex_buffer[kMaxParticleVerts];
 };
 
 // *** System static init
@@ -83,10 +82,11 @@ void property_addv( property* p, float time, vector value );
 vector property_samplev( property* p, float time );
 float property_samplef( property* p, float time );
 
+void particle_staticInit();
+
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 void particleEmitter_assertActive( particleEmitter* e );
 #endif // DEBUG_PARTICLE_LIVENESS_TEST
 
 // *** Test
-
 void test_property();

@@ -142,13 +142,13 @@ void scene_removeRibbonEmitter( scene* s, ribbonEmitter* e ) {
 
 // Add an existing light to the scene
 void scene_addLight( scene* s, light* l ) {
-	assert( s->light_count < MAX_LIGHTS );
+	vAssert( s->light_count < MAX_LIGHTS );
 	s->lights[s->light_count++] = l;
 }
 
 // Add an existing transform to the scene
 void scene_addTransform( scene* s, transform* t ) {
-	assert( s->transform_count < MAX_TRANSFORMS );
+	vAssert( s->transform_count < MAX_TRANSFORMS );
 	array_add( (void**)s->transforms, &s->transform_count, t );
 }
 
@@ -176,10 +176,10 @@ void scene_free( scene* s ) {
 	// All these pointers should be valid at this point
 	// They should not be cleared prior to calling scene_free
 	// This is part of our RAII-based memory strategy
-	assert( s->transforms );
-	assert( s->lights );
-	assert( s->modelInstances );
-//	assert( s->cam );
+	vAssert( s->transforms );
+	vAssert( s->lights );
+	vAssert( s->modelInstances );
+//	vAssert( s->cam );
 
 	mem_free( s->transforms );
 	mem_free( s->lights );
@@ -250,8 +250,8 @@ scene* scene_create( engine* e ) {
 }
 
 transform* scene_transform( scene* s, int i ) {
-	assert( i >= 0 );
-	assert( i < s->transform_count );
+	vAssert( i >= 0 );
+	vAssert( i < s->transform_count );
 	return s->transforms[i];
 }
 
@@ -367,18 +367,18 @@ sceneData* scene_save( scene* s ) {
 	// transforms
 	data->transform_count = s->transform_count;
 	data->transforms = blob + sizeof( sceneData );
-	assert( (void*)data->transforms < blob_end );
+	vAssert( (void*)data->transforms < blob_end );
 
 	for ( int i = 0; i < s->transform_count; i++ ) {
 		data->transforms[i] = *scene_transform( s, i );
-		assert( data->transforms[i].parent != scene_transform( s, i ));
+		vAssert( data->transforms[i].parent != scene_transform( s, i ));
 		data->transforms[i].parent = (void*)(uintptr_t)scene_transformIndex( s, data->transforms[i].parent );
 	}
 	
 	// modelInstances
 	data->model_count = s->model_count;
 	data->modelInstances = (void*)data->transforms + transforms_size;
-	assert( (void*)data->modelInstances < blob_end );
+	vAssert( (void*)data->modelInstances < blob_end );
 
 	for ( int i = 0; i < s->model_count; i++ ) {
 		data->modelInstances[i] = *scene_model( s, i );
@@ -388,7 +388,7 @@ sceneData* scene_save( scene* s ) {
 	// lights
 	data->light_count = s->light_count;
 	data->lights = (void*)data->modelInstances + models_size;
-	assert( (void*)data->lights < blob_end );
+	vAssert( (void*)data->lights < blob_end );
 
 	for ( int i = 0; i < s->light_count; i++ ) {
 		data->lights[i] = *scene_light( s, i );
@@ -396,7 +396,7 @@ sceneData* scene_save( scene* s ) {
 	}
 
 	data->cam = (void*)data->lights + lights_size;
-	assert( (void*)data->cam < blob_end );
+	vAssert( (void*)data->cam < blob_end );
 
 	memcpy( data->cam, s->cam, sizeof( camera ));
 	data->cam->trans = (transform*)(uintptr_t)scene_transformIndex( s, data->cam->trans );
@@ -424,7 +424,7 @@ scene* scene_loadFile( const char* filename ) {
 	void* buffer = vfile_contents( filename, &buffer_length );
 	sceneData* data = (sceneData*)buffer;
 	printf( "Loading scene from file %s. File Size: " dPTRf ", Data size: " dPTRf ".\n", filename, buffer_length, data->size );
-	assert( data->size == buffer_length );
+	vAssert( data->size == buffer_length );
 	return scene_load( buffer );
 }
 
@@ -451,7 +451,7 @@ scene* scene_load( sceneData* data ) {
 		scene_addTransform( s, t );
 		printf(" Loading transform %d. Parent index = " dPTRf ".\n", i, (uintptr_t)t->parent );
 		t->parent = scene_resolveTransform( s, (uintptr_t)t->parent );
-		assert( t != t->parent );
+		vAssert( t != t->parent );
 	}
 
 	s->cam = camera_create( s );

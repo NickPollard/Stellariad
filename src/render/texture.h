@@ -7,7 +7,7 @@
 #define kInvalidGLTexture 0xffffffff
 
 // Globals
-extern GLuint g_texture_default;
+extern texture* static_texture_default;
 
 void texture_staticInit();
 

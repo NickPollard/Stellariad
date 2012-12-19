@@ -1,7 +1,7 @@
 // ribbon.h
 #pragma once
 #include "maths/vector.h"
-#include "render/vgl.h"
+#include "render/render.h"
 
 #define kMaxRibbonPairs 32
 
@@ -23,7 +23,7 @@ struct ribbonEmitter_s {
 	int		pair_first;
 
 	// Render
-	vertex*		vertex_buffer;
+	vertex		vertex_buffer[kMaxRibbonPairs * 2];
 };
 
 void ribbonEmitter_staticInit();

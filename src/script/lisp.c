@@ -1863,7 +1863,7 @@ void lisp_initContext( context* c ) {
 	// load the default vlisp library
 	lisp_eval_file( c, "dat/script/lisp/vliblisp.s" );
 	lisp_eval_file( c, "dat/script/lisp/particle.s" );
-	lisp_eval_file( c, "dat/script/lisp/model.s" );
+	//lisp_eval_file( c, "dat/script/lisp/model.s" );
 	lisp_eval_file( c, "dat/script/lisp/canyon.s" );
 	// just load the definitions in the file
 }

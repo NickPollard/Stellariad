@@ -18,10 +18,21 @@ vector property_samplev( property* p, float time );
 float property_valuef( property* p, int key );
 property* property_range( property* p, float from, float to, property* buffer );
 
+GLushort* static_particle_element_buffer = NULL;
+
 // Debug
-#define kMaxActiveParticles 512
+#define kMaxActiveParticles 1024
 particleEmitter* active_particles[kMaxActiveParticles];
 int active_particle_count = 0;
+
+// *** Object pool
+DECLARE_POOL( particleEmitter );
+IMPLEMENT_POOL( particleEmitter );
+pool_particleEmitter* static_particle_pool = NULL;
+
+void particle_initPool() {
+	static_particle_pool = pool_particleEmitter_create( kMaxActiveParticles );
+}
 
 particleEmitterDef* particleEmitterDef_create() {
 	particleEmitterDef* def = mem_alloc( sizeof( particleEmitterDef ));
@@ -48,11 +59,9 @@ void particleEmitterDef_deInit( particleEmitterDef* def ) {
 }
 
 particleEmitter* particleEmitter_create() {
-	particleEmitter* p = mem_alloc( sizeof( particleEmitter ));
+	particleEmitter* p = pool_particleEmitter_allocate( static_particle_pool );
 	memset( p, 0, sizeof( particleEmitter ));
 	p->definition = NULL;
-	p->vertex_buffer = mem_alloc( sizeof( vertex ) * kMaxParticleVerts );
-	p->element_buffer = mem_alloc( sizeof( GLushort ) * kMaxParticleVerts );
 	p->destroyed = false;
 	
 	//printf( "Adding particle 0x" xPTRf ".\n", (uintptr_t)p );
@@ -221,16 +230,6 @@ void particleEmitter_render( void* data ) {
 		vector	color	= property_samplev( p->definition->color, p->particles[index].age );
 
 		particle_quad( p, &p->vertex_buffer[i*4], &p->particles[index].position, p->particles[index].rotation, size, color );
-
-		vAssert( ( i*6 + 5 ) < kMaxParticleVerts );
-
-		// TODO: Indices can be initialised once
-		p->element_buffer[i*6+0] = i*4+1;
-		p->element_buffer[i*6+1] = i*4+0;
-		p->element_buffer[i*6+2] = i*4+2;
-		p->element_buffer[i*6+3] = i*4+0;
-		p->element_buffer[i*6+4] = i*4+1;
-		p->element_buffer[i*6+5] = i*4+3;
 	}
 
 	// For Billboard particles; cancel out the rotation of the matrix
@@ -239,7 +238,7 @@ void particleEmitter_render( void* data ) {
 	int index_count = 6 * p->count;
 	// We only need to send this to the GPU if we actually have something to draw (i.e. particles have been emitted)
 	if ( index_count > 0 ) {
-		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, p->element_buffer, p->vertex_buffer, 
+		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, static_particle_element_buffer, p->vertex_buffer, 
 											p->definition->texture_diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
 	}
@@ -420,17 +419,29 @@ void particleEmitter_destroy( particleEmitter* e ) {
 	e->destroyed = true;
 }
 
+// Delete a particleEmitter; Does not explicitly remove the definition
 void particleEmitter_delete( particleEmitter* e ) {
+	vAssert( e );
 	//printf( "Removing particle 0x" xPTRf ".\n", (uintptr_t)e );
 	array_remove( (void**)active_particles, &active_particle_count, (void*)e );
+	pool_particleEmitter_free( static_particle_pool, e );
+}
 
-	// Does not explicitly remove the definition
-	vAssert( e );
-	vAssert( e->vertex_buffer );
-	vAssert( e->element_buffer );
-	mem_free( e->vertex_buffer );
-	mem_free( e->element_buffer );
-	mem_free( e );
+void particle_initStaticElementBuffer() {
+	static_particle_element_buffer = mem_alloc( sizeof( GLushort ) * kMaxParticleVerts );
+	for ( int i = 0; ( i*6+5 ) < kMaxParticleVerts; ++i ) {
+		static_particle_element_buffer[i*6+0] = i*4+1;
+		static_particle_element_buffer[i*6+1] = i*4+0;
+		static_particle_element_buffer[i*6+2] = i*4+2;
+		static_particle_element_buffer[i*6+3] = i*4+0;
+		static_particle_element_buffer[i*6+4] = i*4+1;
+		static_particle_element_buffer[i*6+5] = i*4+3;
+	}
+}
+
+void particle_staticInit() {
+	particle_initPool();
+	particle_initStaticElementBuffer();
 }
 
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST

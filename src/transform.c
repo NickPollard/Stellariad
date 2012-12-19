@@ -7,7 +7,7 @@
 #include "mem/allocator.h"
 #include "debug/debugtext.h"
 
-IMPLEMENT_POOL( transform )
+IMPLEMENT_POOL( transform );
 
 pool_transform* static_transform_pool = NULL;
 

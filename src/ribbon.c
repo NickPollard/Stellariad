@@ -11,14 +11,24 @@
 #include "render/texture.h"
 #include "script/sexpr.h"
 
+#define kMaxRibbonEmitters 1024
+
 GLushort*	ribbon_element_buffer = NULL;
 
+// *** Object pool
+DECLARE_POOL( ribbonEmitter );
+IMPLEMENT_POOL( ribbonEmitter );
+pool_ribbonEmitter* static_ribbon_pool = NULL;
+
+void ribbon_initPool() {
+	static_ribbon_pool = pool_ribbonEmitter_create( kMaxRibbonEmitters );
+}
+
 ribbonEmitter* ribbonEmitter_create() {
-	ribbonEmitter* r = mem_alloc( sizeof( ribbonEmitter ));
+	ribbonEmitter* r = pool_ribbonEmitter_allocate( static_ribbon_pool );
 	memset( r, 0, sizeof( ribbonEmitter ));
 
-	r->vertex_buffer = mem_alloc( sizeof( vertex ) * kMaxRibbonPairs * 2 );
-	r->diffuse = texture_load( "dat/img/star_rgba64.tga" );
+	r->diffuse = static_texture_default;
 
 	r->begin	= Vector( 0.5f, 0.f, 0.f, 1.f );
 	r->end		= Vector( -0.5f, 0.f, 0.f, 1.f );
@@ -71,6 +81,7 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 }
 
 void ribbonEmitter_staticInit() {
+	ribbon_initPool();
 	ribbon_element_buffer = mem_alloc( sizeof( GLushort ) * ( kMaxRibbonPairs - 1 ) * 6 );
 	for ( int i = 1; i < kMaxRibbonPairs; ++i ) {
 		ribbon_element_buffer[i*6-6] = i * 2 - 2;
@@ -222,7 +233,6 @@ ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
 }
 
 void ribbonEmitter_destroy( ribbonEmitter* r ) {
-	vAssert( r && r->vertex_buffer );
-	mem_free( r->vertex_buffer );
-	mem_free( r );
+	vAssert( r );
+	pool_ribbonEmitter_free( static_ribbon_pool, r );
 }

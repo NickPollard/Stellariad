@@ -21,7 +21,7 @@ uint8_t* read_tga( const char* file, int* w, int* h );
 void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap, GLuint wrap_s, GLuint wrap_t );
 
 // Globals
-GLuint g_texture_default = 0;
+texture* static_texture_default = NULL;
 vmutex	texture_mutex = kMutexInitialiser;
 static heapAllocator*	texture_heap = NULL;
 
@@ -357,7 +357,7 @@ void texture_staticInit() {
 	texture_heap = heap_create( kTextureHeapSize );
 	assert( texture_heap->total_allocated == 0 );
 
-	g_texture_default = texture_loadTGA( "dat/img/test64rgba.tga" );
-
 	textureCache_init();
+
+	static_texture_default = texture_load( "dat/img/test64rgba.tga" );
 }
