@@ -1,5 +1,6 @@
 #pragma once
 // Allocator.h
+#include "mem/bitpool.h"
 
 //#define MEM_DEBUG_VERBOSE
 #define MEM_GUARD_BLOCK
@@ -14,6 +15,8 @@
 #define mem_popStack( )
 #endif // MEM_STACK_TRACE
 
+#define kMaxBitpools 8
+
 typedef struct block_s block;
 
 // A heap allocator struct
@@ -27,6 +30,9 @@ struct heapAllocator_s {
 	size_t total_free;		// in bytes, currently free
 	size_t allocations;
 	block* first;					// doubly-linked list of blocks
+	// Bitpools
+	int			bitpool_count;
+	bitpool		bitpools[kMaxBitpools];
 };
 
 // A memory block header for the heapAllocator
@@ -88,6 +94,11 @@ void block_merge( heapAllocator* heap, block* first, block* second );
 // Create a heapAllocator of *size* bytes
 // Initialised with one block pointing to the whole memory
 heapAllocator* heap_create( int heap_size );
+
+// Add a bitpool of COUNT blocks of SIZE bytes to the given heapAllocator
+// The bitpool storage is taken from the heaps storage, so there must be enough space
+// for the bitpool arena
+void heap_addBitpool( heapAllocator* h, size_t size, size_t count );
 
 // Insert a block *after* into a linked-list after the block *before*
 // Both *before* and *after* must be valid

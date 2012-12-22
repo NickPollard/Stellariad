@@ -171,7 +171,6 @@ end
 
 function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
-	r = 0.7
 	if r > 0.75 then
 		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, interceptor_attack_homing ) end, spawn.positionerInterceptor
 	elseif r > 0.4 then
@@ -183,7 +182,7 @@ end
 
 function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
 	-- For now, assume difficulty is number of units to spawn
-	local count = math.min( difficulty, 16 )
+	local count = math.min( difficulty, 6 )
 	local group = {}
 	group.spawners = { count = count }
 	group.positioners = { count = count }

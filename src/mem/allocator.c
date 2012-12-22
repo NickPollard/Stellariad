@@ -35,6 +35,38 @@ void mem_free( void* ptr ) {
 void mem_init(int argc, char** argv) {
 	(void)argc; (void)argv;
 	static_heap = heap_create( static_heap_size );
+	// Start with two simple bitpools
+	heap_addBitpool( static_heap, 16, 2048 );
+	heap_addBitpool( static_heap, 64, 2048 );
+}
+
+void heap_addBitpool( heapAllocator* h, size_t size, size_t count ) {
+	size_t arena_size = size * count;
+	void* arena = heap_allocate( h, arena_size );
+	h->bitpools[h->bitpool_count++] = bitpool_create( size, count, arena );
+}
+
+// Find the smallest bitpool big enough to hold SIZE
+bitpool* heap_findBitpool( heapAllocator* h, size_t size ) {
+	bitpool* b = NULL;
+	for ( int i = 0; i < h->bitpool_count; ++i ) {
+		size_t block_size = h->bitpools[i].block_size;
+		if ( block_size > size &&
+				( !b || block_size < b->block_size )) {
+			b = &h->bitpools[i];
+		}
+	}
+	return b;
+}
+
+bitpool* heap_findBitpoolForData( heapAllocator* h, void* data ) {
+	bitpool* b = NULL;
+	for ( int i = 0; i < h->bitpool_count && !b; ++i ) {
+		if ( bitpool_contains( &h->bitpools[i], data )) {
+			b = &h->bitpools[i];
+		}
+	}
+	return b;
 }
 
 // Allocates *size* bytes from the given heapAllocator *heap*
@@ -55,6 +87,15 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment 
 #ifdef MEM_DEBUG_VERBOSE
 	printf( "HeapAllocator request for " dPTRf " bytes, " dPTRf " byte aligned.\n", size, alignment );
 #endif
+	bitpool* bit_pool = heap_findBitpool( heap, size );
+	if ( bit_pool ) {
+		void* data = bitpool_allocate( bit_pool, size );
+		if ( data ) {
+			vmutex_unlock( &allocator_mutex );
+			return data;
+		}
+	}
+
 	size_t size_original = size;
 	size += alignment;	// Make sure we have enough space to align
 	block* b = heap_findEmptyBlock( heap, size );
@@ -207,6 +248,14 @@ block* heap_findBlock( heapAllocator* heap, void* mem_addr ) {
 // Release a block from the heapAllocator
 void heap_deallocate( heapAllocator* heap, void* data ) {
 	vmutex_lock( &allocator_mutex );
+	// Check if it's in a bitpool
+	bitpool* bit_pool = heap_findBitpoolForData( heap, data );
+	if ( bit_pool ) {
+		bitpool_free( bit_pool, data );
+		vmutex_unlock( &allocator_mutex );
+		return;
+	}
+
 	//block* b = heap_findBlock( heap, data );
 	block* b = (block*)((uint8_t*)data - sizeof( block ));
 #ifdef MEM_GUARD_BLOCK
@@ -292,6 +341,7 @@ heapAllocator* heap_create( int heap_size ) {
 	allocator->total_size = heap_size;
 	allocator->total_free = heap_size;
 	allocator->total_allocated = 0;
+	allocator->bitpool_count = 0;
 	
 	// Should not be possible to fail creating the first block header
 	block* first = block_create( data, heap_size );

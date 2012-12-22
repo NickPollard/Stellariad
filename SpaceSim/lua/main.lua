@@ -633,7 +633,6 @@ function playership_tick( ship, dt )
 		local target_pos = Vector( x, y, z, 1.0 )
 		local m = vmatrix_facing( target_pos, current_pos )
 		local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
-		vprint( "target yaw: " .. target_yaw )
 		input_yaw = target_yaw - ship.yaw
 		input_pitch = target_pitch - ship.pitch
 	else
@@ -922,9 +921,11 @@ function update_despawns( transform )
 	local u,v = vcanyon_fromWorld( pos )
 	local despawn_up_to = v - despawn_distance
 
+	local count = 0
 	for unit in array.iterator( interceptors ) do
 		-- TODO remove them properly
 		if unit.transform then
+			count = count + 1
 			unit_pos = vtransform_getWorldPosition( unit.transform )
 			u,v = vcanyon_fromWorld( unit_pos )
 			if v < despawn_up_to then
@@ -933,6 +934,7 @@ function update_despawns( transform )
 			end
 		end
 	end
+	vprint( "Active interceptors: " .. count )
 
 	for unit in array.iterator( turrets ) do
 		-- TODO remove them properly
@@ -981,6 +983,7 @@ homing_missile_cooldown = 1.2
 
 function interceptor_attack_gun( x, y, z )
 	return function ( interceptor, dt )
+		--[[
 		local facing_position = Vector( x, y, z, 1.0 )
 		vtransform_facingWorld( interceptor.transform, facing_position )
 		entities.setSpeed( interceptor, 0.0 )
@@ -990,6 +993,7 @@ function interceptor_attack_gun( x, y, z )
 			interceptor.cooldown = interceptor_weapon_cooldown
 		end
 		interceptor.cooldown = interceptor.cooldown - dt
+		--]]
 	end
 end
 
