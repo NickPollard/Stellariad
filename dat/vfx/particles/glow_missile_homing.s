@@ -6,6 +6,6 @@
 												(0.3 1.0 0.2 0.2 0.3)
 												(1.0 1.0 0.3 0.3 0.0)))))
 			(attribute "lifetime" 1.0)
-			(attribute "texture" "dat/img/diffusion_cross.tga")
+			(attribute "texture" "dat/img/lensflare.tga")
 			(attribute "spawn_rate" (property (quote ((0.0 5.0)))))
 		   )))
