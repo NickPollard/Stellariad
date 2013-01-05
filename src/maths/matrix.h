@@ -27,6 +27,8 @@ const GLfloat* matrix_getGlMatrix(matrix m);
 
 // Multiply two matrices together ( A * B )
 void matrix_mul(matrix dst, matrix a, matrix b);
+// Multiplies two matrices if one of them aliases dst
+void matrix_mulInPlace( matrix dst, matrix a, matrix b );
 
 // Build a matrix from a rotation and translation
 void matrix_fromRotationTranslation( matrix m, quaternion rotation, vector translation );

@@ -354,14 +354,23 @@ const GLfloat* matrix_getGlMatrix( matrix m ) {
 	return (const GLfloat*)m; }
 
 // Multiply two matrices together
+// TODO - optimize - unroll loop? remove copy?
 void matrix_mul( matrix dst, matrix a, matrix b ) {
-	matrix m;
+	vAssert( dst != a && dst != b );
+//	matrix m;
 	for ( int i = 0; i < 4; i++ ) {
 		for ( int j = 0; j < 4; j++ ) {
-			m[i][j] = a[0][j] * b[i][0]
+			dst[i][j] = a[0][j] * b[i][0]
 						+ a[1][j] * b[i][1]
 						+ a[2][j] * b[i][2]
 						+ a[3][j] * b[i][3]; }}
+	//matrix_cpy( dst, m );
+}
+
+// Use if DST aliases either A or B
+void matrix_mulInPlace( matrix dst, matrix a, matrix b ) {
+	matrix m;
+	matrix_mul( m, a, b );
 	matrix_cpy( dst, m );
 }
 
@@ -371,6 +380,7 @@ void matrix_cpy( matrix dst, matrix src ) {
 	float* a = (float*)dst;
 	float* b = (float*)src;
 	for (int i = 0; i < 16; i++) {
+	vAssert( dst != a && dst != b );
 		*a++ = *b++; } }
 		*/
 	memcpy( dst, src, sizeof( matrix ));
@@ -432,8 +442,9 @@ void matrix_print( matrix src ) {
 }
 
 void matrix_compose3( matrix m, matrix a, matrix b, matrix c ) {
-	matrix_mul( m, b, c );
-	matrix_mul( m, a, m );
+	matrix _m;
+	matrix_mul( _m, b, c );
+	matrix_mul( m, a, _m );
 }
 
 // Build a matrix to convert to axis space - i.e. the axis becomes
@@ -452,7 +463,7 @@ void matrix_toAxisSpace( matrix m, vector axis ) {
 		 Cross( &x, &y_axis, &axis );
 		 Cross( &y, &axis, &x );
 #endif
-	}
+	;}
 	else {
 #if 0
 		Cross( &y, &x_axis, &axis );

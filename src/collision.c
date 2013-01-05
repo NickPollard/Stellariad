@@ -27,7 +27,10 @@ int body_count;
 bool body_colliding( body* a, body* b );
 bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, matrix matrix_sphere, matrix matrix_heightfield );
 bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, matrix matrix_heightfield, matrix matrix_sphere );
-vector heightField_vertex( heightField* h, int x, int z );
+
+static inline vector heightField_vertex( heightField* h, int x, int z ) { 
+	return h->verts[x + z * h->x_samples];
+}
 
 void body_delete( body* b ) {
 	mem_free( b );
@@ -130,9 +133,10 @@ void collision_runCallbacks() {
 
 void collision_generateEvents() {
 	// for every body, check every other body
+	// TODO - keep separate lists for layers; iterate those instead
 	for ( int i = 0; i < body_count; ++i )
 		for ( int j = i + 1; j < body_count; j++ )
-			if ( !bodies[i]->disabled && ! bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
+			if ( !bodies[i]->disabled && !bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
 				collision_event( bodies[i], bodies[j] );
 }
 
@@ -498,13 +502,15 @@ collideFunc collision_func( enum shapeType type_a, enum shapeType type_b ) {
 }
 
 bool shape_colliding( shape* a, shape* b, matrix matrix_a, matrix matrix_b ) {
+	vAssert( a );
+	vAssert( b );
 	collideFunc collide_func = collision_func( a->type, b->type );
 	return collide_func( a, b, matrix_a, matrix_b );
 }
 
 bool body_colliding( body* a, body* b ) {
-	vAssert( a->trans );
-	vAssert( b->trans );
+	//vAssert( a->trans );
+	//vAssert( b->trans );
 	bool test_collision =	( a->collide_with & b->layers ) |
 	   						( a->layers & b->collide_with );
 	return test_collision && shape_colliding( a->shape, b->shape, a->trans->world, b->trans->world );
@@ -570,18 +576,6 @@ shape* mesh_createFromRenderMesh( mesh* render_mesh ) {
 
 
 
-
-vector heightField_vertex( heightField* h, int x, int z ) { 
-#if 0
-	float x_per_sample = h->width / ((float)h->x_samples - 1.f )z
-	float x_pos = ((float)x) * x_per_sample - ( h->width * 0.5f );
-	float z_per_sample = h->length / ((float)h->z_samples - 1.f );
-	float z_pos = ((float)z) * z_per_sample - ( h->length * 0.5f );
-	vector v = Vector( x_pos, h->verts[ x * h->z_samples + z ].coord.y, z_pos, 1.f );
-#else
-	return h->verts[x + z * h->x_samples];
-#endif
-}
 
 int heightField_xPosition( heightField* h, float x_sample ) {
 	float x_per_sample = h->width / ((float)h->x_samples - 1.f );
@@ -688,53 +682,6 @@ bool heightField_contains( heightField* h, float x, float z ) {
 	}
 	
 	return true;
-
-#if 0
-
-	vector point = Vector( x, 0.f, z, 1.f );
-	//heightfield_drawWireframe( h, NULL, color_green );
-	//vector_printf( "Testing heightfield against point: ", &point );
-	// Check every possible polygon?
-	for ( int i = 0; i < h->x_samples - 1; i++ ) {
-		for ( int j = 0; j < h->z_samples - 1; j++ ) {
-			// polygon = i -> i+1, j -> j+1
-			vector a = heightField_vertex( h, i, j );
-			vector b = heightField_vertex( h, i+1, j );
-			vector c = heightField_vertex( h, i, j+1 );
-			vector d = heightField_vertex( h, i+1, j+1 );
-
-			// Temp AABB check to weed out triangles for debugging
-			aabb2d aabb;
-			aabb.x_max = fmaxf( a.coord.x, fmaxf( b.coord.x, fmaxf( c.coord.x, d.coord.x )));
-			aabb.x_min = fminf( a.coord.x, fminf( b.coord.x, fminf( c.coord.x, d.coord.x )));
-			aabb.z_max = fmaxf( a.coord.z, fmaxf( b.coord.z, fmaxf( c.coord.z, d.coord.z )));
-			aabb.z_min = fminf( a.coord.z, fminf( b.coord.z, fminf( c.coord.z, d.coord.z )));
-			//printf( "aabb: %.2f -> %.2f, %.2f -> %.2f\n", aabb.x_min, aabb.x_max, aabb.z_min, aabb.z_max );
-			if ( !AABBcontains( aabb, x, z ))
-				 continue;
-
-			if ( line_intersectsTriangle( point, neg_y_axis, a, b, c ) ||
-				line_intersectsTriangle( point, y_axis, a, b, c )) {
-				/*
-				debugdraw_line3d( a, b, color_red );
-				debugdraw_line3d( b, c, color_red );
-				debugdraw_line3d( c, a, color_red );
-				*/
-				return true;
-			}
-			if ( line_intersectsTriangle( point, neg_y_axis, d, c, b ) ||
-				line_intersectsTriangle( point, y_axis, d, c, b )) {
-				/*
-				debugdraw_line3d( d, c, color_red );
-				debugdraw_line3d( c, b, color_red );
-				debugdraw_line3d( b, d, color_red );
-				*/
-				return true;
-			}
-		}
-	}
-#endif
-	return false;
 }
 
 bool heightField_collides( heightField* h, vector point ) {
@@ -750,10 +697,19 @@ bool heightField_collides( heightField* h, vector point ) {
 
 			// Temp AABB check to weed out triangles for debugging
 			aabb2d aabb;
+			/*
 			aabb.x_max = fmaxf( a.coord.x, fmaxf( b.coord.x, fmaxf( c.coord.x, d.coord.x )));
 			aabb.x_min = fminf( a.coord.x, fminf( b.coord.x, fminf( c.coord.x, d.coord.x )));
 			aabb.z_max = fmaxf( a.coord.z, fmaxf( b.coord.z, fmaxf( c.coord.z, d.coord.z )));
 			aabb.z_min = fminf( a.coord.z, fminf( b.coord.z, fminf( c.coord.z, d.coord.z )));
+			*/
+			// We know that +ve i correlates with +ve x, and same for j and z
+			//aabb.x_max = fmaxf( a.coord.x, fmaxf( b.coord.x, fmaxf( c.coord.x, d.coord.x )));
+			//aabb.x_min = fminf( a.coord.x, fminf( b.coord.x, fminf( c.coord.x, d.coord.x )));
+			aabb.x_max = fmaxf( a.coord.x, c.coord.x );
+			aabb.x_min = fminf( b.coord.x, d.coord.x );
+			aabb.z_max = fmaxf( c.coord.z, d.coord.z );
+			aabb.z_min = fminf( a.coord.z, b.coord.z );
 			//printf( "aabb: %.2f -> %.2f, %.2f -> %.2f\n", aabb.x_min, aabb.x_max, aabb.z_min, aabb.z_max );
 			if ( !AABBcontains( aabb, point.coord.x, point.coord.z ))
 				 continue;
@@ -779,28 +735,28 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 	// TODO - take into account the radius
 
 	// Translate the sphere into heightfield space
+	/*
 	matrix sphere_to_height;
 	matrix inv_b;
 	matrix_inverse( inv_b, matrix_heightfield );
 	matrix_mul( sphere_to_height, inv_b, matrix_sphere );
 	vector sphere_position = matrix_vecMul( sphere_to_height, &sphere_shape->origin );
+	*/
+	(void)sphere_shape;
+	(void)matrix_heightfield;
+	vector sphere_position = *matrix_getTranslation( matrix_sphere );
+
 
 	// Check that the sphere is actually over the heightfield
 	if ( !heightField_contains( height_shape->height_field, sphere_position.coord.x, sphere_position.coord.z )) {
 		return false;
 	}
 
-
 	if ( heightField_collides( height_shape->height_field, sphere_position )) {
 		return true;
 	}
 
 	return false;
-
-	/*
-	float y = heightField_sample( height_shape->height_field, sphere_position.coord.x, sphere_position.coord.z );	
-	return ( y >= sphere_position.coord.y );
-	*/
 }
 
 bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, matrix matrix_heightfield, matrix matrix_sphere ) {

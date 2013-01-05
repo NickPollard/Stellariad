@@ -63,6 +63,8 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	if ( r->billboard ) {
 		r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
 		r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
+		//r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &origin );
+		//r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &origin );
 	}
 	else {
 		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->begin );
@@ -142,6 +144,10 @@ void ribbonEmitter_render( void* emitter ) {
 
 				vector view_dir = vector_sub( current_pos, *matrix_getTranslation( camera_mtx ));
 				vector ribbon_dir = vector_sub( current_pos, last_pos );
+				// Provide a sensible default in case the ribbon_dir is 0
+				if ( vector_length( &ribbon_dir ) <= 0.f ) {
+					ribbon_dir = z_axis;
+				}
 				vector normal = normalized( vector_cross( view_dir, ribbon_dir ));
 				r->vertex_buffer[j*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->radius ));
 				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));

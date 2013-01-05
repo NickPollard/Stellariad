@@ -3,6 +3,8 @@
 
 #include "maths/mathstypes.h"
 
+extern const vector origin;
+
 extern const vector x_axis;
 extern const vector y_axis;
 extern const vector z_axis;

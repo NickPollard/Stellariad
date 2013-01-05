@@ -156,7 +156,7 @@ int canyonTerrain_blockIndexFromUV( canyonTerrain* t, int u, int v ) {
 void canyonTerrain_render( void* data ) {
 	canyonTerrain* t = data;
 	render_resetModelView();
-	matrix_mul( modelview, modelview, t->trans->world );
+	matrix_mulInPlace( modelview, modelview, t->trans->world );
 
 #if 0
 	// Draw center line first

@@ -4,6 +4,8 @@
 //----------------------
 #include "maths/maths.h"
 
+const vector origin = {{ 0.f, 0.f, 0.f, 1.f }};
+
 const vector x_axis = {{ 1.f, 0.f, 0.f, 0.f }};
 const vector y_axis = {{ 0.f, 1.f, 0.f, 0.f }};
 const vector z_axis = {{ 0.f, 0.f, 1.f, 0.f }};
@@ -92,7 +94,7 @@ vector normalized( vector v ) {
 	vector n = {{ v.coord.x * inv_mag,
 						v.coord.y * inv_mag,
 						v.coord.z * inv_mag,
-						v.coord.w * inv_mag }};
+						v.coord.w }};
 	return n;
 }
 vector vector_scaled( vector v, float scale ) {

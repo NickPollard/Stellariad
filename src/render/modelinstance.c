@@ -277,7 +277,7 @@ void modelInstance_draw( modelInstance* instance, camera* cam ) {
 		return;
 
 	render_resetModelView();
-	matrix_mul( modelview, modelview, instance->trans->world );
+	matrix_mulInPlace( modelview, modelview, instance->trans->world );
 
 	model_draw( model_fromInstance( instance ) );
 }

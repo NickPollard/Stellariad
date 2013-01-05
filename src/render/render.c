@@ -79,7 +79,7 @@ typedef struct bufferCopyRequest_s {
 	GLsizei		size;
 } bufferCopyRequest;
 
-#define	kMaxBufferRequests	256
+#define	kMaxBufferRequests	512
 bufferRequest	buffer_requests[kMaxBufferRequests];
 int				buffer_request_count = 0;
 

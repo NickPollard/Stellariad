@@ -17,7 +17,7 @@ C and only controlled remotely by Lua
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= true
+	debug_player_autofly	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -185,7 +185,8 @@ end
 
 function setCollision_enemyBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
-	vbody_setCollidableLayers( object.body, collision_layer_player )
+	--vbody_setCollidableLayers( object.body, collision_layer_player )
+	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_player, collision_layer_terrain ))
 end
 
 function create_projectile( source, offset, model, speed ) 
