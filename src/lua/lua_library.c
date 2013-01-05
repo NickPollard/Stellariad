@@ -374,7 +374,6 @@ int LUA_touchPadTouched( lua_State* l ) {
 }
 
 int LUA_createGesture( lua_State* l ) {
-	printf( "Gesture create!" );
 	float distance = lua_tonumber( l, 1 );
 	float duration = lua_tonumber( l, 2 );
 	vector* direction = lua_toptr( l, 3 );
