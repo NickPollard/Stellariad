@@ -388,6 +388,7 @@ renderPass	render_pass[kMaxRenderPasses];
 
 renderPass renderPass_main;
 renderPass renderPass_alpha;
+renderPass renderPass_ui;
 renderPass renderPass_debug;
 renderPass renderPass_depth;
 
@@ -405,6 +406,7 @@ void render_clearCallBuffer( ) {
 	renderPass_clearBuffers( &renderPass_depth );
 	renderPass_clearBuffers( &renderPass_alpha );
 	renderPass_clearBuffers( &renderPass_debug );
+	renderPass_clearBuffers( &renderPass_ui );
 }
 
 #define		kRenderDrawBufferSize 1 * 1024 * 1024
@@ -849,6 +851,11 @@ void render_draw( window* w, engine* e ) {
 	glEnable( GL_BLEND );
 	render_drawPass( &renderPass_alpha );
 	
+	// No depth-test for ui
+	glDisable( GL_DEPTH_TEST );
+	glEnable( GL_BLEND );
+	render_drawPass( &renderPass_ui );
+
 	// No depth-test for debug
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );

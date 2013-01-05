@@ -118,6 +118,7 @@ extern vmutex	gl_mutex;
 extern renderPass renderPass_main;
 extern renderPass renderPass_depth;
 extern renderPass renderPass_alpha;
+extern renderPass renderPass_ui;
 extern renderPass renderPass_debug;
 extern sceneParams sceneParams_main;
 extern window window_main;
