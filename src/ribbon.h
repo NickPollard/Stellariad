@@ -5,18 +5,21 @@
 
 #define kMaxRibbonPairs 32
 
-struct ribbonEmitter_s { 
-	// Definition properties
+struct ribbonEmitterDef_s {
 	float	radius;
 	texture*	diffuse;
 	property*	color;
 	bool	billboard;
 	float	lifetime;
+	vector	begin;
+	vector	end;
+};
+
+struct ribbonEmitter_s { 
+	ribbonEmitterDef* definition;
 
 	// Runtime properties
 	transform*	trans;
-	vector	begin;
-	vector	end;
 	vector	vertex_array[kMaxRibbonPairs][2];
 	float	vertex_ages[kMaxRibbonPairs];
 	int		pair_count;
@@ -26,16 +29,21 @@ struct ribbonEmitter_s {
 	vertex		vertex_buffer[kMaxRibbonPairs * 2];
 };
 
+// *** Ribbon Module Static functions
 void ribbonEmitter_staticInit();
 
-ribbonEmitter* ribbonEmitter_create();
+// *** Emitter Instance
+ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def );
 ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src );
 void ribbonEmitter_destroy( ribbonEmitter* r );
+
+// *** Definition
+ribbonEmitterDef* ribbonEmitterDef_create();
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng );
 void ribbonEmitter_render( void* emitter );
 
 // Load a ribbon definition asset
-ribbonEmitter* ribbon_loadAsset( const char* filename );
-void ribbonEmitter_setColor( ribbonEmitter* r, property* color );
+ribbonEmitterDef* ribbon_loadAsset( const char* filename );
+void ribbonEmitterDef_setColor( ribbonEmitterDef* r, property* color );
 

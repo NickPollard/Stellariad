@@ -97,7 +97,6 @@ bool body_collidedBody( body* a, body* b );
 body* body_create( shape* s, transform* t );
 shape* sphere_create( float radius );
 shape* mesh_createFromRenderMesh( mesh* render_mesh );
-void shape_delete( shape* s );
 void heightField_delete( heightField* h );
 heightField* heightField_create( float width, float length, int x_samples, int z_samples);
 shape* shape_heightField_create( heightField* h );

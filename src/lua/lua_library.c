@@ -629,8 +629,9 @@ int LUA_ribbon_create( lua_State* l ) {
 	printf( "Create ribbon emitter!\n" );
 	engine* e = lua_toptr( l, 1 );
 	transform* t = lua_toptr( l, 2 );
+	const char* filename = lua_tostring( l, 3 );
 
-	ribbonEmitter* emitter = ribbonEmitter_create( );
+	ribbonEmitter* emitter = ribbonEmitter_create( ribbon_loadAsset( filename ));
 	emitter->trans = t;
 
 	engine_addRender( e, emitter, ribbonEmitter_render );

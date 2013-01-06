@@ -199,7 +199,8 @@ ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
 	if ( fileterm ) {
 		vAssert( fileterm->child );
 		const char* filename = fileterm->child->value;
-		ribbonEmitter* emitter = ribbon_loadAsset( filename );
+		ribbonEmitterDef* def = ribbon_loadAsset( filename );
+		ribbonEmitter* emitter = ribbonEmitter_create( def );
 		return emitter;
 	}
 	vAssert( 0 );
@@ -223,15 +224,14 @@ property* sexpr_loadVectorProperty( sexpr* s ) {
 	return p;
 }
 
-ribbonEmitter* sexpr_loadRibbonEmitterDef( sexpr* s ) {
+ribbonEmitterDef* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 	(void)s;
 	//printf( "Sexpr Loading ribbon emitter def.\n" );
-	ribbonEmitter* emitter = ribbonEmitter_create();
+	ribbonEmitterDef* def = ribbonEmitterDef_create();
 	sexpr* color_term = sexpr_findChildNamed( "color", s );
 	if ( color_term ) {
 		sexpr* property_term = sexpr_findChildNamed( "vector_property", color_term );
-		property* color = sexpr_loadVectorProperty( property_term );
-		ribbonEmitter_setColor( emitter, color );
+		def->color = sexpr_loadVectorProperty( property_term );
 	}
 	
 	sexpr* diffuse_term = sexpr_findChildNamed( "diffuse_texture", s );
@@ -240,19 +240,19 @@ ribbonEmitter* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 		textureProperties* properties = mem_alloc( sizeof( textureProperties ));
 		properties->wrap_s = GL_CLAMP_TO_EDGE;
 		properties->wrap_t = GL_CLAMP_TO_EDGE;
-		emitter->diffuse = texture_loadWithProperties( texture_path, properties );
+		def->diffuse = texture_loadWithProperties( texture_path, properties );
 	}
 
 	sexpr* radius_term = sexpr_findChildNamed( "radius", s );
 	if ( radius_term ) {
-		emitter->radius = radius_term->child->number_value;
+		def->radius = radius_term->child->number_value;
 	}
 
 	sexpr* lifetime_term = sexpr_findChildNamed( "lifetime", s );
 	if ( lifetime_term ) {
-		emitter->lifetime = lifetime_term->child->number_value;
+		def->lifetime = lifetime_term->child->number_value;
 	}
-	return emitter;
+	return def;
 }
 
 transform* sexpr_loadModelTransform( model* m, sexpr* s ) {

@@ -10,8 +10,13 @@
 #include "render/render.h"
 #include "render/texture.h"
 #include "script/sexpr.h"
+#include "system/file.h"
+#include "system/hash.h"
 
 #define kMaxRibbonEmitters 1024
+
+map* ribbonEmitterAssets = NULL;
+#define kMaxRibbonAssets 256
 
 GLushort*	ribbon_element_buffer = NULL;
 
@@ -24,24 +29,33 @@ void ribbon_initPool() {
 	static_ribbon_pool = pool_ribbonEmitter_create( kMaxRibbonEmitters );
 }
 
-ribbonEmitter* ribbonEmitter_create() {
-	ribbonEmitter* r = pool_ribbonEmitter_allocate( static_ribbon_pool );
-	memset( r, 0, sizeof( ribbonEmitter ));
-
-	r->diffuse = static_texture_default;
-
+ribbonEmitterDef* ribbonEmitterDef_create() {
+	ribbonEmitterDef* r = mem_alloc( sizeof( ribbonEmitterDef ));
+	memset( r, 0, sizeof( ribbonEmitterDef ));
+	r->billboard = true;
+	r->radius = 0.5f;
+	r->lifetime = 1.f;
 	r->begin	= Vector( 0.5f, 0.f, 0.f, 1.f );
 	r->end		= Vector( -0.5f, 0.f, 0.f, 1.f );
-
+	r->diffuse = static_texture_default;
+	
 	// Test
 	r->color = property_create( 5 );
 	property_addfv( r->color, 0.f, (float*)&color_green );
 	property_addfv( r->color, 1.f, (float*)&color_red );
+	return r;
+}
 
-	r->billboard = true;
-	r->radius = 0.5f;
-	r->lifetime = 1.f;
+void ribbonEmitterDef_deInit( ribbonEmitterDef* r ) {
+	property_delete( r->color );
+}
 
+ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def ) {
+	ribbonEmitter* r = pool_ribbonEmitter_allocate( static_ribbon_pool );
+	memset( r, 0, sizeof( ribbonEmitter ));
+
+	// Definition
+	r->definition = def;
 	return r;
 }
 
@@ -60,15 +74,15 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 	int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
 	vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );
 
-	if ( r->billboard ) {
+	if ( r->definition->billboard ) {
 		r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
 		r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
 		//r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &origin );
 		//r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &origin );
 	}
 	else {
-		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->begin );
-		r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->end );
+		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->definition->begin );
+		r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->definition->end );
 	}
 	r->vertex_ages[vertex_last] = 0.f;
 
@@ -93,6 +107,8 @@ void ribbonEmitter_staticInit() {
 		ribbon_element_buffer[i*6-2] = i * 2 + 0;
 		ribbon_element_buffer[i*6-1] = i * 2 - 1;
 	}
+
+	ribbonEmitterAssets = map_create( kMaxRibbonAssets, sizeof( ribbonEmitterDef* ));
 }
 
 void ribbonEmitter_render( void* emitter ) {
@@ -103,7 +119,7 @@ void ribbonEmitter_render( void* emitter ) {
 
 	for ( int i = 0; i < r->pair_count; ++i ) {
 		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-		if ( r->vertex_ages[real_index] < r->lifetime ) {
+		if ( r->vertex_ages[real_index] < r->definition->lifetime ) {
 			++render_pair_count;
 		}
 	}
@@ -114,22 +130,22 @@ void ribbonEmitter_render( void* emitter ) {
 	for ( int i = 0; i < r->pair_count; ++i ) {
 		int this = ( i + r->pair_first ) % kMaxRibbonPairs;
 
-		if ( r->vertex_ages[this] < r->lifetime ) {
-			if ( !r->billboard ) {
+		if ( r->vertex_ages[this] < r->definition->lifetime ) {
+			if ( !r->definition->billboard ) {
 				r->vertex_buffer[j*2+0].position = r->vertex_array[this][0];
 			}
 			r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
-			r->vertex_buffer[j*2+0].color = property_samplev( r->color, v );
+			r->vertex_buffer[j*2+0].color = property_samplev( r->definition->color, v );
 			r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
-			if ( !r->billboard ) {
+			if ( !r->definition->billboard ) {
 				r->vertex_buffer[j*2+1].position = r->vertex_array[this][1];
 			}
 			r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
-			r->vertex_buffer[j*2+1].color = property_samplev( r->color, v );
+			r->vertex_buffer[j*2+1].color = property_samplev( r->definition->color, v );
 			r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
-			if ( r->billboard ) {
+			if ( r->definition->billboard ) {
 				vector last_pos, current_pos;
 				if ( i > 0 ) {
 					int last = ( this + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
@@ -149,8 +165,8 @@ void ribbonEmitter_render( void* emitter ) {
 					ribbon_dir = z_axis;
 				}
 				vector normal = normalized( vector_cross( view_dir, ribbon_dir ));
-				r->vertex_buffer[j*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->radius ));
-				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));
+				r->vertex_buffer[j*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->definition->radius ));
+				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->definition->radius ));
 			}
 
 			v += v_delta;
@@ -163,7 +179,7 @@ void ribbonEmitter_render( void* emitter ) {
 	vAssert( j == render_pair_count );
 
 	/*
-	if ( r->billboard ) {
+	if ( r->definition->billboard ) {
 		for ( int i = 0; i < r->pair_count; ++i ) {
 			int this = ( i + r->pair_first ) % kMaxRibbonPairs;
 			vector last_pos, current_pos;
@@ -190,52 +206,45 @@ void ribbonEmitter_render( void* emitter ) {
 	// Reset modelview; our positions are in world space
 	render_resetModelView();
 	int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
-	if ( r->diffuse->gl_tex && render_pair_count > 1 ) {
+	if ( r->definition->diffuse->gl_tex && render_pair_count > 1 ) {
 		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
-				r->diffuse->gl_tex, modelview );
+				r->definition->diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
 	}
 }
 
-void ribbonEmitter_setColor( ribbonEmitter* r, property* color ) {
+void ribbonEmitterDef_setColor( ribbonEmitterDef* r, property* color ) {
 	if ( r->color ) {
 		property_delete( r->color );
 	}
 	r->color = color;
 }
 
-ribbonEmitter* ribbon_loadAsset( const char* filename ) {
-	ribbonEmitter* emitter = sexpr_loadFile( filename );
-	return emitter;
-	/*
+ribbonEmitterDef* ribbon_loadAsset( const char* filename ) {
 	int key = mhash( filename );
 	// try to find it if it's already loaded
 	void** result = map_find( ribbonEmitterAssets, key );
 	if ( result ) {
-		ribbonEmitter* emitter = *((ribbonEmitter**)results);
+		ribbonEmitterDef* def = *((ribbonEmitterDef**)result);
 		// If the file has changed, we want to update this (live-reloading)
 		if ( vfile_modifiedSinceLast( filename )) {
 			// Load the new file
 			// Save over the old
+			ribbonEmitterDef* new = sexpr_loadFile( filename );
+			ribbonEmitterDef_deInit( def );
+			*def = *new;
 		}
-		return emitter;
+		return def;
 	}
 	
 	// otherwise load it and add it
-	ribbonEmitter* emitter = sexpr_loadRibbonEmitter( filename );
-	map_add( ribbonEmitterAssets, key, &emitter );
-	return emitter;
-	*/
+	ribbonEmitterDef* def = sexpr_loadFile( filename );
+	map_add( ribbonEmitterAssets, key, &def );
+	return def;
 }
 
 ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
-	ribbonEmitter* dst = ribbonEmitter_create();
-	ribbonEmitter_setColor( dst, src->color );
-	dst->diffuse	= src->diffuse;
-	dst->radius		= src->radius;
-	dst->billboard	= src->billboard;
-	dst->lifetime	= src->lifetime;
-	return dst;
+	return ribbonEmitter_create( src->definition );
 }
 
 void ribbonEmitter_destroy( ribbonEmitter* r ) {

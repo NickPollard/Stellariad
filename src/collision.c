@@ -27,6 +27,7 @@ int body_count;
 bool body_colliding( body* a, body* b );
 bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, matrix matrix_sphere, matrix matrix_heightfield );
 bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, matrix matrix_heightfield, matrix matrix_sphere );
+void shape_delete( shape* s );
 
 static inline vector heightField_vertex( heightField* h, int x, int z ) { 
 	return h->verts[x + z * h->x_samples];
@@ -105,8 +106,9 @@ void collision_removeBody( body* b ) {
 }
 
 void collision_removeDeadBody( body*  b ) {
-	int i = array_find( (void**)bodies, body_count, b );
-	bodies[i] = bodies[--body_count];
+	//int i = array_find( (void**)bodies, body_count, b );
+	//bodies[i] = bodies[--body_count];
+	array_remove( (void**)bodies, &body_count, b );
 	vAssert( b );
 	vAssert( b->shape );
 	shape_delete( b->shape );
