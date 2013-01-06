@@ -68,6 +68,13 @@ particleEmitter* particleEmitter_create() {
 	vAssert( active_particle_count < kMaxActiveParticles );
 	array_add( (void**)active_particles, &active_particle_count, (void*)p );
 
+	for ( int i = 0; i < kMaxParticleVerts; i+=4 ) {
+		p->vertex_buffer[i+0].uv = Vector( 1.f, 1.f, 0.f, 0.f );
+		p->vertex_buffer[i+1].uv = Vector( 0.f, 0.f, 0.f, 0.f );
+		p->vertex_buffer[i+2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
+		p->vertex_buffer[i+3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
+	}
+
 	return p;
 }
 
@@ -183,26 +190,26 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 	offset = matrix_vecMul( m, &offset );
 
 	Add( &dst[0].position, &p, &offset );
-	dst[0].normal = Vector( 0.f, 0.f, 1.f, 0.f );
-	dst[0].uv = Vector( 1.f, 1.f, 0.f, 0.f );
+	//dst[0].normal = Vector( 0.f, 0.f, 1.f, 0.f );
+	//dst[0].uv = Vector( 1.f, 1.f, 0.f, 0.f );
 	dst[0].color = color;
 
 	Sub( &dst[1].position, &p, &offset );
-	dst[1].normal = Vector( 0.f, 0.f, 1.f, 0.f );
-	dst[1].uv = Vector( 0.f, 0.f, 0.f, 0.f );
+	//dst[1].normal = Vector( 0.f, 0.f, 1.f, 0.f );
+	//dst[1].uv = Vector( 0.f, 0.f, 0.f, 0.f );
 	dst[1].color = color;
 
 	offset = Vector( size, -size, 0.f, 0.f );
 	offset = matrix_vecMul( m, &offset );
 
 	Add( &dst[2].position, &p, &offset );
-	dst[2].normal = Vector( 0.f, 0.f, 1.f, 0.f );
-	dst[2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
+	//dst[2].normal = Vector( 0.f, 0.f, 1.f, 0.f );
+	//dst[2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
 	dst[2].color = color;
 
 	Sub( &dst[3].position, &p, &offset );
-	dst[3].normal = Vector( 0.f, 0.f, 1.f, 0.f );
-	dst[3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
+	//dst[3].normal = Vector( 0.f, 0.f, 1.f, 0.f );
+	//dst[3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
 	dst[3].color = color;
 }
 
