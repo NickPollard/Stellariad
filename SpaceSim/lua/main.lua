@@ -17,7 +17,7 @@ C and only controlled remotely by Lua
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= true
+	debug_player_autofly	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
