@@ -235,6 +235,7 @@ void* collision_workerTick( void* args ) {
 	//printf( "Worker collision.\n" );
 	collisionArgs* a = args;
 	collision_tick( a->frame_counter, a->dt );
+	mem_free( args );
 	return NULL;
 }
 
