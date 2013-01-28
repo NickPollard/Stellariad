@@ -66,3 +66,4 @@ void canyonTerrain_render( void* data );
 void canyonTerrain_tick( void* data, float dt, engine* eng );
 
 float canyonTerrain_sample( float u, float v );
+float canyonTerrain_sampleUV( float x, float z, float u, float v );

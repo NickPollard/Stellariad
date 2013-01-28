@@ -589,7 +589,7 @@ void canyonTerrainBlock_calculateBuffers( canyonTerrainBlock* b ) {
 			vAssert( i < vert_count );
 			canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
 			terrain_worldSpaceFromCanyon( u, v, &vert_x, &vert_z );
-			vert_y = canyonTerrain_sample( vert_x, vert_z  );
+			vert_y = canyonTerrain_sampleUV( vert_x, vert_z, u, v );
 			verts[i] = Vector( vert_x, vert_y, vert_z, 1.f );
 			normals[i] = y_axis;
 		}
@@ -906,15 +906,19 @@ float terrain_detailHeight( float u, float v ) {
 }
 
 // The procedural function
-float canyonTerrain_sample( float x, float z ) {
-	float u, v;
-	terrain_canyonSpaceFromWorld( x, z, &u, &v );
-
+float canyonTerrain_sampleUV( float x, float z, float u, float v ) {
 	float mountains = terrain_mountainHeight( x, z, u, v );
 	float detail = terrain_detailHeight( u, v );
 	float canyon = terrain_canyonHeight( x, z, u, v );
 	return mountains + detail - canyon;
 }
+
+float canyonTerrain_sample( float x, float z ) {
+	float u, v;
+	terrain_canyonSpaceFromWorld( x, z, &u, &v );
+	return canyonTerrain_sampleUV( x, z, u, v );
+}
+
 
 void canyonTerrainBlock_removeCollision( canyonTerrainBlock* b ) {
 	transform_delete( b->collision->trans );
