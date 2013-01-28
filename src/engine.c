@@ -137,7 +137,7 @@ void engine_tick( engine* e ) {
 	time += dt;
 	time = time / 10.f;
 
-	printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
+	//printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
 
 	debugdraw_preTick( dt );
 	lua_preTick( e->lua, dt );
@@ -424,6 +424,9 @@ void engine_run(engine* e) {
 		while ( worker_task_count > 400 ) {
 			usleep( 2 );
 		}
+#ifndef ANDROID
+		usleep( 10000 );
+#endif
 
 #if PROFILE_ENABLE
 		profile_newFrame();

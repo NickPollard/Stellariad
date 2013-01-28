@@ -758,6 +758,13 @@ int LUA_vector_normalize( lua_State* l ) {
 	return 1;
 }
 
+int LUA_vector_dot( lua_State* l ) {
+	const vector* a = lua_toptr( l, 1 );
+	const vector* b = lua_toptr( l, 2 );
+	lua_pushnumber( l, Dot( a, b ));
+	return 1;
+}
+
 int LUA_vector_scale( lua_State* l ) {
 	const vector* v = lua_toptr( l, 1 );
 	float scale = lua_tonumber( l, 2 );
@@ -940,6 +947,7 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_vector_add, "vvector_add" );
 	lua_registerFunction( l, LUA_vector_normalize, "vvector_normalize" );
 	lua_registerFunction( l, LUA_vector_scale, "vvector_scale" );
+	lua_registerFunction( l, LUA_vector_dot, "vvector_dot" );
 
 	// *** Matrix
 	lua_registerFunction( l, LUA_transformWorldMatrix, "vtransformWorldMatrix" );

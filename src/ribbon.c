@@ -37,8 +37,9 @@ ribbonEmitterDef* ribbonEmitterDef_create() {
 	r->lifetime = 1.f;
 	r->begin	= Vector( 0.5f, 0.f, 0.f, 1.f );
 	r->end		= Vector( -0.5f, 0.f, 0.f, 1.f );
-	r->diffuse = static_texture_default;
-	
+	r->diffuse	= static_texture_default;
+	r->static_texture = false;	
+
 	// Test
 	r->color = property_create( 5 );
 	property_addfv( r->color, 0.f, (float*)&color_green );
@@ -57,6 +58,7 @@ ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def ) {
 		r->vertex_buffer[i].uv = Vector( 0.f, 0.f, 0.f, 1.f );
 		r->vertex_buffer[i+1].uv = Vector( 1.f, 0.f, 0.f, 1.f );
 	}
+	r->next_tex_v = 0.f;
 
 	// Definition
 	r->definition = def;
@@ -89,6 +91,8 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 		r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->definition->end );
 	}
 	r->vertex_ages[vertex_last] = 0.f;
+	r->next_tex_v += ( dt / r->definition->lifetime );
+	r->tex_v[vertex_last] = r->next_tex_v;
 
 	if ( r->pair_count < kMaxRibbonPairs ) {
 		++r->pair_count;
@@ -137,19 +141,14 @@ void ribbonEmitter_render( void* emitter ) {
 		if ( r->vertex_ages[this] < r->definition->lifetime ) {
 			if ( !r->definition->billboard ) {
 				r->vertex_buffer[j*2+0].position = r->vertex_array[this][0];
-			}
-			//r->vertex_buffer[j*2+0].uv = Vector( 0.f, v, 0.f, 1.f );
-			r->vertex_buffer[j*2+0].uv.coord.y = v;
-			r->vertex_buffer[j*2+0].color = property_samplev( r->definition->color, v );
-			//r->vertex_buffer[j*2+0].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
-
-			if ( !r->definition->billboard ) {
 				r->vertex_buffer[j*2+1].position = r->vertex_array[this][1];
 			}
-			//r->vertex_buffer[j*2+1].uv = Vector( 1.f, v, 0.f, 1.f );
-			r->vertex_buffer[j*2+1].uv.coord.y = v;
+
+			r->vertex_buffer[j*2+0].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
+			r->vertex_buffer[j*2+0].color = property_samplev( r->definition->color, v );
+
+			r->vertex_buffer[j*2+1].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
 			r->vertex_buffer[j*2+1].color = property_samplev( r->definition->color, v );
-			//r->vertex_buffer[j*2+1].normal = Vector( 1.f, 1.f, 1.f, 1.f ); // Should be cross product
 
 			if ( r->definition->billboard ) {
 				vector last_pos, current_pos;

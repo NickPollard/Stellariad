@@ -439,11 +439,11 @@ void* value( term* atom ) {
 
 void* context_lookup( context* c, int atom ) {
 	assert( c );
-	assert( c->lookup );
-	term** v = (term**)map_find( c->lookup, atom );
-	if ( v ) {
-		return *v;
-		}
+	if ( c->lookup ) {
+		term** v = (term**)map_find( c->lookup, atom );
+		if ( v )
+			return *v;
+	}
 	if ( c->parent ) {
 		return context_lookup( c->parent, atom );
 		}
@@ -451,6 +451,10 @@ void* context_lookup( context* c, int atom ) {
 	}
 
 void context_add( context* c, const char* name, term* t ) {
+	if ( !c->lookup ) {
+		int max = 128, stride = sizeof( term* );
+		c->lookup = map_create( max, stride );
+	}
 	map_add( c->lookup, mhash( name ), &t );
 	term_takeRef( t );
 	}
@@ -640,8 +644,9 @@ term* eval( term* expr, void* _context ) {
 
 context* context_create( context* parent ) {
 	context* c = passthrough_allocate( context_heap, sizeof( context ));
-	int max = 128, stride = sizeof( term* );
-	c->lookup = map_create( max, stride );
+	//int max = 128, stride = sizeof( term* );
+	//c->lookup = map_create( max, stride );
+	c->lookup = NULL;
 	c->parent = parent;
 	return c;
 	}
@@ -649,15 +654,17 @@ context* context_create( context* parent ) {
 void context_delete( context* c ) {
 	// Deref all the contents
 	CONTEXT_PRINT( "Deleting context with %d keys.\n", c->lookup->count );
-	for ( int i = 0; i < c->lookup->count; ++i ) {
-		term* t = *(term**)(c->lookup->values + (i * c->lookup->stride));
-		if ( t ) {
+	if ( c->lookup ) {
+		for ( int i = 0; i < c->lookup->count; ++i ) {
+			term* t = *(term**)(c->lookup->values + (i * c->lookup->stride));
+			if ( t ) {
 #ifdef DEBUG_LISP_VERBOSE
-			printf( "Dereffing context term: " );
-			term_debugPrint( t );
-			printf( " (0x" xPTRf ")\n", (uintptr_t)t );
+				printf( "Dereffing context term: " );
+				term_debugPrint( t );
+				printf( " (0x" xPTRf ")\n", (uintptr_t)t );
 #endif // DEBUG_LISP_VERBOSE
-			term_deref( t );
+				term_deref( t );
+			}
 		}
 	}
 

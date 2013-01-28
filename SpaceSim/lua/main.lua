@@ -17,7 +17,7 @@ C and only controlled remotely by Lua
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -172,9 +172,28 @@ function player_fire_missile_swarm( ship )
 	inTime( 0.3, function () player_fire_missile( ship ) end )
 end
 
+function findClosestEnemy( transform )
+	local targets = array.filter( interceptors, 
+		function ( interceptor )
+			local interceptor_position = vtransform_getWorldPosition( interceptor.transform )
+			local current_position = vtransform_getWorldPosition( transform )
+			local displacement = vvector_subtract( interceptor_position, current_position )
+			local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
+			local direction = vtransformVector( transform, z_axis )
+			return vvector_dot( displacement, direction ) > 0 
+		end )
+	if targets.count > 0 then
+		return targets[1].transform
+	else
+		return transform
+	end
+end
+
 function player_fire_missile( ship )
-	muzzle_position = Vector( 0.0, 0.0, 0.0, 1.0 );
-	fire_missile( ship, muzzle_position, player_missile )
+	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
+	local missile = fire_missile( ship, muzzle_position, player_missile )
+	local target = findClosestEnemy( ship.transform )
+	--missile.tick = homing_missile_tick( target )
 end
 
 function missile_collisionHandler( missile, other )
@@ -273,7 +292,6 @@ function homing_missile_tick( target_transform )
 			local target_direction = vvector_normalize( vvector_subtract( target_position, current_position ))
 			local current_dir = vquaternion_fromTransform( missile.transform )
 			local target_dir = vquaternion_look( target_direction )
-			--local new_dir = vquaternion_slerp( current_dir, target_dir, 1.0 * dt )
 			local new_dir = vquaternion_slerpAngle( current_dir, target_dir, homing_missile_turn_angle_per_second * dt )
 			local world_velocity = vquaternion_rotation( new_dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 ))
 			vphysic_setVelocity( missile.physic, world_velocity )
@@ -318,7 +336,7 @@ function playership_create()
 	-- Init Collision
 	vbody_registerCollisionCallback( p.body, player_ship_collisionHandler )
 	vbody_setLayers( p.body, collision_layer_player )
-	vbody_setCollidableLayers( p.body, collision_layer_enemy )
+	vbody_setCollidableLayers( p.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
 
 	return p
 end
@@ -344,7 +362,10 @@ function ship_collisionHandler( ship, collider )
 end
 
 function ship_destroy( ship )
+	vprint( "Ship destroy " .. ship.transform )
 	gameobject_destroy( ship )
+	vprint( "remove ship from array" )
+	array.remove( interceptors, ship )
 end
 
 function ship_delete( ship )
@@ -861,6 +882,7 @@ end
 function entities_despawnAll()
 	for unit in array.iterator( interceptors ) do
 		ship_delete( unit )
+		array.clear( interceptors )
 	end
 end
 

@@ -5,6 +5,33 @@ function array.add( arr, object )
 	arr[arr.count] = object
 end
 
+function array.remove( arr, object )
+	vprint( "Array remove " )
+	--vprint( "Array remove " .. object )
+	local i = 1
+	local found = -1
+	while i <= arr.count do
+		--vprint( "[" .. i .. "]" .. arr[i] )
+		if arr[i] == object then
+			vprint( "found" )
+			found = i
+			break
+		end
+		i = i + 1
+	end
+	vprint( "end remove" )
+	if found ~= -1 then
+		vprint( "Removing " .. found .. " from array" )
+		arr[i] = arr[arr.count]
+		arr[arr.count] = nil
+		arr.count = arr.count - 1
+	end
+end
+
+function array.clear( arr )
+	arr.count = 0
+end
+
 function array.iterator( t )
 	local i = 0
 	local n = t.count

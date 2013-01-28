@@ -238,8 +238,8 @@ ribbonEmitterDef* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 	if ( diffuse_term ) {
 		const char* texture_path = diffuse_term->child->value;
 		textureProperties* properties = mem_alloc( sizeof( textureProperties ));
-		properties->wrap_s = GL_CLAMP_TO_EDGE;
-		properties->wrap_t = GL_CLAMP_TO_EDGE;
+		//properties->wrap_s = GL_CLAMP_TO_EDGE;
+		//properties->wrap_t = GL_CLAMP_TO_EDGE;
 		def->diffuse = texture_loadWithProperties( texture_path, properties );
 	}
 
@@ -251,6 +251,11 @@ ribbonEmitterDef* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 	sexpr* lifetime_term = sexpr_findChildNamed( "lifetime", s );
 	if ( lifetime_term ) {
 		def->lifetime = lifetime_term->child->number_value;
+	}
+	
+	sexpr* static_term = sexpr_findChildNamed( "static_texture", s );
+	if ( static_term ) {
+		def->static_texture = string_equal( static_term->child->value, "true" );
 	}
 	return def;
 }

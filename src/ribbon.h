@@ -13,6 +13,7 @@ struct ribbonEmitterDef_s {
 	float	lifetime;
 	vector	begin;
 	vector	end;
+	bool	static_texture;
 };
 
 struct ribbonEmitter_s { 
@@ -21,9 +22,11 @@ struct ribbonEmitter_s {
 	// Runtime properties
 	transform*	trans;
 	vector	vertex_array[kMaxRibbonPairs][2];
+	float	tex_v[kMaxRibbonPairs];
 	float	vertex_ages[kMaxRibbonPairs];
 	int		pair_count;
 	int		pair_first;
+	float	next_tex_v;
 
 	// Render
 	vertex		vertex_buffer[kMaxRibbonPairs * 2];

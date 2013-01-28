@@ -108,6 +108,7 @@ void collision_removeBody( body* b ) {
 void collision_removeDeadBody( body*  b ) {
 	//int i = array_find( (void**)bodies, body_count, b );
 	//bodies[i] = bodies[--body_count];
+	printf( "Collision: Removing body 0x" xPTRf "\n", (uintptr_t)b );
 	array_remove( (void**)bodies, &body_count, b );
 	vAssert( b );
 	vAssert( b->shape );
@@ -199,6 +200,7 @@ void collision_tick( int frame_counter, float dt ) {
 	}
 
 	collision_clearEvents();
+	collision_removeDeadBodies();
 	collision_generateEvents();
 
 	collision_results_ready = frame_counter;
@@ -220,7 +222,6 @@ void collision_processResults( int frame_counter, float dt ) {
 	}
 
 	collision_runCallbacks();
-	collision_removeDeadBodies();
 
 	collision_results_processed = frame_counter;
 }
@@ -231,21 +232,23 @@ typedef struct collisionArgs_s {
 	int frame_counter;
 } collisionArgs;
 
+collisionArgs collision_args;
+
 void* collision_workerTick( void* args ) {
 	//printf( "Worker collision.\n" );
 	collisionArgs* a = args;
 	collision_tick( a->frame_counter, a->dt );
-	mem_free( args );
+	//mem_free( args );
 	return NULL;
 }
 
 void collision_queueWorkerTick( int frame_counter, float dt ) {
-	collisionArgs* args = mem_alloc( sizeof( collisionArgs ));
-	args->dt = dt;
-	args->frame_counter = frame_counter;
+	//collisionArgs* args = mem_alloc( sizeof( collisionArgs ));
+	collision_args.dt = dt;
+	collision_args.frame_counter = frame_counter;
 	worker_task collision_task;
 	collision_task.func = collision_workerTick;
-	collision_task.args = args;
+	collision_task.args = &collision_args;
 	worker_addImmediateTask( collision_task );
 }
 
