@@ -35,6 +35,8 @@ void canyonTerrainBlock_calculateBuffers( canyonTerrainBlock* b );
 void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b );
 void canyonTerrainBlock_calculateCollision( canyonTerrainBlock* b );
 void canyonTerrainBlock_generate( canyonTerrainBlock* b );
+void canyonTerrain_initVertexBuffers( canyonTerrain* t );
+void canyonTerrain_initElementBuffers( canyonTerrain* t );
 
 // *** Utility functions
 
@@ -107,6 +109,20 @@ float canyon_uvMapped( float block_minimum, float f ) {
 }
 
 // ***
+#define kMaxTerrainBlockWidth 40
+#define kMaxTerrainBlockElements (kMaxTerrainBlockWidth * kMaxTerrainBlockWidth * 6)
+unsigned short terrain_element_buffer[kMaxTerrainBlockElements];
+
+void initialiseDefaultElementBuffer( ) {
+	for ( int i = 0; i < kMaxTerrainBlockElements; i++ )
+		terrain_element_buffer[i] = i;
+}
+
+void canyonTerrain_staticInit() {
+	initialiseDefaultElementBuffer();
+}
+
+// ***
 
 
 void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
@@ -158,31 +174,9 @@ void canyonTerrain_render( void* data ) {
 	render_resetModelView();
 	matrix_mulInPlace( modelview, modelview, t->trans->world );
 
-#if 0
-	// Draw center line first
-	int centre_u = ( t->u_block_count + 1 ) / 2;
-	for ( int v = 0; v < t->v_block_count; ++v ) {
-		int i = canyonTerrain_blockIndexFromUV( t, centre_u, v );
-		canyonTerrainBlock_render( t->blocks[i] );
-	}
-	// Then the two sides
-	for ( int v = 0; v < t->v_block_count; ++v ) {
-		for ( int u = centre_u - 1; u >= 0; --u ) {
-			int i = canyonTerrain_blockIndexFromUV( t, u, v );
-			canyonTerrainBlock_render( t->blocks[i] );
-		}
-	}
-	for ( int v = 0; v < t->v_block_count; ++v ) {
-		for ( int u = centre_u + 1; u < t->u_block_count; ++u ) {
-			int i = canyonTerrain_blockIndexFromUV( t, u, v );
-			canyonTerrainBlock_render( t->blocks[i] );
-		}
-	}
-#else
 	for ( int i = 0; i < t->total_block_count; ++i ) {
 		canyonTerrainBlock_render( t->blocks[i] );
 	}
-#endif
 }
 
 canyonTerrainBlock* canyonTerrainBlock_create( canyonTerrain* t ) {
@@ -307,6 +301,8 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	t->canyon = c;
 	t->u_block_count = u_blocks;
 	t->v_block_count = v_blocks;
+	vAssert( u_samples <= kMaxTerrainBlockWidth );
+	vAssert( v_samples <= kMaxTerrainBlockWidth );
 	t->u_samples_per_block = u_samples;
 	t->v_samples_per_block = v_samples;
 	t->u_radius = u_radius;
@@ -314,6 +310,10 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	t->lod_interval_u = 3;
 	t->lod_interval_v = 2;
 
+	canyonTerrain_initVertexBuffers( t );
+#if CANYON_TERRAIN_INDEXED
+	canyonTerrain_initElementBuffers( t );
+#endif // CANYON_TERRAIN_INDEX
 	canyonTerrain_createBlocks( t );
 
 	t->trans = transform_create();
@@ -338,15 +338,6 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	if ( !terrain_texture_cliff_2 ) {
 		terrain_texture_cliff_2 = texture_load( "dat/img/terrain/cliff_industrial.tga" );
 	}
-
-
-	// TEST
-	/*
-	for ( float f = 0.f; f < 40.f; f += 0.8f ) {
-		printf( "f: %.2f, mapped %.2f\n", f, canyon_uvMapped( f ) );
-	}
-	*/
-	//vAssert( 0 );
 
 	return t;
 }
@@ -517,61 +508,87 @@ void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_co
 	}
 }
 
-void initialiseDefaultElementBuffer( int count, unsigned short* buffer ) {
-	for ( int i = 0; i < count; i++ )
-		buffer[i] = i;
+void* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
+#if CANYON_TERRAIN_INDEXED
+	int max_vert_count = ( t->u_samples_per_block + 1 ) * ( t->v_samples_per_block + 1 );
+	return mem_alloc( sizeof( vertex ) * max_vert_count );
+#else
+	int max_element_count = t->u_samples_per_block * t->v_samples_per_block * 6;
+	return mem_alloc( sizeof( vertex ) * max_element_count );
+#endif // CANYON_TERRAIN_INDEX
 }
+
+void canyonTerrain_initVertexBuffers( canyonTerrain* t ) {
+	// Init w*h*2 buffers that we can use for vertex_buffers
+	vAssert( t->vertex_buffers == 0 );
+	int count = t->u_block_count * t->v_block_count * 2;
+	t->vertex_buffers = mem_alloc( count * sizeof( vertex* ));
+	for ( int i = 0; i < count; i++ ) {
+		t->vertex_buffers[i] = canyonTerrain_allocVertexBuffer( t );
+	}
+}
+void canyonTerrain_freeVertexBuffer( canyonTerrain* t, unsigned short* buffer ) {
+	// Find the buffer in the list
+	// Switch it with the last
+	int count = t->vertex_buffer_count;
+	int i = array_find( (void**)t->vertex_buffers, count, buffer );
+	t->vertex_buffers[i] = t->vertex_buffers[count-1];
+	t->vertex_buffers[count-1] = buffer;
+	--t->vertex_buffer_count;
+}
+void* canyonTerrain_nextVertexBuffer( canyonTerrain* t  ) {
+	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 2 ));
+	void* buffer = t->vertex_buffers[t->vertex_buffer_count++];
+	return buffer;
+}
+
+#if CANYON_TERRAIN_INDEXED
+void* canyonTerrain_allocElementBuffer( canyonTerrain* t ) {
+	int max_element_count = t->u_samples_per_block * t->v_samples_per_block * 6;
+	return mem_alloc( sizeof( unsigned short ) * max_element_count );
+}
+void canyonTerrain_initElementBuffers( canyonTerrain* t ) {
+	// Init w*h*2 buffers that we can use for element_buffers
+	vAssert( t->element_buffers == 0 );
+	int count = t->u_block_count * t->v_block_count * 2;
+	t->element_buffers = mem_alloc( count * sizeof( unsigned short* ));
+	for ( int i = 0; i < count; i++ ) {
+		t->element_buffers[i] = canyonTerrain_allocElementBuffer( t );
+	}
+}
+void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer ) {
+	// Find the buffer in the list
+	// Switch it with the last
+	int count = t->element_buffer_count;
+	int i = array_find( (void**)t->element_buffers, count, buffer );
+	t->element_buffers[i] = t->element_buffers[count-1];
+	t->element_buffers[count-1] = buffer;
+	--t->element_buffer_count;
+}
+void* canyonTerrain_nextElementBuffer( canyonTerrain* t  ) {
+	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 2 ));
+	void* buffer = t->element_buffers[t->element_buffer_count++];
+	return buffer;
+}
+#endif // CANYON_TERRAIN_INDEX
+
+
 
 void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 	b->element_count = canyonTerrainBlock_triangleCount( b ) * 3;
 	vAssert( b->element_count > 0 );
+	vAssert( b->element_count <= kMaxTerrainBlockElements );
 
-	int max_element_count = ( b->terrain->u_samples_per_block ) * ( b->terrain->v_samples_per_block ) * 6;
-	vAssert( b->element_count <= max_element_count );
-
-	if ( !b->element_buffer ) {
-	   	b->element_buffer = mem_alloc( sizeof( unsigned short ) * max_element_count );
-	}
-
-	if ( !b->vertex_buffer ) {
 #if CANYON_TERRAIN_INDEXED
-		int max_vert_count = ( b->terrain->u_samples_per_block + 1 ) * ( b->terrain->v_samples_per_block + 1 );
-		b->vertex_buffer = mem_alloc( sizeof( vertex ) * max_vert_count );
-		memset( b->vertex_buffer, 0, sizeof( vertex ) * max_vert_count );
+	if ( !b->element_buffer )
+		b->element_buffer = canyonTerrain_nextElementBuffer( b->terrain );
+	if ( !b->vertex_buffer )
+		b->vertex_buffer = canyonTerrain_nextVertexBuffer( b->terrain );
 #else
-		// Element Buffer
-		// TODO - couldn't this be one static buffer?
-		initialiseDefaultElementBuffer( max_element_count, b->element_buffer );
-		// Vertex Buffer
-		b->vertex_buffer = mem_alloc( sizeof( vertex ) * max_element_count );
-		memset( b->vertex_buffer, 0, sizeof( vertex ) * max_element_count );
+	if ( !b->vertex_buffer )
+		b->vertex_buffer = canyonTerrain_nextVertexBuffer( b->terrain );
+	b->element_buffer = terrain_element_buffer;
 #endif // CANYON_TERRAIN_INDEXED
-	}
-
-	/*
-	b->element_count = canyonTerrainBlock_triangleCount( b ) * 3;
-	vAssert( b->element_count > 0 );
-	
-	if ( b->element_buffer ) {
-		mem_free( b->element_buffer );
-	}
-	b->element_buffer = mem_alloc( sizeof( unsigned short ) * b->element_count );
-
-	if ( b->vertex_buffer ) {
-		mem_free( b->vertex_buffer );
-	}
-#if CANYON_TERRAIN_INDEXED
-	int vert_count = canyonTerrainBlock_renderVertCount( b );
-	b->vertex_buffer = mem_alloc( sizeof( vertex ) * vert_count );
-	memset( b->vertex_buffer, 0, sizeof( vertex ) * vert_count );
-#else
-	// Element Buffer
-	initialiseDefaultElementBuffer( b->element_count, b->element_buffer );
-	// Vertex Buffer
-	b->vertex_buffer = mem_alloc( sizeof( vertex ) * b->element_count );
-	memset( b->vertex_buffer, 0, sizeof( vertex ) * b->element_count );
-#endif // CANYON_TERRAIN_INDEXED
-*/
 }
 
 void canyonTerrainBlock_calculateBuffers( canyonTerrainBlock* b ) {

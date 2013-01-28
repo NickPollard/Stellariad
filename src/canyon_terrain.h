@@ -53,6 +53,10 @@ struct canyonTerrain_s {
 	vector			sample_point;
 
 	canyon*			canyon;
+	unsigned short**	vertex_buffers;
+	int				vertex_buffer_count;
+	unsigned short**	element_buffers;
+	int				element_buffer_count;
 };
 
 extern texture* terrain_texture;
