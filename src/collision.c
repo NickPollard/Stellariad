@@ -108,7 +108,6 @@ void collision_removeBody( body* b ) {
 void collision_removeDeadBody( body*  b ) {
 	//int i = array_find( (void**)bodies, body_count, b );
 	//bodies[i] = bodies[--body_count];
-	printf( "Collision: Removing body 0x" xPTRf "\n", (uintptr_t)b );
 	array_remove( (void**)bodies, &body_count, b );
 	vAssert( b );
 	vAssert( b->shape );
@@ -138,9 +137,12 @@ void collision_generateEvents() {
 	// for every body, check every other body
 	// TODO - keep separate lists for layers; iterate those instead
 	for ( int i = 0; i < body_count; ++i )
-		for ( int j = i + 1; j < body_count; j++ )
+		for ( int j = i + 1; j < body_count; j++ ) {
+			vAssert( bodies[i] )
+			vAssert( bodies[j] )
 			if ( !bodies[i]->disabled && !bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
 				collision_event( bodies[i], bodies[j] );
+		}
 }
 
 void collisionMesh_drawWireframe( collisionMesh* m, matrix trans, vector color ) {

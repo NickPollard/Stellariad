@@ -196,10 +196,23 @@ function player_fire_missile( ship )
 	--missile.tick = homing_missile_tick( target )
 end
 
+function safeCleanup( value, cleanup )
+	if value then
+		cleanup()
+	end
+	return nil
+end
+
 function missile_collisionHandler( missile, other )
 	fx.spawn_missile_explosion( missile.transform )
 	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
-	gameobject_destroy( missile )
+	missile.body = safeCleanup( missile.body, function () vdestroyBody( missile.body ) end )
+	missile.model = safeCleanup( missile.model, function () vdeleteModelInstance( missile.model ) end )
+	inTime( 2.0, function() 
+		missile.trail = safeCleanup( missile.trail, function () vdeleteModelInstance( missile.trail ) end )
+		gameobject_delete( missile )
+	end
+	)
 end
 
 function setCollision_playerBullet( object )
@@ -251,6 +264,7 @@ player_gunfire = {
 
 player_missile = { 
 	model = "dat/model/missile_enemy_homing.s",
+	trail = "dat/model/missile_enemy_homing_trail.s",
  	particle = "dat/script/lisp/red_bullet.s",
 	speed = 100.0,
 	collisionType = "player",
@@ -266,6 +280,7 @@ enemy_gunfire = {
 
 enemy_homing_missile = { 
 	model = "dat/model/missile_enemy_homing.s",
+	trail = "dat/model/missile_enemy_homing_trail.s",
 	speed = 100.0,
 	collisionType = "enemy",
 	time_to_live = 3.0
@@ -273,13 +288,25 @@ enemy_homing_missile = {
 
 function fire_missile( source, offset, bullet_type )
 	local projectile = create_projectile( source, offset, bullet_type.model, bullet_type.speed )
+
+	if bullet_type.trail then
+		projectile.trail = vcreateModelInstance( bullet_type.trail )
+		vmodel_setTransform( projectile.trail, projectile.transform )
+		vscene_addModel( scene, projectile.trail )
+	end
+
 	if bullet_type.collisionType == "player" then
 		setCollision_playerBullet( projectile )
 	elseif bullet_type.collisionType == "enemy" then
 		setCollision_enemyBullet( projectile )
 	end
 	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-	inTime( bullet_type.time_to_live, function () gameobject_destroy( projectile ) end )
+
+	inTime( bullet_type.time_to_live, function () 
+		gameobject_destroy( projectile )
+		projectile.trail = safeCleanup( projectile.trail, function () vdeleteModelInstance( projectile.trail ) end )
+	end )
+
 	return projectile
 end
 
