@@ -30,7 +30,11 @@
 #define false 0
 
 // *** Unit Testing
+#ifdef ANDROID
+#define UNIT_TEST false
+#else
 #define UNIT_TEST true
+#endif
 #define TERM_RED "[1;31;40m"
 #define TERM_GREEN "[1;32;40m"
 #define TERM_WHITE "[0;37;40m"
@@ -55,7 +59,7 @@
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vitae", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vitae", __VA_ARGS__))
 
-//#define ANDROID_PROFILING
+#define ANDROID_PROFILING
 
 #define printf( ... )  LOGI( __VA_ARGS__ )
 

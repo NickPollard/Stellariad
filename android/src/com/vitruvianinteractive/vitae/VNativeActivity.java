@@ -7,7 +7,6 @@ import android.util.Log;
 import android.content.pm.*;
 import android.content.pm.PackageManager.NameNotFoundException;
 
-
 public class VNativeActivity extends NativeActivity
 {
 	// Native function declaration
@@ -31,6 +30,6 @@ public class VNativeActivity extends NativeActivity
         System.loadLibrary( "vitae" );
 		setApkPath( apkFilePath );
 
-		super.onCreate( savedInstanceState );
+        super.onCreate(savedInstanceState);
 	}
 }

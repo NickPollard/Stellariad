@@ -28,7 +28,6 @@ uniform sampler2D tex_d;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_b_normal;
 
-uniform sampler2D tex_lookup;
 uniform vec4 directional_light_direction;
 
 uniform mat4 modelview;

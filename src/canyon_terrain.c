@@ -22,8 +22,6 @@ const float texture_repeat = 10.f;
 
 texture* terrain_texture = 0;
 texture* terrain_texture_cliff = 0;
-texture* normal_flat = 0;
-texture* cliff_normal = 0;
 
 texture* terrain_texture_2 = 0;
 texture* terrain_texture_cliff_2 = 0;
@@ -152,12 +150,7 @@ void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
 		draw->texture_b = b->canyon->zones[first].texture_cliff->gl_tex;
 		draw->texture_c = b->canyon->zones[second].texture_ground->gl_tex;
 		draw->texture_d = b->canyon->zones[second].texture_cliff->gl_tex;
-		draw->texture_lookup = b->canyon->canyonZone_lookup_texture->gl_tex;
 	
-		// TEST
-		draw->texture_normal = normal_flat->gl_tex;
-		draw->texture_b_normal = cliff_normal->gl_tex;
-
 		draw->vertex_VBO = *b->vertex_VBO;
 		draw->element_VBO = *b->element_VBO;
 
@@ -323,12 +316,6 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	}
 	if ( !terrain_texture_cliff ) {
 		terrain_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" );
-	}
-	if ( !normal_flat ) {
-		normal_flat = texture_load( "dat/img/normal_flat.tga" );
-	}
-	if ( !cliff_normal ) {
-		cliff_normal = texture_load( "dat/img/terrain/cliff_normal.tga" );
 	}
 
 	// Temp

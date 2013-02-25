@@ -40,7 +40,7 @@ android :
 	@echo "--- Building Native Code for Android NDK ---"
 	@ndk-build -C android NDK_DEBUG=1 APP_OPTIM=debug
 	@echo "--- Compiling Android Java and packaging APK ---"
-	@ant debug -v -f android/build.xml
+	@ant debug -f android/build.xml
 	@echo "--- Installing APK to device ---"
 	@android/install.sh
 

@@ -12,7 +12,7 @@
 #include "system/hash.h"
 
 // *** Forward Declarations
-uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top );
+uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top, uint8_t* image );
 
 model*		skybox_model = NULL;
 texture*	skybox_texture = NULL;
@@ -31,14 +31,16 @@ void skybox_init( ) {
 	static const int stride = 4;
 	(void)sky_color_bottom; (void)sky_color_top;
 
-	uint8_t* bitmap = skybox_generateSkybox( sky_color_bottom, sky_color_top );
-	//skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
+#if 1
+	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, skybox_image );
+#else
+	uint8_t* bitmap = skybox_generateSkybox( sky_color_bottom, sky_color_top, skybox_image );
 	skybox_texture = texture_loadFromMem( skybox_width, skybox_height, stride, bitmap );
-
 	texture_free( bitmap );
+#endif
+
 	mem_free( skybox_image );
 
-	//skybox_model = model_load( "dat/model/inverse_cube.s" );
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 	skybox_model->meshes[0]->shader = resources.shader_skybox;
@@ -103,12 +105,12 @@ void skybox_shadeSkybox( int width, int height, uint8_t* src_image, uint8_t* dst
 	}
 }
 
-uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top ) {
+uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top, uint8_t* image ) {
 	int w = skybox_width;
 	int h = skybox_height;
 	static const int stride = 4;
 	uint8_t* dst_image = mem_alloc( sizeof( uint8_t ) * w * h * stride );
 	memset( dst_image, 0, sizeof( uint8_t ) * stride * w * h );
-	skybox_shadeSkybox( w, h, skybox_image, dst_image, sky_color_bottom, sky_color_top );
+	skybox_shadeSkybox( w, h, image, dst_image, sky_color_bottom, sky_color_top );
 	return dst_image;
 }

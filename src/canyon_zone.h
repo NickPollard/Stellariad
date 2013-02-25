@@ -22,7 +22,6 @@ struct canyonZone_s {
 	texture*	texture_cliff;
 };
 
-extern texture* canyonZone_lookup_texture;
 extern vector zone_sample_point;
 
 int canyon_zone( float v );

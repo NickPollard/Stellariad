@@ -65,6 +65,14 @@ void android_exit() {
 	exit( EXIT_SUCCESS );
 }
 
+void app_exit( struct android_app* app ) {
+	// The window is being hidden or closed, clean it up.
+	engine* e = app->userData;
+	render_destroyWindow( &window_main );
+	e->active = false;
+	android_exit();
+}
+
 // Process the next main command.
 static void handle_cmd( struct android_app* app, int32_t cmd ) {
     switch (cmd) {
@@ -98,11 +106,7 @@ static void handle_cmd( struct android_app* app, int32_t cmd ) {
         case APP_CMD_TERM_WINDOW:
 			{
 				printf( "ANDROID: term window." );
-				// The window is being hidden or closed, clean it up.
-				engine* e = app->userData;
-				render_destroyWindow( &window_main );
-				e->active = false;
-				android_exit();
+				app_exit( app );
 				break;
 			}
 		case APP_CMD_GAINED_FOCUS:
@@ -113,6 +117,7 @@ static void handle_cmd( struct android_app* app, int32_t cmd ) {
 		case APP_CMD_LOST_FOCUS:
 			{
 				printf( "ANDROID: lost focus." );
+				app_exit( app );
 				break;
 			}
 	}

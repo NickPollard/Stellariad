@@ -30,9 +30,6 @@ struct canyon_s {
 	canyonZone	zones[kNumZones];
 	int			current_zone;
 
-	texture*	canyonZone_lookup_texture;
-	texture*	canyonZone_lookup_pending;
-
 	vector		zone_sample_point;
 	scene*		scene;
 };

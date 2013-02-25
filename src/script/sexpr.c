@@ -338,12 +338,5 @@ transform* load_transform( sexpr* s ) {
 }
 
 void test_sexpr() {
-	sexpr* s = sexpr_parse( "(model)" );
-	(void)s;
-	s = sexpr_parse( "(model (transform (particle )))" );
-	s = sexpr_parse( "(model (transform (particle)) (transform (particle )))" );
-	model* m = sexpr_loadModel( sexpr_parse( "(model (mesh))" ));
-	model* m_ = sexpr_loadModel( sexpr_parse( "(model (mesh (filename \"dat/model/ship_hd_2.obj\")))" ));
-	(void)m; (void)m_;
 //	vAssert( 0 );
 }

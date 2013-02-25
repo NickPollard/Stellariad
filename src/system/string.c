@@ -41,7 +41,7 @@ bool charset_contains( const char* charset, char c ) {
 
 // Trim cruft from a string to return just the main alpha-numeric name
 // Eg. remove leading/trailing whitespace, punctuation
-const char* string_trim( const char* src ) {
+const char* string_trimCopy( char* dst, const char* src ) {
 	const char* begin = src;
 	const char* end = src + strlen( src ) - 1;
 
@@ -53,12 +53,16 @@ const char* string_trim( const char* src ) {
 		end--;
 	}
 	int length = end + 1 - begin;
-	assert( length >= 0 );
-	if ( length == 0 )
-		return NULL;
-	char* dst = mem_alloc( sizeof( char ) * (length + 1));
+	vAssert( length >= 0 );
 	memcpy( dst, begin, sizeof( char ) * (length + 1));
 	dst[length] = '\0';
+	return dst;
+}
+
+const char* string_trim( const char* src ) {
+	size_t length = strlen( src );
+	char* dst = mem_alloc( sizeof( char ) * (length + 1));
+	string_trimCopy( dst, src );
 	return dst;
 }
 
@@ -97,16 +101,16 @@ void stream_printf( streamWriter* stream, const char* fmt, ... ) {
 void test_string_trim( ) {
 	const char* src = ";test;";
 	const char* dst = string_trim( src );
-	assert( string_equal( dst, "test" ));
-	assert( string_trim( ";;;" ) == NULL );
-	assert( string_equal( string_trim( ";;t;;;" ), "t" ));
+	vAssert( string_equal( dst, "test" ));
+	vAssert( string_equal( string_trim( ";;;" ), "" ));
+	vAssert( string_equal( string_trim( ";;t;;;" ), "t" ));
 }
 
 void test_string() {
-	assert( charset_contains( "test", 't' ));
-	assert( charset_contains( "test", 'e' ));
-	assert( charset_contains( "test", 's' ));
-	assert( !charset_contains( "test", 'p' ));
+	vAssert( charset_contains( "test", 't' ));
+	vAssert( charset_contains( "test", 'e' ));
+	vAssert( charset_contains( "test", 's' ));
+	vAssert( !charset_contains( "test", 'p' ));
 
 	test_string_trim();
 }

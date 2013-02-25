@@ -234,7 +234,7 @@ uint8_t* read_tga( const char* file, int* w, int* h ) {
 
 	int pixel_bytes = header->pixel_depth / 8;
 	int size = width * height * pixel_bytes;
-	printf( "Read TGA: Loading file \"%s\"\n", file );
+	//printf( "Read TGA: Loading file \"%s\"\n", file );
 	uint8_t* tex = texture_allocate( size );
 	memcpy( tex, pixels, size );
 

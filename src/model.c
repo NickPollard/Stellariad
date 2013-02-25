@@ -66,7 +66,7 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->vertex_buffer = NULL;
 	m->element_buffer = NULL;
 
-	m->texture_diffuse = texture_load( "dat/img/ship_hd_2.tga" );
+	m->texture_diffuse = static_texture_default;
 	m->shader = resources.shader_default;
 	vAssert( m->shader );
 

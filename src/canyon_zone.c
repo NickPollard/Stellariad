@@ -104,19 +104,6 @@ texture* canyonZone_buildTexture( canyonZone a, canyonZone b ) {
 	return t;
 }
 
-
-void canyonZone_loadTextureForZone( canyon* c, int zone_index ) {
-	int zone_type_index = zone_index % c->zone_count;
-	int other_index = ( zone_index + 1 ) % c->zone_count;
-	// We flip around alternate zones to deal with the blending
-	if ( zone_index % 2 == 0 ) {
-		c->canyonZone_lookup_pending = canyonZone_buildTexture( c->zones[zone_type_index], c->zones[other_index] );
-	} else {
-		c->canyonZone_lookup_pending = canyonZone_buildTexture( c->zones[other_index], c->zones[zone_type_index] );
-	}
-	printf( "##### loading lookup texture: Zones %d and %d.\n", zone_type_index, other_index );
-}
-
 void canyonZone_skyFogBlend( canyonZone* a, canyonZone* b, float blend, vector* sky_color, vector* fog_color, vector* sun_color ) {
 	*sky_color = vector_lerp( &a->sky_color, &b->sky_color, blend );
 	*fog_color = vector_lerp( &a->fog_color, &b->fog_color, blend );
@@ -129,15 +116,7 @@ void canyonZone_tick( canyon* c, float dt ) {
 	terrain_canyonSpaceFromWorld( zone_sample_point.coord.x, zone_sample_point.coord.z, &u, &v );
 	int zone = canyon_zone( v );
 	if ( zone != c->current_zone ) {
-		canyonZone_loadTextureForZone( c, zone );
 		c->current_zone = zone;
-	}
-	if ( c->canyonZone_lookup_pending && 
-			c->canyonZone_lookup_pending->gl_tex ) {
-		texture_delete( c->canyonZone_lookup_texture );
-		printf( "##### Switching terrain texture.\n" );
-		c->canyonZone_lookup_texture = c->canyonZone_lookup_pending;
-		c->canyonZone_lookup_pending = NULL;	
 	}
 }
 
@@ -158,9 +137,6 @@ void canyonZone_load( canyon* c, const char* filename ) {
 	// TODO - add this back and get it working
 	//term_deref( t );
 	c->zone_count = zone_count;
-	
-	vAssert( !c->canyonZone_lookup_texture );
-	c->canyonZone_lookup_texture = canyonZone_buildTexture( c->zones[0], c->zones[1] );
 }
 
 canyonZone* canyonZone_create() {

@@ -79,10 +79,15 @@ void shader_buildDictionary( shaderDictionary* dict, GLuint shader_program, cons
 			// Advance two tokens (the next is the type declaration, the second is the variable name)
 			inputStream_freeToken( stream, token );
 			token = inputStream_nextToken( stream );
-			const char* type = string_trim( token );
+			#define kMaxVariableLength 64
+			char type[kMaxVariableLength];
+			char name[kMaxVariableLength];
+			string_trimCopy( type, token );
+//			const char* type = string_trim( token );
 			inputStream_freeToken( stream, token );
 			token = inputStream_nextToken( stream );
-			const char* name = string_trim( token );
+			string_trimCopy( name, token );
+//			const char* name = string_trim( token );
 			// If it's an array remove the array specification
 			char* c = (char*)name;
 			int length = strlen(name );
@@ -94,8 +99,8 @@ void shader_buildDictionary( shaderDictionary* dict, GLuint shader_program, cons
 
 			shaderDictionary_addBinding( dict, shader_createBinding( shader_program, type, name ));
 
-			mem_free( (void*)name );
-			mem_free( (void*)type );
+//			mem_free( (void*)name );
+//			mem_free( (void*)type );
 		}
 		inputStream_freeToken( stream, token );
 	}
