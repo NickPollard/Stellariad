@@ -1,9 +1,24 @@
 local ui = {}
 
-function ui.show_splash( splash_image )
+future = require "future"
+
+function ui.show_splash( image, w, h )
 	local color = Vector( 1.0, 1.0, 1.0, 1.0 )
-	local splash = vuiPanel_create( engine, splash_image, color, 0, 0, 1280, 720 )
+	local screen_w = 1280
+	local screen_h = 720
+	local centre_x = screen_w * 0.5
+	local centre_y = screen_h * 0.5
+	local splash = vuiPanel_create( engine, image, color, 
+		centre_x - w * 0.5, centre_y - h * 0.5, 
+		w, h )
 	return splash
+end
+
+function ui.show_splash_future( image, w, h )
+	local f = future:new()
+	local splash = ui.show_splash( image, w, h )
+	f:complete( splash )
+	return f
 end
 
 function ui.hide_splash( splash )
