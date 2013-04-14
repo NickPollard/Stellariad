@@ -29,6 +29,10 @@
 #include "system/file.h"
 #include "ui/panel.h"
 
+// *** Forward Declarations
+void lua_completeFuturePtr( lua_State* l, int future_ref, void* ptr );
+
+
 int LUA_print( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
 		const char* string = lua_tostring( l, 1 );
@@ -697,6 +701,35 @@ int LUA_createUIPanel( lua_State* l ) {
 	return 1;
 }
 
+int LUA_createUIPanel_future( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	const char* texture_path = lua_tostring( l, 2 );
+	vector* ui_color = lua_toptr( l, 3 );
+	float x = lua_tonumber( l, 4 );
+	float y = lua_tonumber( l, 5 );
+	float w = lua_tonumber( l, 6 );
+	float h = lua_tonumber( l, 7 );
+	
+	int future_ref = lua_store( l ); // Must be top of the stack
+
+	panel* p = panel_create();
+	p->x = x;
+	p->y = y;
+	p->width = w;
+	p->height = h;
+	p->color = *ui_color;
+	textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+	properties->wrap_s = GL_CLAMP_TO_EDGE;
+	properties->wrap_t = GL_CLAMP_TO_EDGE;
+	p->texture = texture_loadWithProperties( texture_path, properties );
+	engine_addRender( e, p, panel_render );
+
+	lua_completeFuturePtr( l, future_ref, p );
+
+	lua_pushptr( l, p );
+	return 1;
+}
+
 int LUA_hideUIPanel( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
 	panel* p = lua_toptr( l, 2 );
@@ -898,6 +931,19 @@ int LUA_rand( lua_State* l ) {
 	return 1;
 }
 
+void lua_completeFuturePtr( lua_State* l, int future_ref, void* ptr ) {
+	// we want to call f:complete( ptr )	
+	// Get table(future, "complete")
+	lua_getglobal( l, "future" );
+	lua_getfield( l, -1, "complete" );
+	// push the future
+	lua_retrieve( l, future_ref );
+	// push the ptr
+	lua_pushptr( l, ptr );
+	// execute
+	lua_pcall( l, 2, 0, 0 );
+}
+
 // ***
 
 
@@ -1031,6 +1077,7 @@ void luaLibrary_import( lua_State* l ) {
 
 	// *** UI
 	lua_registerFunction( l, LUA_createUIPanel, "vuiPanel_create" );
+	lua_registerFunction( l, LUA_createUIPanel_future, "vuiPanel_create_future" );
 	lua_registerFunction( l, LUA_hideUIPanel, "vuiPanel_hide" );
 
 	// *** Game

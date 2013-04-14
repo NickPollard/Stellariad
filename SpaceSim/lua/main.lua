@@ -25,7 +25,9 @@ C and only controlled remotely by Lua
 	array		= require "array"
 	entities	= require "entities"
 	fx			= require "fx"
+	future		= require "future"
 	library		= require "library"
+	list		= require "list"
 	spawn		= require "spawn"
 	timers		= require "timers"
 	triggers	= require "triggers"
@@ -379,7 +381,7 @@ function init()
 	color = Vector( 1.0, 1.0, 1.0, 1.0 )
 	local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, 1280, 360 )
 	
-	splash_intro()
+	splash_intro_new()
 end
 
 function ship_collisionHandler( ship, collider )
@@ -502,19 +504,42 @@ end
 
 function splash_intro()
 	vtexture_preload( "dat/img/splash_author.tga" )
-	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga" )
+	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga", 512, 256 )
+	local bg = ui.show_splash( "dat/img/black.tga", 1280, 720 )
 	inTime( 2.0, function () 
 		ui.hide_splash( studio_splash ) 
-		local author_splash = ui.show_splash( "dat/img/splash_author.tga" )
+		local author_splash = ui.show_splash( "dat/img/splash_author.tga", 512, 256 )
 		inTime( 2.0, function ()
 			ui.hide_splash( author_splash ) 
+			ui.hide_splash( bg ) 
 			ui.show_crosshair()
 			gameplay_start()
 		end )
 	end )
 end
 
+function splash_intro_new()
+	vtexture_preload( "dat/img/splash_author.tga" )
+	local bg = ui.show_splash( "dat/img/black.tga", 1280, 720 )
+	ui.show_splash_future( "dat/img/splash_vitruvian.tga", 512, 256 )
+		:onComplete( function ( studio )
+			inTime( 2.0, function () 
+				ui.show_splash_future( "dat/img/splash_author.tga", 512, 256 )
+					:onComplete( function ( author )
+						inTime( 2.0, function ()
+							ui.hide_splash( author )
+							ui.hide_splash( bg )
+							ui.show_crosshair()
+							gameplay_start()
+						end )
+					end )
+				ui.hide_splash( studio )
+			end )
+		end )
+end
+
 function test()
+	future.test()
 end
 
 function start()

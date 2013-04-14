@@ -158,6 +158,7 @@ void engine_tick( engine* e ) {
 		if ( err != 0 ) {
 			printf( "LUA ERROR: ErrorNum: %d.\n", err );
 			printf( "%s\n", lua_tostring( e->lua, -1 ));
+			lua_stacktrace( e->lua );
 			vAssert( 0 );
 		}
 	}

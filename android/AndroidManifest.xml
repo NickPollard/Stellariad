@@ -16,7 +16,8 @@
 					android:theme="@style/Theme.NoBackground">
         <activity android:name="VNativeActivity"
 			android:label="@string/app_name"
-			android:screenOrientation="landscape" >
+			android:screenOrientation="landscape"
+			android:theme="@style/Theme.NoBackground">
 			<meta-data android:name="android.app.lib_name"
                     android:value="vitae" />
 

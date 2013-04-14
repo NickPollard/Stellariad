@@ -59,7 +59,7 @@
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vitae", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vitae", __VA_ARGS__))
 
-#define ANDROID_PROFILING
+//#define ANDROID_PROFILING
 
 #define printf( ... )  LOGI( __VA_ARGS__ )
 
