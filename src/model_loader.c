@@ -139,5 +139,8 @@ mesh* mesh_loadObj( const char* filename ) {
 
 model* model_load( const char* filename ) {
 	model* mdl = sexpr_loadFile( filename );
+#if DEBUG
+	mdl->filename = string_createCopy(filename);
+#endif // DEBUG
 	return mdl;
 }

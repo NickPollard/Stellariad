@@ -105,7 +105,7 @@ void collision_removeBody( body* b ) {
 	b->disabled = true;
 }
 
-void collision_removeDeadBody( body*  b ) {
+void collision_removeDeadBody( body* b ) {
 	//int i = array_find( (void**)bodies, body_count, b );
 	//bodies[i] = bodies[--body_count];
 	array_remove( (void**)bodies, &body_count, b );

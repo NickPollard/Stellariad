@@ -152,6 +152,10 @@ int LUA_createbodyMesh( lua_State* l ) {
 int LUA_deleteModelInstance( lua_State* l ) {
 	modelInstance* m = lua_toptr( l, 1 );
 	scene_removeModel( theScene, m );
+#if DEBUG
+	//model* mod = model_fromInstance( m );
+	//printf( "Deleting modelinstance %s\n", mod->filename );
+#endif // DEBUG
 	modelInstance_delete( m );
 	return 0;
 }

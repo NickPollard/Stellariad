@@ -23,6 +23,8 @@ void pool_##type##_free( pool_##type* pool, type* m );
 // Implementation Macro
 // ( Place in a .c file )
 
+// TODO - maintain a free-list for O(1) allocations over O(n)
+
 #define IMPLEMENT_POOL( type )											\
 																		\
 pool_##type* pool_##type##_create( int size ) {							\

@@ -37,6 +37,7 @@ void modelInstance_deleteSubRibbonEmitters( modelInstance* instance ) {
 void modelInstance_deleteSubParticleEmitters( modelInstance* instance ) { 
 	for ( int i = 0; i < instance->emitter_count; i++ ) {
 		particleEmitter* e = instance->emitters[i];
+		printf( "Deleting subemitter.\n" );
 		particleEmitter_destroy( e );
 	}
 }

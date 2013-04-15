@@ -64,6 +64,9 @@ struct model_s {
 	particleEmitter*	emitters[kMaxSubEmitters];
 	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
 	obb					obb;
+#ifdef DEBUG
+	const char*		filename;
+#endif
 };
 
 

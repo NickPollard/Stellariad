@@ -217,8 +217,8 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 void particleEmitter_render( void* data ) {
 	particleEmitter* p = data;
 
-	if ( p->destroyed )
-		return;
+	//if ( p->destroyed )
+		//return;
 
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 	particleEmitter_assertActive( p );
