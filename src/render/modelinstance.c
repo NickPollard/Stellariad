@@ -10,6 +10,7 @@
 #include "maths/vector.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
+#include "system/string.h"
 
 #define NULL_INDEX UINTPTR_MAX
 
@@ -37,7 +38,7 @@ void modelInstance_deleteSubRibbonEmitters( modelInstance* instance ) {
 void modelInstance_deleteSubParticleEmitters( modelInstance* instance ) { 
 	for ( int i = 0; i < instance->emitter_count; i++ ) {
 		particleEmitter* e = instance->emitters[i];
-		printf( "Deleting subemitter.\n" );
+		//printf( "Deleting subemitter.\n" );
 		particleEmitter_destroy( e );
 	}
 }
@@ -73,6 +74,9 @@ void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->emitter_count; i++ ) {
 		instance->emitters[i] = particleEmitter_create();
+#ifdef DEBUG
+		instance->emitters[i]->debug_creator = string_createCopy( "modelInstance subEmitter" );
+#endif // DEBUG
 
 		vAssert( m->emitters[i]->definition );
 		instance->emitters[i]->definition = m->emitters[i]->definition;

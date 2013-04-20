@@ -22,6 +22,7 @@ SRCS =	src/camera.c \
 		src/vtime.c \
 		src/transform.c \
 		src/worker.c \
+		src/base/ringqueue.c \
 		src/camera/chasecam.c \
 		src/camera/flycam.c \
 		src/camera/velcam.c \

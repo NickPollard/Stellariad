@@ -59,6 +59,22 @@ void particleEmitterDef_deInit( particleEmitterDef* def ) {
 }
 
 particleEmitter* particleEmitter_create() {
+#ifdef DEBUG
+	bool free = false;
+	for ( int i = 0; i < static_particle_pool->size; i++) {								\
+		if ( static_particle_pool->free[i] ) {											\
+			free = true;
+			break;
+		}
+	}
+
+	if ( !free ) {
+		for ( int i = 0; i < kMaxActiveParticles; ++i ) {
+			particleEmitter* e = &static_particle_pool->pool[i];
+			printf("Age: %.2f, Particle created by: %s.\n", e->emitter_age, e->debug_creator );
+		}
+	}
+#endif //DEBUG
 	particleEmitter* p = pool_particleEmitter_allocate( static_particle_pool );
 	memset( p, 0, sizeof( particleEmitter ));
 	p->definition = NULL;
@@ -74,6 +90,10 @@ particleEmitter* particleEmitter_create() {
 		p->vertex_buffer[i+2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
 		p->vertex_buffer[i+3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
 	}
+
+#ifdef DEBUG
+	p->debug_creator = NULL;
+#endif // DEBUG
 
 	return p;
 }

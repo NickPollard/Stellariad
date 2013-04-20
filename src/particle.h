@@ -53,6 +53,10 @@ struct particleEmitter_s {
 
 	particle	particles[kMaxParticles];
 	vertex		vertex_buffer[kMaxParticleVerts];
+
+#ifdef DEBUG
+	const char* debug_creator;
+#endif // DEBUG
 };
 
 // *** System static init

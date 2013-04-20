@@ -27,6 +27,7 @@
 #include "render/texture.h"
 #include "script/lisp.h"
 #include "system/file.h"
+#include "system/string.h"
 #include "ui/panel.h"
 
 // *** Forward Declarations
@@ -613,6 +614,12 @@ int LUA_particle_create( lua_State* l ) {
 
 	particleEmitterDef* def = particle_loadAsset( particle_file );
 	particleEmitter* emitter = particle_newEmitter( def );
+
+#ifdef DEBUG
+	char buffer[256];
+	sprintf( buffer, "Lua particle create: %s.", particle_file );
+	emitter->debug_creator = string_createCopy( buffer );
+#endif // DEBUG
 
 	emitter->trans = t;
 

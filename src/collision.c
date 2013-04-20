@@ -7,10 +7,12 @@
 #include "test.h"
 #include "transform.h"
 #include "worker.h"
+#include "base/ringqueue.h"
 #include "maths/geometry.h"
 #include "render/debugdraw.h"
 
 #define kDeadBodyQueueSize 128
+#define kNewBodyQueueSize 128
 
 int collision_results_ready = 0;
 int collision_results_processed = 0;
@@ -22,6 +24,11 @@ int event_count;
 
 body* bodies[kMaxCollidingBodies];
 int body_count;
+
+ringQueue* collision_dead_body_queue = NULL;
+ringQueue* collision_new_body_queue = NULL;
+
+vmutex collision_add_mutex = kMutexInitialiser;
 
 // Forward Declarations
 bool body_colliding( body* a, body* b );
@@ -50,54 +57,28 @@ void collision_event( body* a, body* b ) {
 }
 
 void collision_addBody( body* b ) {
+	vmutex_lock( &collision_add_mutex );
+	{
+		ringQueue_push( collision_new_body_queue, b );
+	}
+	vmutex_unlock( &collision_add_mutex );
+}
+
+void collision_addNewBody( body* b ) {
 	vAssert( body_count < kMaxCollidingBodies );
 	bodies[body_count++] = b;
+}
+
+void collision_addNewBodies() {
+	while ( ringQueue_count( collision_new_body_queue ) > 0 ) {
+		collision_addNewBody( ringQueue_pop( collision_new_body_queue ));
+	}
 }
 
 #define kMaxDeadBodies 128
 int dead_body_count = 0;
 body* dead_bodies[kMaxDeadBodies];
 
-////
-
-typedef struct ringQueue_s {
-	int first;
-	int last;
-	int size;
-	void** items;
-} ringQueue;
-
-ringQueue* ringQueue_create( int size ) {
-	ringQueue* r = mem_alloc( sizeof( ringQueue ));
-	r->size = size;
-	r->first = 0;
-	r->last = 0;
-	r->items = mem_alloc( sizeof( void* ) * size );
-	return r;
-}
-
-int ringQueue_count( ringQueue* r ) {
-	int count = r->last - r->first + ( r->last < r->first ? r->size : 0 );
-	return count;
-}
-
-void* ringQueue_pop( ringQueue* r ) {
-	vAssert( ringQueue_count( r ) > 0 );
-	void* item = r->items[r->first];
-	r->first = ( r->first + 1 ) % r->size;
-
-	return item;
-}
-
-void ringQueue_push( ringQueue* r, void* item ) {
-	vAssert( ringQueue_count( r ) < r->size );
-	r->items[r->last] = item;
-	r->last = ( r->last + 1 ) % r->size;
-}
-
-////
-
-ringQueue* collision_dead_body_queue = NULL;
 
 void collision_removeBody( body* b ) {
 	vAssert( ringQueue_count( collision_dead_body_queue ) < collision_dead_body_queue->size );
@@ -106,8 +87,6 @@ void collision_removeBody( body* b ) {
 }
 
 void collision_removeDeadBody( body* b ) {
-	//int i = array_find( (void**)bodies, body_count, b );
-	//bodies[i] = bodies[--body_count];
 	array_remove( (void**)bodies, &body_count, b );
 	vAssert( b );
 	vAssert( b->shape );
@@ -203,6 +182,7 @@ void collision_tick( int frame_counter, float dt ) {
 
 	collision_clearEvents();
 	collision_removeDeadBodies();
+	collision_addNewBodies();
 	collision_generateEvents();
 
 	collision_results_ready = frame_counter;
@@ -864,6 +844,7 @@ void collision_init() {
 	collision_clearEvents();
 	collision_initCollisionFuncs();
 	collision_dead_body_queue = ringQueue_create( kDeadBodyQueueSize );
+	collision_new_body_queue = ringQueue_create( kNewBodyQueueSize );
 }
 
 #if UNIT_TEST
