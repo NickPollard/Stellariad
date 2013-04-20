@@ -74,7 +74,7 @@ void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->emitter_count; i++ ) {
 		instance->emitters[i] = particleEmitter_create();
-#ifdef DEBUG
+#ifdef DEBUG_PARTICLE_SOURCES
 		instance->emitters[i]->debug_creator = string_createCopy( "modelInstance subEmitter" );
 #endif // DEBUG
 

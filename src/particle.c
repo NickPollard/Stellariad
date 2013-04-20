@@ -78,7 +78,7 @@ particleEmitter* particleEmitter_create() {
 	particleEmitter* p = pool_particleEmitter_allocate( static_particle_pool );
 	memset( p, 0, sizeof( particleEmitter ));
 	p->definition = NULL;
-	p->destroyed = false;
+	p->dead = false;
 	
 	//printf( "Adding particle 0x" xPTRf ".\n", (uintptr_t)p );
 	vAssert( active_particle_count < kMaxActiveParticles );
@@ -126,15 +126,21 @@ void particleEmitter_spawnParticle( particleEmitter* e ) {
 		p->rotation = frand( 0.f, 2*PI );
 	else
 		p->rotation = 0.f;
+
+	e->dying = e->dying | e->oneshot;
+}
+
+void particleEmitter_kill( engine* eng, particleEmitter* e ) {
+	engine_removeRender( eng, e, particleEmitter_render );
+	stopTick( eng, e, particleEmitter_tick );
+	particleEmitter_delete( e );
 }
 
 void particleEmitter_tick( void* data, float dt, engine* eng ) {
 	particleEmitter* e = data;
 
-	if ( e->destroyed && e->count <= 0 ) {
-		engine_removeRender( eng, e, particleEmitter_render );
-		stopTick( eng, e, particleEmitter_tick );
-		particleEmitter_delete( e );
+	if ( e->dead || ( e->dying && e->count <= 0 )) {
+		particleEmitter_kill( eng, e );
 		return;
 	}
 
@@ -161,8 +167,8 @@ void particleEmitter_tick( void* data, float dt, engine* eng ) {
 
 	// Spawn new particle
 	vAssert( e->definition->spawn_rate );
-	// Only spawn if we haven't been requested to destroy
-	if ( !e->destroyed ) {
+	// Only spawn if we're not dead or dying
+	if ( !( e->dead || e->dying )) {
 		// Burst mode means we batch-spawn particles on keys, otherwise spawn nothing
 		if ( e->definition->flags & kParticleBurst ) {
 			// Use some stack space to save on a mem_alloc
@@ -237,8 +243,8 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 void particleEmitter_render( void* data ) {
 	particleEmitter* p = data;
 
-	//if ( p->destroyed )
-		//return;
+	if ( p->dead )
+		return;
 
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 	particleEmitter_assertActive( p );
@@ -443,7 +449,7 @@ particleEmitter* particle_newEmitter( particleEmitterDef* definition ) {
 }
 
 void particleEmitter_destroy( particleEmitter* e ) {
-	e->destroyed = true;
+	e->dead = true;
 }
 
 // Delete a particleEmitter; Does not explicitly remove the definition

@@ -4,6 +4,7 @@
 #include "render/render.h"
 
 //#define DEBUG_PARTICLE_LIVENESS_TEST
+//#define DEBUG_PARTICE_SOURCES
 
 #define kMaxParticles 128
 #define kMaxParticleVerts (kMaxParticles * 6)
@@ -49,7 +50,9 @@ struct particleEmitter_s {
 	int		count;
 	float	next_spawn;
 	float	emitter_age;
-	bool	destroyed;
+	bool	dead;		// We've been explicitly killed; just cleaning up
+	bool	dying;		// We've been asked to die gracefully once we're finished
+	bool	oneshot;
 
 	particle	particles[kMaxParticles];
 	vertex		vertex_buffer[kMaxParticleVerts];

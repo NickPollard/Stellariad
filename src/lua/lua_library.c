@@ -606,16 +606,11 @@ int LUA_transform_facingWorld( lua_State* l ) {
 	return 0;
 }
 
-
-int LUA_particle_create( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
-	const char* particle_file = lua_tostring( l, 3 );
-
+particleEmitter* createEmitter( const char* particle_file, transform* t, engine* e ) {
 	particleEmitterDef* def = particle_loadAsset( particle_file );
 	particleEmitter* emitter = particle_newEmitter( def );
 
-#ifdef DEBUG
+#ifdef DEBUG_PARTICLE_SOURCES
 	char buffer[256];
 	sprintf( buffer, "Lua particle create: %s.", particle_file );
 	emitter->debug_creator = string_createCopy( buffer );
@@ -625,10 +620,28 @@ int LUA_particle_create( lua_State* l ) {
 
 	engine_addRender( e, emitter, particleEmitter_render );
 	startTick( e, emitter, particleEmitter_tick );
-	
+	return emitter;
+}
+
+int LUA_particle_oneShot( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	transform* t = lua_toptr( l, 2 );
+	const char* particle_file = lua_tostring( l, 3 );
+	particleEmitter* emitter = createEmitter( particle_file, t, e );
+	emitter->oneshot = true;
 	lua_pushptr( l, emitter );
 	return 1;
 }
+
+int LUA_particle_create( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	transform* t = lua_toptr( l, 2 );
+	const char* particle_file = lua_tostring( l, 3 );
+	particleEmitter* emitter = createEmitter( particle_file, t, e );
+	lua_pushptr( l, emitter );
+	return 1;
+}
+
 
 int LUA_particle_destroy( lua_State* l ) {
 	particleEmitter* emitter = lua_toptr( l, 1 );
@@ -1066,6 +1079,7 @@ void luaLibrary_import( lua_State* l ) {
 
 	// *** Particles
 	lua_registerFunction( l, LUA_particle_create, "vparticle_create" );
+	lua_registerFunction( l, LUA_particle_oneShot, "vparticle_oneShot" );
 	lua_registerFunction( l, LUA_particle_destroy, "vparticle_destroy" );
 	
 	// *** Ribbons
