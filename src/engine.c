@@ -21,6 +21,7 @@
 #include "camera/flycam.h"
 #include "debug/debug.h"
 #include "debug/debugtext.h"
+#include "debug/debuggraph.h"
 #include "input/keyboard.h"
 #include "mem/allocator.h"
 #include "render/debugdraw.h"
@@ -63,6 +64,13 @@ void engine_inputInputs( engine* e );
  *
  */
 
+#define GRAPH_FPS
+
+#ifdef GRAPH_FPS
+graph* fpsgraph; 
+graphData* fpsdata;
+#endif // GRAPH_FPS
+
 void test_engine_init( engine* e ) {
 	theScene = test_scene_init( e );
 	lua_setScene( e->lua, theScene );
@@ -80,6 +88,12 @@ void test_engine_init( engine* e ) {
 		engine_addRender( e, (void*)t, canyonTerrain_render );
 		theCanyonTerrain = t;
 	}
+
+#ifdef GRAPH_FPS
+#define kMaxFPSFrames 256
+	fpsdata = graphData_new( kMaxFPSFrames );
+	fpsgraph = graph_new( fpsdata, 100, 100, 320, 240, (float)kMaxFPSFrames, 0.05f );
+#endif //GRAPH_FPS
 }
 
 /*
@@ -137,7 +151,14 @@ void engine_tick( engine* e ) {
 	time += dt;
 	time = time / 10.f;
 
-	//printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
+#ifdef GRAPH_FPS
+	printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
+
+	static int framecount = 0;
+	++framecount;
+	printf( "fps: fc %d, dt %.2f\n", framecount, dt );
+	graphData_append( fpsdata, (float)framecount, dt );
+#endif // GRAPH_FPS
 
 	debugdraw_preTick( dt );
 	lua_preTick( e->lua, dt );
@@ -328,6 +349,10 @@ void engine_render( engine* e ) {
 		render( theScene );
 		engine_renderRenders( e );
 		skybox_render( NULL );
+
+#ifdef GRAPH_FPS
+		graph_render( fpsgraph );
+#endif // GRAPH_FPS
 	}
 
 	// Allow the render thread to start

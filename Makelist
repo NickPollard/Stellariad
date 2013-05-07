@@ -26,6 +26,7 @@ SRCS =	src/camera.c \
 		src/camera/chasecam.c \
 		src/camera/flycam.c \
 		src/camera/velcam.c \
+		src/debug/debuggraph.c \
 		src/input/keyboard.c \
 		src/input/mouse.c \
 		src/input/touch.c \

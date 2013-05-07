@@ -38,6 +38,12 @@
 
 bool	render_initialised = false;
 
+#define GRAPH_GPU_FPS
+#ifdef GRAPH_GPU_FPS
+graph* gpu_fpsgraph; 
+graphData* gpu_fpsdata;
+#endif // GRAPH_GPU_FPS
+
 #define MAX_VERTEX_ARRAY_COUNT 1024
 
 // *** Shader Pipeline
@@ -546,6 +552,13 @@ void render_init( void* app ) {
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
 	render_initFrameBuffer( window_main );
+
+#ifdef GRAPH_GPU_FPS
+#define kMaxGpuFPSFrames 256
+	gpu_fpsdata = graphData_new( kMaxGpuFPSFrames );
+	gpu_fpsgraph = graph_new( fpsdata, 500, 100, 320, 240, (float)kMaxGpuFPSFrames, 0.05f );
+#endif // GRAPH_GPU_FPS
+}
 }
 
 // Terminate the 3D rendering
@@ -862,6 +875,10 @@ void render_draw( window* w, engine* e ) {
 	render_drawPass( &renderPass_debug );
 
 	render_swapBuffers( w );
+
+#ifdef GRAPH_GPU_FPS
+		graph_render( fpsgraph );
+#endif // GRAPH_GPU_FPS
 }
 
 void render_waitForEngineThread() {
