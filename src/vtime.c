@@ -1,6 +1,8 @@
 // time.c
-#include "src/common.h"
-#include "src/vtime.h"
+#include "common.h"
+#include "vtime.h"
+//-----------------------
+#include "mem/allocator.h"
 
 void rand_init() {
 	time_v t;
@@ -56,11 +58,21 @@ float timer_getDelta(frame_timer* timer) {
 }
 
 // Get the time in seconds
-float timer_getTimeSeconds(frame_timer* t) {
-	return ((float)t->old_time) * uSecToSec;
+// DEPRECATED
+float timer_getTimeSeconds() {
+	time_v t;
+	gettimeofday(&t, NULL);
+	float old_time = t.tv_sec * SecToUSec + t.tv_usec;
+	return old_time * uSecToSec;
 }
 
 // Get the time in seconds
 float timer_getGameTimeSeconds(frame_timer* t) {
 	return ((float)( t->old_time - t->game_start )) * uSecToSec;
+}
+
+frame_timer* vtimer_create() {
+	frame_timer* t = mem_alloc(sizeof(frame_timer));
+	timer_init(t);
+	return t;
 }

@@ -16,8 +16,8 @@ C and only controlled remotely by Lua
 -- Debug settings
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= false
-	debug_player_immortal	= true
-	debug_player_autofly	= true
+	debug_player_immortal	= false
+	debug_player_autofly	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -1098,8 +1098,8 @@ function interceptor_fire_homing( interceptor )
 	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), enemy_homing_missile )
 end
 
-function create_interceptor()
-	local interceptor = gameobject_create( "dat/model/ship_new.s" )
+function create_interceptor( model )
+	local interceptor = gameobject_create( model )
 	interceptor.cooldown = 0.0
 	
 	-- Init Collision

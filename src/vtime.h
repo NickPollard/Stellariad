@@ -39,4 +39,7 @@ float timer_getDelta(frame_timer* timer);
 float timer_getTimeSeconds();
 float timer_getGameTimeSeconds(frame_timer* t);
 
+// Create a new timer
+frame_timer* vtimer_create();
+
 #endif // __TIME_H__

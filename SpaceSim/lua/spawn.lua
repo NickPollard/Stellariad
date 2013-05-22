@@ -141,7 +141,7 @@ local interceptor_spawn_v_offset = -200
 local interceptor_spawn_y_offset = 100
 local interceptor_target_v_offset = 100
 
-function spawn.spawnInterceptor( u, v, height, player_speed, attack_type )
+function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type )
 	local trigger_v = v - ( 300.0 + player_speed * 5 )
 	triggerWhen( function()
 			local position = vtransform_getWorldPosition( player_ship.transform )
@@ -154,7 +154,7 @@ function spawn.spawnInterceptor( u, v, height, player_speed, attack_type )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset )
 			move_to = { x = x, y = y + height, z = z }
 	
-			local interceptor = create_interceptor()
+			local interceptor = create_interceptor( model )
 	
 			vtransform_setWorldPosition( interceptor.transform, spawn_position )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
@@ -172,9 +172,9 @@ end
 function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
 	if r > 0.75 then
-		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, interceptor_attack_homing ) end, spawn.positionerInterceptor
+		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_red.s", interceptor_attack_homing ) end, spawn.positionerInterceptor
 	elseif r > 0.4 then
-		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, interceptor_attack_gun ) end, spawn.positionerInterceptor
+		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_green.s", interceptor_attack_gun ) end, spawn.positionerInterceptor
 	else
 		return function( coord ) spawn.spawnTurret( coord.u, coord.v ) end, spawn.positionerTurret
 	end

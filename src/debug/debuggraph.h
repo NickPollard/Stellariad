@@ -1,5 +1,6 @@
 // debuggraph.h
 #pragma once
+#include "maths/vector.h"
 
 struct graph_s;
 struct graphData;
@@ -13,6 +14,7 @@ struct graph_s {
 	int height;
 	float x_scale;
 	float y_scale;
+	vector color;
 	graphData* data;
 };
 
@@ -29,6 +31,6 @@ struct graphData_s {
 
 void graphData_append( graphData* g, float x, float y );
 graphData* graphData_new( int count );
-graph* graph_new( graphData* g_data, int x, int y, int width, int height, float x_scale, float y_scale );
+graph* graph_new( graphData* g_data, int x, int y, int width, int height, float x_scale, float y_scale, vector color );
 graphData* graphData_new( int count );
 void graph_render( graph* g );

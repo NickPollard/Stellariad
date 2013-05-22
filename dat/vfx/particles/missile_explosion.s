@@ -6,7 +6,7 @@
 												 (0.5 1.0 0.5 0.3 0.2)
 												 (0.8 1.0 0.2 0.2 0.0)))))
 			(attribute "lifetime" 0.8)
-			(attribute "spawn_rate" (property (quote ((0.0 5.0)))))
+			(attribute "spawn_rate" (property (quote ((0.0 2.0)))))
 			(attribute "flags" (quote (particle_burst particle_randomRotation)))
 			(attribute "texture" "dat/img/cloud_rgba128.tga")
 		   )))

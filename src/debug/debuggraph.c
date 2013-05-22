@@ -19,9 +19,8 @@ void graph_render( graph* g ) {
 		int j = ( i + d->end ) % d->count;
 		int k = ( i + d->end + 1 ) % d->count;
 		vector from =	Vector( (d->data[j]._1 - x_min) * inv_x * w + x, d->data[j]._2 * inv_y * h + y, 0.f, 1.f );
-		vector_printf( "from: ", &from );
 		vector to =		Vector( (d->data[k]._1 - x_min) * inv_x * w + x, d->data[k]._2 * inv_y * h + y, 0.f, 1.f );
-		debugdraw_line2d( from, to, color_green );
+		debugdraw_line2d( from, to, g->color );
 	}
 	vector tl = Vector( x, y, 0.f, 1.f );
 	vector tr = Vector( x+w, y, 0.f, 1.f );
@@ -33,7 +32,7 @@ void graph_render( graph* g ) {
 	debugdraw_line2d( bl, tl, color_red );
 }
 
-graph* graph_new( graphData* g_data, int x, int y, int width, int height, float x_scale, float y_scale ) {
+graph* graph_new( graphData* g_data, int x, int y, int width, int height, float x_scale, float y_scale, vector color ) {
 	graph* g = mem_alloc( sizeof( graph ));
 	memset( g, 0, sizeof( graph ));
 	g->data = g_data;
@@ -43,6 +42,7 @@ graph* graph_new( graphData* g_data, int x, int y, int width, int height, float 
 	g->height = height;
 	g->x_scale = x_scale;
 	g->y_scale = y_scale;
+	g->color = color;
 	return g;
 }
 

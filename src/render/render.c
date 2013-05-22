@@ -10,6 +10,8 @@
 #include "model.h"
 #include "scene.h"
 #include "skybox.h"
+#include "vtime.h"
+#include "debug/debuggraph.h"
 #include "maths/vector.h"
 #include "render/debugdraw.h"
 #include "render/modelinstance.h"
@@ -35,13 +37,13 @@
 #define RENDER_GL_API EGL_OPENGL_API
 #endif
 
-
 bool	render_initialised = false;
 
-#define GRAPH_GPU_FPS
+//#define GRAPH_GPU_FPS
 #ifdef GRAPH_GPU_FPS
 graph* gpu_fpsgraph; 
 graphData* gpu_fpsdata;
+frame_timer* gpu_fps_timer = NULL;
 #endif // GRAPH_GPU_FPS
 
 #define MAX_VERTEX_ARRAY_COUNT 1024
@@ -556,9 +558,9 @@ void render_init( void* app ) {
 #ifdef GRAPH_GPU_FPS
 #define kMaxGpuFPSFrames 256
 	gpu_fpsdata = graphData_new( kMaxGpuFPSFrames );
-	gpu_fpsgraph = graph_new( fpsdata, 500, 100, 320, 240, (float)kMaxGpuFPSFrames, 0.05f );
+	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 640, 240, (float)kMaxGpuFPSFrames, 0.05f, color_blue );
+	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
-}
 }
 
 // Terminate the 3D rendering
@@ -875,10 +877,6 @@ void render_draw( window* w, engine* e ) {
 	render_drawPass( &renderPass_debug );
 
 	render_swapBuffers( w );
-
-#ifdef GRAPH_GPU_FPS
-		graph_render( fpsgraph );
-#endif // GRAPH_GPU_FPS
 }
 
 void render_waitForEngineThread() {
@@ -889,7 +887,20 @@ void render_renderThreadTick( engine* e ) {
 	PROFILE_BEGIN( PROFILE_RENDER_TICK );
 	texture_tick();
 	render_resetModelView();
+#ifdef GRAPH_GPU_FPS
+	graph_render( gpu_fpsgraph );
+	timer_getDelta(gpu_fps_timer);
+#endif
 	render_draw( &window_main, e );
+#ifdef GRAPH_GPU_FPS
+	//glFlush();
+	glFinish();
+	float delta = timer_getDelta(gpu_fps_timer);
+	static int framecount = 0;
+	++framecount;
+	graphData_append( gpu_fpsdata, (float)framecount, delta );
+	printf( "GPU Delta %.8f\n", delta );
+#endif
 	// Indicate that we have finished
 	vthread_signalCondition( finished_render );
 	PROFILE_END( PROFILE_RENDER_TICK );

@@ -64,11 +64,12 @@ void engine_inputInputs( engine* e );
  *
  */
 
-#define GRAPH_FPS
+//#define GRAPH_FPS
 
 #ifdef GRAPH_FPS
 graph* fpsgraph; 
 graphData* fpsdata;
+frame_timer* fps_timer;
 #endif // GRAPH_FPS
 
 void test_engine_init( engine* e ) {
@@ -92,7 +93,8 @@ void test_engine_init( engine* e ) {
 #ifdef GRAPH_FPS
 #define kMaxFPSFrames 256
 	fpsdata = graphData_new( kMaxFPSFrames );
-	fpsgraph = graph_new( fpsdata, 100, 100, 320, 240, (float)kMaxFPSFrames, 0.05f );
+	fpsgraph = graph_new( fpsdata, 100, 100, 640, 240, (float)kMaxFPSFrames, 0.05f, color_green );
+	fps_timer = vtimer_create();
 #endif //GRAPH_FPS
 }
 
@@ -150,15 +152,6 @@ void engine_tick( engine* e ) {
 	frame_times[9] = dt;
 	time += dt;
 	time = time / 10.f;
-
-#ifdef GRAPH_FPS
-	printf( "TICK: frametime %.4fms (%.2f fps)\n", time, 1.f/time );
-
-	static int framecount = 0;
-	++framecount;
-	printf( "fps: fc %d, dt %.2f\n", framecount, dt );
-	graphData_append( fpsdata, (float)framecount, dt );
-#endif // GRAPH_FPS
 
 	debugdraw_preTick( dt );
 	lua_preTick( e->lua, dt );
@@ -435,7 +428,16 @@ void engine_run(engine* e) {
 		if ( active ) {
 			engine_input( e );
 			engine_tick( e );
+#ifdef GRAPH_FPS
+			float dt = timer_getDelta( fps_timer );
+			static int framecount = 0;
+			++framecount;
+			graphData_append( fpsdata, (float)framecount, dt );
+#endif // GRAPH_FPS
 			engine_waitForRenderThread();
+#ifdef GRAPH_FPS
+			timer_getDelta( fps_timer );
+#endif
 			engine_render( e );
 			e->running = e->running && !input_keyPressed( e->input, KEY_ESC );
 		}
@@ -451,7 +453,7 @@ void engine_run(engine* e) {
 			usleep( 2 );
 		}
 #ifndef ANDROID
-		usleep( 10000 );
+		//usleep( 10000 );
 #endif
 
 #if PROFILE_ENABLE
