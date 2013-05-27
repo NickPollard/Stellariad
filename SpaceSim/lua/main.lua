@@ -518,24 +518,48 @@ function splash_intro()
 	end )
 end
 
+function studio_splash() 
+	local f = future:new()
+	ui.show_splash_future( "dat/img/splash_vitruvian.tga", 512, 256 )
+		:onComplete( function ( splash ) inTime( 2.0, function ()
+			ui.hide_splash( splash )
+			f:complete( nil )
+		end ) end ) 
+	return f
+end
+
+function author_splash() 
+	local f = future:new()
+	ui.show_splash_future( "dat/img/splash_author.tga", 512, 256 )
+		:onComplete( function ( splash )inTime( 2.0, function ()
+			ui.hide_splash( splash )
+			f:complete( nil )
+		end ) end ) 
+	return f
+end
+
+function skies_splash() 
+	local f = future:new()
+	ui.show_splash_future( "dat/img/splash_skies.tga", 1280, 720 )
+		:onComplete( function ( splash )inTime( 4.0, function ()
+			ui.hide_splash( splash )
+			f:complete( nil )
+		end ) end ) 
+	return f
+end
+
 function splash_intro_new()
 	vtexture_preload( "dat/img/splash_author.tga" )
 	local bg = ui.show_splash( "dat/img/black.tga", 1280, 720 )
-	ui.show_splash_future( "dat/img/splash_vitruvian.tga", 512, 256 )
-		:onComplete( function ( studio )
-			inTime( 2.0, function () 
-				ui.show_splash_future( "dat/img/splash_author.tga", 512, 256 )
-					:onComplete( function ( author )
-						inTime( 2.0, function ()
-							ui.hide_splash( author )
-							ui.hide_splash( bg )
-							ui.show_crosshair()
-							gameplay_start()
-						end )
-					end )
-				ui.hide_splash( studio )
+	studio_splash():onComplete( function (s)
+		author_splash():onComplete( function (a)
+			skies_splash():onComplete( function (a)
+				ui.hide_splash( bg )
+				ui.show_crosshair()
+				gameplay_start()
 			end )
 		end )
+	end )
 end
 
 function test()
