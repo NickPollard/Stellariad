@@ -1,7 +1,6 @@
 local list = {}
 
 function list:fold( v, f )
-	local len = self:length()
 	if self.tail then
 		return self.tail:fold( f( v, self.head ), f )
 	else
@@ -36,7 +35,11 @@ end
 function list.cons( h, t )
 	local l = list:empty()
 	l.head = h
-	l.tail = t
+	if t ~= nil and t.tail == nil and t.head == nil then
+		l.tail = nil
+	else
+		l.tail = t
+	end
 	return l
 end
 
@@ -48,6 +51,26 @@ function list:length( )
 	if self.tail then 
 		return 1 + list.length( self.tail) else 
 		return 1 end
+end
+
+function list:remove( entry )
+	--return list:empty()
+	--return list:filter( function ( e ) return (e ~= entry) end )
+	return self:filter( function ( e ) return true end )
+end
+
+function list:filter( predicate )
+	return self:fold( list:empty(), 
+		function ( lst, item )
+			return lst
+			--[[
+			if predicate( item ) then
+				return list.cons( item, lst )
+			else
+				return lst
+			end
+				--]]
+		end )
 end
 
 return list

@@ -3,9 +3,9 @@ local future = {}
 -- require modules
 	list = require "list"
 
-function apply( f )
-	inTime( 3.0, function () player_ship.speed = 30.0 end )
-	f()
+function apply( func )
+	vprint( "apply" )
+	func()
 end
 
 function applyTo( v )
@@ -18,7 +18,6 @@ function future:complete( v )
 end
 
 function future:onComplete( func )
-	vprint( "onComplete" )
 	if self.value then
 		func( self.value )
 	else

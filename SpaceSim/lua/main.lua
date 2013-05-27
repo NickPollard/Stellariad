@@ -83,6 +83,8 @@ C and only controlled remotely by Lua
 	homing_missile_cooldown = 3.0		-- (seconds)
 
 
+	tickers = list:empty() 
+
 
 -- Create a spacesim Game object
 -- A gameobject has a visual representation (model), a physical entity for velocity and momentum (physic)
@@ -538,13 +540,50 @@ function author_splash()
 	return f
 end
 
+local touchpad = {}
+function touchpad:new()
+	local p = { pad = nil, onTouchHandlers = list:empty() }
+	setmetatable(p, self)
+	self.__index = self
+	return p
+end
+
+function touchpad:onTouch( func )
+	self.onTouchHandlers = list.cons( func, self.onTouchHandlers )
+end
+
+function touchpad:tick( dt )
+	touched, x, y = vtouchPadTouched( player_ship.joypad )
+	if touched then
+		vprint( "touched" )
+		vprint( "handlers: " .. self.onTouchHandlers:length() )
+		--vprint( "handlers: " .. self.onTouchHandlers.head )
+		self.onTouchHandlers:foreach( apply )
+	end
+end
+
+function createTouchPad( input, x, y, w, h )
+	local pad = touchpad:new()
+	pad.pad = vcreateTouchPad( input, x, y, w, h )
+	addTicker( pad )
+	return pad
+end
+
 function skies_splash() 
 	local f = future:new()
 	ui.show_splash_future( "dat/img/splash_skies.tga", 1280, 720 )
-		:onComplete( function ( splash )inTime( 4.0, function ()
-			ui.hide_splash( splash )
-			f:complete( nil )
-		end ) end ) 
+		:onComplete( function ( splash )
+			local w = 1280
+			local h = 720
+			local touch_to_play = createTouchPad( input, 0, 0, w, h )
+			--inTime( 4.0, function ()
+			touch_to_play:onTouch( function ()
+				vprint( "handler" )
+				ui.hide_splash( splash )
+				f:complete( nil )
+				removeTicker( touch_to_play )
+				end )
+		end ) 
 	return f
 end
 
@@ -563,7 +602,7 @@ function splash_intro_new()
 end
 
 function test()
-	future.test()
+	--future.test()
 end
 
 function start()
@@ -871,6 +910,18 @@ function tick( dt )
 	tick_array( turrets, dt )
 	tick_array( interceptors, dt )
 	tick_array( missiles, dt )
+
+	tickers:foreach( function( ticker )
+		ticker:tick( dt )
+	end )
+end
+
+function addTicker( ticker )
+	tickers = list.cons( ticker, tickers )
+end
+
+function removeTicker( ticker )
+	tickers = tickers:remove( ticker )
 end
 
 -- Called on termination to clean up after itself
