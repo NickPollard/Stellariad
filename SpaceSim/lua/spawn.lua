@@ -173,7 +173,7 @@ function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
 	if r > 0.75 then
 		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_red.s", interceptor_attack_homing ) end, spawn.positionerInterceptor
-	elseif r > 0.4 then
+	elseif r > 0.0 then
 		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_green.s", interceptor_attack_gun ) end, spawn.positionerInterceptor
 	else
 		return function( coord ) spawn.spawnTurret( coord.u, coord.v ) end, spawn.positionerTurret

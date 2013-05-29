@@ -187,9 +187,9 @@ function findClosestEnemy( transform )
 			return vvector_dot( displacement, direction ) > 0 
 		end )
 	if targets.count > 0 then
-		return targets[1].transform
+		return targets[1]
 	else
-		return transform
+		return {}
 	end
 end
 
@@ -197,7 +197,13 @@ function player_fire_missile( ship )
 	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
 	local missile = fire_missile( ship, muzzle_position, player_missile )
 	local target = findClosestEnemy( ship.transform )
-	--missile.tick = homing_missile_tick( target )
+
+	--[[
+	fx.spawn_explosion( target.transform );
+	ship_destroy( target )
+	target.behaviour = ai.dead
+	--]]
+	missile.tick = homing_missile_tick( target.transform )
 end
 
 function safeCleanup( value, cleanup )
@@ -393,13 +399,12 @@ function ship_collisionHandler( ship, collider )
 end
 
 function ship_destroy( ship )
-	vprint( "Ship destroy " .. ship.transform )
-	gameobject_destroy( ship )
-	vprint( "remove ship from array" )
 	array.remove( interceptors, ship )
+	gameobject_destroy( ship )
 end
 
 function ship_delete( ship )
+	array.remove( interceptors, ship )
 	gameobject_delete( ship )
 	ship.behaviour = ai.dead
 end
@@ -554,6 +559,9 @@ end
 
 function touchpad:tick( dt )
 	touched, x, y = vtouchPadTouched( player_ship.joypad )
+	if not touch_enabled then
+		touched = vkeyPressed( input, key.space )
+	end
 	if touched then
 		vprint( "touched" )
 		vprint( "handlers: " .. self.onTouchHandlers:length() )
