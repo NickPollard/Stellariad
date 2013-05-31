@@ -60,7 +60,8 @@ int LUA_createTransform( lua_State* l ) {
 		transform* parent = lua_toptr( l, 1 );
 		t->parent = parent;
 	}
-	lua_pushptr( l, t );
+	transformHandle h = transform_handleOf( t );
+	lua_pushnumber( l, h );
 	return 1;
 }
 

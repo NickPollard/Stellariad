@@ -62,4 +62,8 @@ void transform_roll( transform* t, float roll );
 
 void transform_setWorldRotationMatrix( transform* t, matrix m );
 
+typedef uintptr_t transformHandle;
+transform* transform_get( transformHandle h );
+transformHandle transform_handleOf( transform* t );
+
 #endif // __TRANSFORM_H__
