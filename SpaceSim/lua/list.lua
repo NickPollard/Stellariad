@@ -73,4 +73,63 @@ function list:filter( predicate )
 		end )
 end
 
+function list.fromArray( arr )
+	local l = list:empty()
+	local i = arr.count
+	while i > 0 do
+		l = list.cons( arr[i], l )	
+		i = i - 1
+	end
+	return l
+end
+
+function list:take( count )
+	if count > 0 then
+		if self.tail then
+			return list.cons( self.head, self.tail:take( count - 1 ))
+		else
+			return list.cons( self.head, list:empty())
+		end
+	else
+		return list:empty()
+	end
+end
+
+function list.test()
+	local l = list.cons( 1, list.cons( 2, list.cons( 3, list.cons( 4, nil ))))
+	l:foreach( function( n ) vprint( "n: " .. n ) end )
+	local l_ = l:take(2)
+	l_:foreach( function( n ) vprint( "n: " .. n ) end )
+
+	local l__ = l:zipWithIndex()
+	l__:foreach( function( n ) vprint( "ns: " .. n[1] .. ":" .. n[2] ) end )
+end
+
+function list:zipWith( l )
+	local h = {}
+	h[1] = self.head
+	h[2] = l.head
+	if self.tail and l.tail then
+		return list.cons( h, self.tail:zipWith( l.tail ))
+	else
+		return list.cons( h, list:empty())
+	end
+end
+
+function listOfNumbers( n )
+	return numberListInternal( n, 1 )
+end
+
+function numberListInternal( n, i )
+	if i <= n then
+		return list.cons( i, numberListInternal( n, i+1 ))
+	else
+		return list:empty()
+	end
+end
+
+function list:zipWithIndex()
+	return self:zipWith( listOfNumbers( self:length() ))
+end
+
 return list

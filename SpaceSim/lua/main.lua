@@ -170,13 +170,19 @@ end
 
 function player_fire_missile_swarm( ship )
 	vprint( "Missile swarm!" )
+	local enemies = findClosestEnemies( ship.transform, 4 )
+	enemies:zipWithIndex():foreach( function( target ) 
+		inTime( (target[2] - 1) * 0.1, function() 
+			player_fire_missile( ship, target[1] ) end ) end )
+--[[
 	player_fire_missile( ship )
 	inTime( 0.1, function () player_fire_missile( ship ) end )
 	inTime( 0.2, function () player_fire_missile( ship ) end )
 	inTime( 0.3, function () player_fire_missile( ship ) end )
+	--]]
 end
 
-function findClosestEnemy( transform )
+function findClosestEnemies( transform, count )
 	local targets = array.filter( interceptors, 
 		function ( interceptor )
 			local interceptor_position = vtransform_getWorldPosition( interceptor.transform )
@@ -186,23 +192,17 @@ function findClosestEnemy( transform )
 			local direction = vtransformVector( transform, z_axis )
 			return vvector_dot( displacement, direction ) > 0 
 		end )
-	if targets.count > 0 then
-		return targets[1]
-	else
-		return {}
-	end
+	return list.fromArray( targets ):take(count)
 end
 
-function player_fire_missile( ship )
+function findClosestEnemy( transform )
+	local enemies = findClosestEnemies( transform, 1 )
+	return enemies.head
+end
+
+function player_fire_missile( ship, target )
 	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
 	local missile = fire_missile( ship, muzzle_position, player_missile )
-	local target = findClosestEnemy( ship.transform )
-
-	--[[
-	fx.spawn_explosion( target.transform );
-	ship_destroy( target )
-	target.behaviour = ai.dead
-	--]]
 	missile.tick = homing_missile_tick( target.transform )
 end
 
@@ -611,6 +611,7 @@ end
 
 function test()
 	--future.test()
+	list.test()
 end
 
 function start()
@@ -712,15 +713,14 @@ function playership_weaponsTick( ship, dt )
 	else
 		missile_fired = vkeyPressed( input, key.q )
 	end
-	if missile_fired then
-		if ship.missile_cooldown <= 0.0 then
-			if ship.aileron_roll then
-				player_fire_missile_swarm( ship )
-			else
-				player_fire_missile( ship )
-			end
-			ship.missile_cooldown = player_missile_cooldown
+	if missile_fired and ship.missile_cooldown <= 0.0 then
+		if ship.aileron_roll then
+			player_fire_missile_swarm( ship )
+		else
+			local target = findClosestEnemy( ship.transform )
+			player_fire_missile( ship, target )
 		end
+		ship.missile_cooldown = player_missile_cooldown
 	end
 	ship.cooldown = ship.cooldown - dt
 	ship.missile_cooldown = ship.missile_cooldown - dt
@@ -801,9 +801,16 @@ function playership_tick( ship, dt )
 	local strafe = 0.0
 
 	if not ship.aileron_roll then
-		local aileron_roll_left = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_left )
-		local aileron_roll_right = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_right )
-		
+		local aileron_roll_left = false
+		local aileron_roll_right = false
+		if touch_enabled then
+			aileron_roll_left = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_left )
+			aileron_roll_right = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_right )
+		else
+			aileron_roll_left = vkeyPressed( input, key.a )
+			aileron_roll_right = vkeyPressed( input, key.d )
+		end
+
 		if aileron_roll_left then
 			ship_aileronRoll( ship, 1.0 )
 		elseif aileron_roll_right then
