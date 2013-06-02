@@ -43,6 +43,20 @@ int LUA_print( lua_State* l ) {
 	return 0;
 }
 
+transform* lua_toTransform( lua_State* l, int i ) {
+	transformHandle h = lua_tonumber( l, i );
+	transform* t = transform_fromHandle( h );
+	return t;
+}
+
+int LUA_transform_valid( lua_State* l ) {
+	bool b = (lua_toTransform( l, 1 ) != NULL);
+	printf ( "Transform valid: %d.\n", b );
+	lua_pushboolean( l, b );
+	return 1;
+}
+
+
 #define LUA_CREATE_( type, func ) \
 int LUA_create##type( lua_State* l ) { \
 	LUA_DEBUG_PRINT( "Create %s\n", #type ); \
@@ -57,7 +71,7 @@ int LUA_createTransform( lua_State* l ) {
 	transform* t = transform_createAndAdd( theScene );
 	int arg_count = lua_gettop( l );;
 	if ( arg_count == 1 ) {
-		transform* parent = lua_toptr( l, 1 );
+		transform* parent = lua_toTransform( l, 1 );
 		t->parent = parent;
 	}
 	transformHandle h = transform_handleOf( t );
@@ -182,7 +196,7 @@ int LUA_model_setTransform( lua_State* l ) {
 	lua_assertnumber( l, 1 );
 	lua_assertnumber( l, 2 );
 	modelInstance* m = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	m->trans = t;
 	return 0;
 }
@@ -193,7 +207,7 @@ int LUA_physic_setTransform( lua_State* l ) {
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	p->trans = t;
 	return 0;
 }
@@ -201,7 +215,7 @@ int LUA_physic_setTransform( lua_State* l ) {
 int LUA_body_setTransform( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua body set transform\n" );
 	body* b = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	b->trans = t;
 	return 0;
 }
@@ -241,7 +255,7 @@ int LUA_physic_destroy( lua_State* l ) {
 
 int LUA_transform_destroy( lua_State* l ) {
 	scene* s = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	vAssert( t );
 	scene_removeTransform( s, t );
 	transform_delete( t );
@@ -275,7 +289,7 @@ int LUA_setWorldSpacePosition( lua_State* l ) {
 		   	lua_isnumber( l, 2 ) &&
 			lua_isnumber( l, 3 ) &&
 			lua_isnumber( l, 4 )) {
-		transform* t = lua_toptr( l, 1 );
+		transform* t = lua_toTransform( l, 1 );
 		assert( t );
 		float x = lua_tonumber( l, 2 );
 		float y = lua_tonumber( l, 3 );
@@ -440,21 +454,21 @@ int LUA_gesture_performed( lua_State* l ) {
 
 
 int LUA_transform_yaw( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	float yaw = lua_tonumber( l, 2 );
 	transform_yaw( t, yaw );
 	return 0;
 }
 
 int LUA_transform_roll( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	float roll = lua_tonumber( l, 2 );
 	transform_roll( t, roll );
 	return 0;
 }
 
 int LUA_transform_pitch( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	float pitch = lua_tonumber( l, 2 );
 	transform_pitch( t, pitch );
 	return 0;
@@ -474,7 +488,7 @@ int LUA_vector( lua_State* l ) {
 }
 
 int LUA_transformVector( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	vector* v = lua_toptr( l, 2 );
 	vector* _v = lua_createVector();
 	*_v = matrix_vecMul( t->world, v );
@@ -483,21 +497,21 @@ int LUA_transformVector( lua_State* l ) {
 }
 
 int LUA_transform_setLocalPosition( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	vector* v = lua_toptr( l, 2 );
 	transform_setLocalTranslation( t, v );
 	return 0;
 }
 
 int LUA_transform_setWorldPosition( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	vector* v = lua_toptr( l, 2 );
 	transform_setWorldSpacePosition( t, v );
 	return 0;
 }
 
 int LUA_transform_getWorldPosition( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	//printf( "lua_transform_getWorldPosition - transform = " xPTRf "\n", (uintptr_t)t );
 	const vector* v = transform_getWorldPosition( t );
 	lua_pushptr( l, (void*)v );
@@ -516,7 +530,7 @@ int LUA_vector_values( lua_State* l ) {
 int LUA_chasecam_follow( lua_State* l ) {
 	LUA_DEBUG_PRINT( "LUA chasecam_follow\n" );
 	engine* e = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	chasecam* c = chasecam_create();
 	startTick( e, (void*)c, chasecam_tick );	
 	c->cam.trans = transform_createAndAdd( theScene );
@@ -552,13 +566,13 @@ int LUA_cameraPosition( lua_State* l ) {
 }
 
 int LUA_transform_setWorldSpaceByTransform( lua_State* l ) {
-	transform* dst = lua_toptr( l, 1 );
-	transform* src = lua_toptr( l, 2 );
+	transform* dst = lua_toTransform( l, 1 );
+	transform* src = lua_toTransform( l, 2 );
 	transform_setWorldSpace( dst, src->world );
 	return 0;
 }
 int LUA_transform_eulerAngles( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	float yaw = lua_tonumber( l, 2 );
 	float pitch = lua_tonumber( l, 3 );
 	float roll = lua_tonumber( l, 4 );
@@ -571,15 +585,15 @@ int LUA_transform_eulerAngles( lua_State* l ) {
 }
 
 int LUA_transform_distance( lua_State* l ) {
-	transform* a = lua_toptr( l, 1 );
-	transform* b = lua_toptr( l, 2 );
+	transform* a = lua_toTransform( l, 1 );
+	transform* b = lua_toTransform( l, 2 );
 	float distance = vector_distance( transform_getWorldPosition( a ), transform_getWorldPosition( b ));
 	lua_pushnumber( l, (double)distance );
 	return 1;
 }
 
 int LUA_transform_setRotation( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	quaternion* q = lua_toptr( l, 2 );
 	matrix m;
 	matrix_fromRotationTranslation( m, *q, Vector( 0.f, 0.f, 0.f, 1.f ));
@@ -588,14 +602,14 @@ int LUA_transform_setRotation( lua_State* l ) {
 }
 
 int LUA_transform_setWorldSpaceByMatrix( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	matrix* m = lua_toptr( l, 2 );
 	transform_setWorldSpace( t, *m );
 	return 0;
 }
 
 int LUA_transform_facingWorld( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	const vector* look_at = lua_toptr( l, 2 );
 	const vector* position = transform_getWorldPosition( t );
 	vector displacement;
@@ -626,7 +640,7 @@ particleEmitter* createEmitter( const char* particle_file, transform* t, engine*
 
 int LUA_particle_oneShot( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	const char* particle_file = lua_tostring( l, 3 );
 	particleEmitter* emitter = createEmitter( particle_file, t, e );
 	emitter->oneshot = true;
@@ -636,7 +650,7 @@ int LUA_particle_oneShot( lua_State* l ) {
 
 int LUA_particle_create( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	const char* particle_file = lua_tostring( l, 3 );
 	particleEmitter* emitter = createEmitter( particle_file, t, e );
 	lua_pushptr( l, emitter );
@@ -657,7 +671,7 @@ int LUA_particle_destroy( lua_State* l ) {
 int LUA_ribbon_create( lua_State* l ) {
 	printf( "Create ribbon emitter!\n" );
 	engine* e = lua_toptr( l, 1 );
-	transform* t = lua_toptr( l, 2 );
+	transform* t = lua_toTransform( l, 2 );
 	const char* filename = lua_tostring( l, 3 );
 
 	ribbonEmitter* emitter = ribbonEmitter_create( ribbon_loadAsset( filename ));
@@ -802,6 +816,8 @@ int LUA_vector_add( lua_State* l ) {
 int LUA_vector_subtract( lua_State* l ) {
 	const vector* a = lua_toptr( l, 1 );
 	const vector* b = lua_toptr( l, 2 );
+	lua_assert( a != 0x70 );
+	lua_assert( b != 0x70 );
 	vector* v = lua_createVector();
 	*v = vector_sub( *a, *b );
 	lua_pushptr( l, v );
@@ -836,7 +852,7 @@ int LUA_vector_scale( lua_State* l ) {
 
 int LUA_transformWorldMatrix( lua_State* l ) {
 	matrix* m = lua_createMatrix();
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	matrix_cpy( *m, t->world );
 	lua_pushptr( l, m );
 	return 1;
@@ -873,7 +889,7 @@ int LUA_matrix_toEulerAngles( lua_State* l ) {
 // *** Quaternions
 
 int LUA_quaternion_fromTransform( lua_State* l ) {
-	transform* t = lua_toptr( l, 1 );
+	transform* t = lua_toTransform( l, 1 );
 	quaternion* q = lua_createQuaternion();
 	*q = matrix_getRotation( t->world );
 	lua_pushptr( l, q );
@@ -1077,6 +1093,7 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_transform_distance, "vtransform_distance" );
 	lua_registerFunction( l, LUA_transform_setRotation, "vtransform_setRotation" );
 	lua_registerFunction( l, LUA_transform_setWorldSpaceByMatrix, "vtransform_setWorldSpaceByMatrix" );
+	lua_registerFunction( l, LUA_transform_valid, "vtransform_valid" );
 
 	// *** Particles
 	lua_registerFunction( l, LUA_particle_create, "vparticle_create" );

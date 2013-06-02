@@ -16,7 +16,7 @@ C and only controlled remotely by Lua
 -- Debug settings
 	debug_spawning_enabled	= true
 	debug_doodads_enabled	= false
-	debug_player_immortal	= false
+	debug_player_immortal	= true
 	debug_player_autofly	= false
 
 -- Load Modules
@@ -279,7 +279,7 @@ player_missile = {
  	particle = "dat/script/lisp/red_bullet.s",
 	speed = 100.0,
 	collisionType = "player",
-	time_to_live = 3.0
+	time_to_live = 6.0
 }
 
 enemy_gunfire = { 
@@ -324,7 +324,7 @@ end
 homing_missile_turn_angle_per_second = math.pi / 2
 function homing_missile_tick( target_transform )
 	return function ( missile, dt )
-		if missile.physic and missile.transform then
+		if missile.physic and missile.transform and vtransform_valid(target_transform) then
 			local current_position = vtransform_getWorldPosition( missile.transform )
 			local target_position = vtransform_getWorldPosition( target_transform )
 			local target_direction = vvector_normalize( vvector_subtract( target_position, current_position ))

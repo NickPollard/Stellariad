@@ -7,12 +7,18 @@
 #include "mem/allocator.h"
 #include "debug/debugtext.h"
 
+short transform_indexOf( transform* t );
+short transform_uidOfIndex( short index );
+
+#define kMaxTransforms 1024
 IMPLEMENT_POOL( transform );
 
 pool_transform* static_transform_pool = NULL;
+short transform_uids[kMaxTransforms];
 
 void transform_initPool() {
-	static_transform_pool = pool_transform_create( 1024 );
+	static_transform_pool = pool_transform_create( kMaxTransforms );
+	memset( transform_uids, 0, sizeof( short ) * kMaxTransforms );
 }
 
 void transform_setWorldSpace( transform* t, matrix world ) {
@@ -47,6 +53,9 @@ void transform_setWorldSpacePosition( transform* t, vector* position ) {
 // Create a new default transform
 transform* transform_create() {
 	transform* t = pool_transform_allocate( static_transform_pool );
+	short index = transform_indexOf( t );
+#define SHORT_MAX 32768 // TODO - check this? Should I use unsigned?
+	transform_uids[index] = (transform_uids[index] + 1) % SHORT_MAX;
 	matrix_setIdentity( t->local );
 	matrix_setIdentity( t->world );
 	t->parent = NULL;
@@ -206,10 +215,51 @@ void transform_setWorldRotationMatrix( transform* t, matrix world_m ) {
 	}
 }
 
+#define kTransformHandleIndexMask	0x0000ffff
+#define kTransformHandleUidMask		0xffff0000
+#define kTransformHandleUidShift	16
+
 transformHandle transform_handleOf( transform* t ) {
-	return (transformHandle)t;
+	short index = transform_indexOf( t );
+	short uid = transform_uidOfIndex( index );
+	transformHandle h = index | (uid << kTransformHandleUidShift);
+	return h;
 }
 
-transform* transform_get( transformHandle h ) {
-	return (transform*)h;
+short transformHandle_index( transformHandle h ) {
+	return (short)(h & kTransformHandleIndexMask);
+}
+
+short transformHandle_uid( transformHandle h ) {
+	return (short)((h & kTransformHandleUidMask) >> kTransformHandleUidShift );
+}
+
+short transform_uidOfIndex( short index ) {
+	return transform_uids[index];
+}
+
+transform* transform_atIndex( short index ) {
+	return &static_transform_pool->pool[index];
+}
+
+short transform_indexOf( transform* t ) {
+	return (short)(t - static_transform_pool->pool);
+}
+
+transform* transform_fromHandle( transformHandle h ) {
+	// Lookup Handle as an index in the transformPool
+	// Check the id value to the id of the handle
+	// If identical, return it, otherwise null
+	short uid = transformHandle_uid( h );
+	short index = transformHandle_index( h );
+	printf( "Transform: Index %d, uid %d.\n", index, uid );
+	bool free = !static_transform_pool->free[index];
+	short current_uid = transform_uidOfIndex( index );
+	printf( "free: %d. current_uid = %d.\n", free, current_uid );
+	if ( !static_transform_pool->free[index] && transform_uidOfIndex( index ) == uid ) {
+		return transform_atIndex( index );
+	}
+	else {
+		return NULL;
+	}
 }
