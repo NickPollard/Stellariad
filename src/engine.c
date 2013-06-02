@@ -176,6 +176,7 @@ void engine_tick( engine* e ) {
 	}
 
 	collision_processResults( e->frame_counter, dt );
+	// Memory barrier?
 	collision_queueWorkerTick( e->frame_counter+1, dt );
 
 	engine_tickTickers( e, dt );
@@ -237,7 +238,7 @@ engine* engine_create() {
 	e->tickers = NULL;
 	e->inputs = NULL;
 	e->renders = NULL;
-	e->frame_counter = 0;
+	e->frame_counter = -1;
 	return e;
 }
 

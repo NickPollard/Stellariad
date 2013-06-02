@@ -893,7 +893,6 @@ void render_renderThreadTick( engine* e ) {
 #endif
 	render_draw( &window_main, e );
 #ifdef GRAPH_GPU_FPS
-	//glFlush();
 	glFinish();
 	float delta = timer_getDelta(gpu_fps_timer);
 	static int framecount = 0;

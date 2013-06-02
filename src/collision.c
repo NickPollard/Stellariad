@@ -185,6 +185,8 @@ void collision_tick( int frame_counter, float dt ) {
 	collision_addNewBodies();
 	collision_generateEvents();
 
+	// memory write barrier?
+
 	collision_results_ready = frame_counter;
 	//collision_results_processed = false;
 
@@ -195,15 +197,18 @@ void collision_tick( int frame_counter, float dt ) {
 void collision_processResults( int frame_counter, float dt ) {
 	(void)dt;
 
-	if ( collision_results_ready == 0 )
+	if ( frame_counter == 0 )
 		return;
 
 	while ( collision_results_ready <= collision_results_processed ) { // Should never actually be less than, should be ==, but I think this is clearer
 		//printf( "process waiting.\n" );
+		// TODO - Should use a condition variable/wake-up signal here
 		vthread_yield();
 	}
 
 	collision_runCallbacks();
+
+	// Memory Write Barrier?
 
 	collision_results_processed = frame_counter;
 }
