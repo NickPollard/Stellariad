@@ -218,6 +218,7 @@ function missile_collisionHandler( missile, other )
 	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
 	missile.body = safeCleanup( missile.body, function () vdestroyBody( missile.body ) end )
 	missile.model = safeCleanup( missile.model, function () vdeleteModelInstance( missile.model ) end )
+	missile.tick = nil
 	inTime( 2.0, function() 
 		missile.trail = safeCleanup( missile.trail, function () vdeleteModelInstance( missile.trail ) end )
 		gameobject_delete( missile )
