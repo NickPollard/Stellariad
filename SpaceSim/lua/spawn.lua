@@ -2,6 +2,8 @@ local spawn = {}
 
 spawn.random = 0 
 
+spawn_max = 5
+
 function spawn.init()
 	spawn.random = vrand_newSeq()
 end
@@ -182,7 +184,7 @@ end
 
 function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
 	-- For now, assume difficulty is number of units to spawn
-	local count = math.min( difficulty, 6 )
+	local count = math.min( difficulty, spawn_max )
 	local group = {}
 	group.spawners = { count = count }
 	group.positioners = { count = count }

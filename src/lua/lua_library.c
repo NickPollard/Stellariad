@@ -256,7 +256,7 @@ int LUA_physic_destroy( lua_State* l ) {
 int LUA_transform_destroy( lua_State* l ) {
 	scene* s = lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
-	vAssert( t );
+	lua_assert( t );
 	scene_removeTransform( s, t );
 	transform_delete( t );
 	return 0;

@@ -141,7 +141,9 @@ function gameobject_delete( g )
 		g.model = nil
 	end
 	if g.transform then
-		vdestroyTransform( scene, g.transform )
+		if vtransform_valid(g.transform) then
+			vdestroyTransform( scene, g.transform )
+		end
 		g.transform = nil
 	end
 	if g.physic then
@@ -352,7 +354,7 @@ function triggerWhen( trigger, action )
 end
 
 function playership_cleanup( p )
-	if p and p.camera_transform then
+	if p and p.camera_transform and vtransform_valid( p.camera_transform ) then
 		vdestroyTransform( scene, p.camera_transform )
 	end
 end

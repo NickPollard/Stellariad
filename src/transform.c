@@ -252,10 +252,8 @@ transform* transform_fromHandle( transformHandle h ) {
 	// If identical, return it, otherwise null
 	short uid = transformHandle_uid( h );
 	short index = transformHandle_index( h );
-	printf( "Transform: Index %d, uid %d.\n", index, uid );
 	bool free = !static_transform_pool->free[index];
 	short current_uid = transform_uidOfIndex( index );
-	printf( "free: %d. current_uid = %d.\n", free, current_uid );
 	if ( !static_transform_pool->free[index] && transform_uidOfIndex( index ) == uid ) {
 		return transform_atIndex( index );
 	}
