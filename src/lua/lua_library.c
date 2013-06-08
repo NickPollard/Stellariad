@@ -51,7 +51,6 @@ transform* lua_toTransform( lua_State* l, int i ) {
 
 int LUA_transform_valid( lua_State* l ) {
 	bool b = (lua_toTransform( l, 1 ) != NULL);
-	printf ( "Transform valid: %d.\n", b );
 	lua_pushboolean( l, b );
 	return 1;
 }
