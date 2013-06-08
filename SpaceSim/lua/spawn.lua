@@ -144,6 +144,7 @@ local interceptor_spawn_y_offset = 100
 local interceptor_target_v_offset = 100
 
 function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type )
+	v = v + vrand( spawn.random, 0.0, 20.0 )
 	local trigger_v = v - ( 300.0 + player_speed * 5 )
 	triggerWhen( function()
 			local position = vtransform_getWorldPosition( player_ship.transform )
@@ -165,7 +166,7 @@ function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type 
 			vtransform_setWorldPosition( interceptor.transform, spawn_position )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
 			local attack_target = { x = x, y = move_to.y, z = z }
-			local flee_to = { x = spawn_x, y = spawn_y, z = spawn_z }
+			local flee_to = { x = spawn_x, y = spawn_y + interceptor_spawn_y_offset * 2, z = spawn_z }
 			interceptor.behaviour = interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
 		end
 		)
