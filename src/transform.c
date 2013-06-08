@@ -252,8 +252,6 @@ transform* transform_fromHandle( transformHandle h ) {
 	// If identical, return it, otherwise null
 	short uid = transformHandle_uid( h );
 	short index = transformHandle_index( h );
-	bool free = !static_transform_pool->free[index];
-	short current_uid = transform_uidOfIndex( index );
 	if ( !static_transform_pool->free[index] && transform_uidOfIndex( index ) == uid ) {
 		return transform_atIndex( index );
 	}

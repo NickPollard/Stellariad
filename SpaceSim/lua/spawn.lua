@@ -151,8 +151,12 @@ function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type 
 			return player_v > trigger_v
 		end,
 		function()
-			local spawn_x, spawn_y, spawn_z = vcanyon_position( u + interceptor_spawn_u_offset, v + interceptor_spawn_v_offset )
-			local spawn_position = Vector( spawn_x, spawn_y + interceptor_spawn_y_offset, spawn_z, 1.0 )
+			local r = vrand( spawn.random, 0.0, 1.0 )
+			local mirror
+			if r > 0.5 then mirror = -1.0 else mirror = 1.0 end
+			local spawn_x, spawn_y, spawn_z = vcanyon_position( u + mirror * interceptor_spawn_u_offset, v + interceptor_spawn_v_offset )
+			spawn_y = spawn_y + interceptor_spawn_y_offset
+			local spawn_position = Vector( spawn_x, spawn_y, spawn_z, 1.0 )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset )
 			move_to = { x = x, y = y + height, z = z }
 	
@@ -161,7 +165,8 @@ function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type 
 			vtransform_setWorldPosition( interceptor.transform, spawn_position )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
 			local attack_target = { x = x, y = move_to.y, z = z }
-			interceptor.behaviour = interceptor_behaviour( interceptor, move_to, attack_target, attack_type )
+			local flee_to = { x = spawn_x, y = spawn_y, z = spawn_z }
+			interceptor.behaviour = interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
 		end
 		)
 end
