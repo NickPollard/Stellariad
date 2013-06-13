@@ -371,6 +371,8 @@ function playership_create()
 	p.roll = 0
 	p.aileron_roll = false
 	p.aileron_roll_time = 5.0
+	p.yaw_history = {}
+	p.yaw_history_index = 1
 	p.camera_transform = vcreateTransform()
 	
 	-- Init Collision
@@ -567,8 +569,6 @@ function touchpad:tick( dt )
 	end
 	if touched then
 		vprint( "touched" )
-		vprint( "handlers: " .. self.onTouchHandlers:length() )
-		--vprint( "handlers: " .. self.onTouchHandlers.head )
 		self.onTouchHandlers:foreach( apply )
 	end
 end
@@ -589,7 +589,6 @@ function skies_splash()
 			local touch_to_play = createTouchPad( input, 0, 0, w, h )
 			--inTime( 4.0, function ()
 			touch_to_play:onTouch( function ()
-				vprint( "handler" )
 				ui.hide_splash( splash )
 				f:complete( nil )
 				removeTicker( touch_to_play )
@@ -651,7 +650,7 @@ function steering_input_joypad()
 	-- Using Joypad
 	local yaw = 0.0
 	local pitch = 0.0
-	touched, joypad_x, joypad_y = vtouchPadTouched( player_ship.joypad )
+	local touched, joypad_x, joypad_y = vtouchPadTouched( player_ship.joypad )
 	if touched then
 		yaw, pitch = player_ship.joypad_mapper( joypad_x, joypad_y )
 		vprint( "inputs mapped " .. yaw .. " " .. pitch )
@@ -745,7 +744,10 @@ function ship_aileronRoll( ship, multiplier )
 	ship.aileron_roll_target = library.roundf( ship.roll + aileron_roll_delta + math.pi, 2.0 * math.pi )
 	ship.aileron_roll_amount = ship.aileron_roll_target - ship.roll
 	-- preserve heading from when we enter the roll
-	ship.target_yaw = ship.yaw
+	--ship.target_yaw = ship.yaw
+
+	local index = (ship.yaw_history_index - 10) % 10 + 1
+	ship.target_yaw = ship.yaw_history[index]
 end
 
 function ship_aileronRollActive( ship ) 
@@ -770,6 +772,14 @@ end
 -- sin ( (pi-x)^2 / pi )
 function ship_strafeRate( ratio )
 	return clamp( 0.0, 1.0, math.sin( math.pi + ratio*ratio / math.pi - 2.0 * ratio ))
+end
+
+function yaw( ship, dt )
+	local target_yaw_delta = ship.target_yaw - ship.yaw
+	local max_yaw_delta = 2.0 * math.abs( ship.roll ) * 1.3 * dt
+	local actual_yaw_delta = clamp( -max_yaw_delta, max_yaw_delta, target_yaw_delta )
+	ship.yaw = ship.yaw + actual_yaw_delta
+	return target_yaw_delta
 end
 
 function playership_tick( ship, dt )
@@ -821,6 +831,9 @@ function playership_tick( ship, dt )
 		end
 	end
 
+	ship.yaw_history[ship.yaw_history_index ] = ship.yaw
+	ship.yaw_history_index = ( ship.yaw_history_index ) % 10 + 1
+
 	local camera_roll = 0.0
 	if ship.aileron_roll then
 		-- strafe
@@ -838,14 +851,12 @@ function playership_tick( ship, dt )
 		ship.aileron_roll_time = ship.aileron_roll_time - dt
 		ship.aileron_roll = ship_aileronRollActive( ship )
 		camera_roll = max_allowed_roll * camera_roll_scale * ship.aileron_roll_multiplier
-	else
 
-		-- yaw
+		yaw(ship,dt)
+
+	else
 		ship.target_yaw = ship.target_yaw + yaw_delta
-		local target_yaw_delta = ship.target_yaw - ship.yaw
-		local max_yaw_delta = 2.0 * math.abs( ship.roll ) * 1.3 * dt
-		yaw_delta = clamp( -max_yaw_delta, max_yaw_delta, target_yaw_delta )
-		ship.yaw = ship.yaw + yaw_delta
+		local target_yaw_delta = yaw( ship, dt )
 
 		-- roll
 		local target_roll = ship_rollFromYawRate( ship, target_yaw_delta )
