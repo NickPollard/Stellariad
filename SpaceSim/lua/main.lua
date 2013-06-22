@@ -11,13 +11,15 @@ C and only controlled remotely by Lua
 
 ]]--
 
-	two_pi = 2.0 * math.pi
+	pi = math.pi
+	two_pi = 2.0 * pi
 
 -- Debug settings
-	debug_spawning_enabled	= true
-	debug_doodads_enabled	= false
+	debug_spawning_disabled	= false
+	debug_doodads_disabled	= false
 	debug_player_immortal	= true
 	debug_player_autofly	= false
+	debug_player_immobile	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -59,9 +61,15 @@ C and only controlled remotely by Lua
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
+	homing_missile_turn_angle_per_second = pi / 2
 	-- Flight
-	player_ship_initial_speed	= 50.0
-	player_ship_acceleration	= 1.0
+	if debug_player_immobile then
+		player_ship_initial_speed	= 0.0
+		player_ship_acceleration	= 0.0
+	else
+		player_ship_initial_speed	= 50.0
+		player_ship_acceleration	= 1.0
+	end
 	player_ship_max_speed		= 150.0
 	max_allowed_roll			= 1.5
 	camera_roll_scale			= 0.1
@@ -176,12 +184,6 @@ function player_fire_missile_swarm( ship )
 	enemies:zipWithIndex():foreach( function( target ) 
 		inTime( (target[2] - 1) * 0.1, function() 
 			player_fire_missile( ship, target[1] ) end ) end )
---[[
-	player_fire_missile( ship )
-	inTime( 0.1, function () player_fire_missile( ship ) end )
-	inTime( 0.2, function () player_fire_missile( ship ) end )
-	inTime( 0.3, function () player_fire_missile( ship ) end )
-	--]]
 end
 
 function findClosestEnemies( transform, count )
@@ -323,7 +325,6 @@ function fire_missile( source, offset, bullet_type )
 	return projectile
 end
 
-homing_missile_turn_angle_per_second = math.pi / 2
 function homing_missile_tick( target_transform )
 	return function ( missile, dt )
 		if missile.physic and missile.transform and vtransform_valid(target_transform) then
@@ -480,7 +481,7 @@ function gameplay_start()
 	inTime( 2.0, function () 
 		player_ship.speed = player_ship_initial_speed
 		--playership_addEngineGlows( player_ship )
-		if debug_spawning_enabled then
+		if not debug_spawning_disabled then
 			spawning_active = true
 		end
 		entities_spawned = 0.0
@@ -613,7 +614,7 @@ end
 
 function test()
 	--future.test()
-	list.test()
+	--list.test()
 end
 
 function start()
@@ -720,7 +721,9 @@ function playership_weaponsTick( ship, dt )
 			player_fire_missile_swarm( ship )
 		else
 			local target = findClosestEnemy( ship.transform )
-			player_fire_missile( ship, target )
+			if target ~= nil then
+				player_fire_missile( ship, target )
+			end
 		end
 		ship.missile_cooldown = player_missile_cooldown
 	end
@@ -737,27 +740,27 @@ function lerp( a, b, k )
 end
 
 function ship_aileronRoll( ship, multiplier )
-	local aileron_roll_delta = 2 * math.pi * multiplier
+	local aileron_roll_delta = two_pi * multiplier
 	ship.aileron_roll = true
 	ship.aileron_roll_time = aileron_roll_duration
 	ship.aileron_roll_multiplier = multiplier
-	ship.aileron_roll_target = library.roundf( ship.roll + aileron_roll_delta + math.pi, 2.0 * math.pi )
+	ship.aileron_roll_target = library.roundf( ship.roll + aileron_roll_delta + pi, two_pi )
 	ship.aileron_roll_amount = ship.aileron_roll_target - ship.roll
 	-- preserve heading from when we enter the roll
-	--ship.target_yaw = ship.yaw
+	ship.target_yaw = ship.yaw
 
 	local index = (ship.yaw_history_index - 10) % 10 + 1
-	ship.target_yaw = ship.yaw_history[index]
+	--ship.target_yaw = ship.yaw_history[index]
 end
 
 function ship_aileronRollActive( ship ) 
-	local roll_offset = library.modf( ship.roll + math.pi, 2 * math.pi ) - math.pi
+	local roll_offset = library.modf( ship.roll + pi, two_pi ) - pi
 	return not ( ship.aileron_roll_time < 0.0 and math.abs( roll_offset ) < 0.4 )
 end
 
 function ship_rollFromYawRate( ship, yaw_delta )
 	local last_roll = library.rolling_average.sample( ship.target_roll ) or 0.0
-	local offset = math.floor(( last_roll + math.pi ) / two_pi ) * two_pi
+	local offset = math.floor(( last_roll + pi ) / two_pi ) * two_pi
 	local yaw_to_roll = -45.0
 	return clamp( -max_allowed_roll, max_allowed_roll, yaw_delta * yaw_to_roll ) + offset
 end
@@ -771,7 +774,7 @@ end
 -- Distorted sin curve for quicker attack and longer decay
 -- sin ( (pi-x)^2 / pi )
 function ship_strafeRate( ratio )
-	return clamp( 0.0, 1.0, math.sin( math.pi + ratio*ratio / math.pi - 2.0 * ratio ))
+	return clamp( 0.0, 1.0, math.sin( pi + ratio*ratio / pi - 2.0 * ratio ))
 end
 
 function yaw( ship, dt )
@@ -863,7 +866,7 @@ function playership_tick( ship, dt )
 		library.rolling_average.add( ship.target_roll, target_roll )
 		local roll_delta = ship_rollDeltaFromTarget( library.rolling_average.sample( ship.target_roll ), ship.roll )
 		ship.roll = ship.roll + roll_delta
-		local roll_offset = library.modf( ship.roll + math.pi, 2 * math.pi ) - math.pi
+		local roll_offset = library.modf( ship.roll + pi, two_pi ) - pi
 		camera_roll = roll_offset * camera_roll_scale
 	end
 	
@@ -932,7 +935,7 @@ function tick( dt )
 		update_despawns( player_ship.transform )
 	end
 
-	if debug_doodads_enabled then
+	if not debug_doodads_disabled then
 		update_doodads( player_ship.transform )
 	end
 
