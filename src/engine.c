@@ -64,8 +64,6 @@ void engine_inputInputs( engine* e );
  *
  */
 
-//#define GRAPH_FPS
-
 #ifdef GRAPH_FPS
 graph* fpsgraph; 
 graphData* fpsdata;
@@ -93,7 +91,8 @@ void test_engine_init( engine* e ) {
 #ifdef GRAPH_FPS
 #define kMaxFPSFrames 256
 	fpsdata = graphData_new( kMaxFPSFrames );
-	fpsgraph = graph_new( fpsdata, 100, 100, 640, 240, (float)kMaxFPSFrames, 0.05f, color_green );
+	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
+	fpsgraph = graph_new( fpsdata, 100, 100, 640, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
 	fps_timer = vtimer_create();
 #endif //GRAPH_FPS
 }
@@ -488,7 +487,7 @@ void engine_renderRenders( engine* e ) {
 	delegatelist* d = e->renders;
 	while (d != NULL) {
 		assert( d->head );	// Should never be NULL heads
-		delegate_render( d->head ); // render the whole of this delegate
+		delegate_render( d->head, theScene ); // render the whole of this delegate
 		d = d->tail;
 	}
 }

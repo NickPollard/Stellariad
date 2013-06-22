@@ -2,6 +2,7 @@
 #include "common.h"
 #include "canyon_terrain.h"
 //-----------------------
+#include "camera.h"
 #include "canyon.h"
 #include "canyon_zone.h"
 #include "collision.h"
@@ -32,6 +33,7 @@ void canyonTerrainBlock_initVBO( canyonTerrainBlock* b );
 void canyonTerrainBlock_calculateBuffers( canyonTerrainBlock* b );
 void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b );
 void canyonTerrainBlock_calculateCollision( canyonTerrainBlock* b );
+void canyonTerrainBlock_calculateAABB( canyonTerrainBlock* b );
 void canyonTerrainBlock_generate( canyonTerrainBlock* b );
 void canyonTerrain_initVertexBuffers( canyonTerrain* t );
 void canyonTerrain_initElementBuffers( canyonTerrain* t );
@@ -123,7 +125,7 @@ void canyonTerrain_staticInit() {
 // ***
 
 
-void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
+bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 	// If we have new render buffers, free the old ones and switch to the new
 	if (( b->vertex_VBO_alt && *b->vertex_VBO_alt ) &&
 			( b->element_VBO_alt && *b->element_VBO_alt )) {
@@ -139,6 +141,11 @@ void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
 		b->vertex_VBO_alt = NULL;
 		b->element_VBO_alt = NULL;
 	}
+
+	vector frustum[6];
+	camera_calculateFrustum( s->cam, frustum );
+	if ( frustum_cull( &b->bb, frustum ) )
+		return false;
 
 	int zone = b->canyon->current_zone;
 	int first = zone % 2;
@@ -156,20 +163,23 @@ void canyonTerrainBlock_render( canyonTerrainBlock* b ) {
 
 		//drawCall_create( &renderPass_depth, resources.shader_depth, b->element_count_render, b->element_buffer, b->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
 	}
+	return true;
 }
 
 int canyonTerrain_blockIndexFromUV( canyonTerrain* t, int u, int v ) {
 	return u + v * t->u_block_count;
 }
 
-void canyonTerrain_render( void* data ) {
+void canyonTerrain_render( void* data, scene* s ) {
 	canyonTerrain* t = data;
 	render_resetModelView();
 	matrix_mulInPlace( modelview, modelview, t->trans->world );
 
+	int count = 0;
 	for ( int i = 0; i < t->total_block_count; ++i ) {
-		canyonTerrainBlock_render( t->blocks[i] );
+		count += canyonTerrainBlock_render( t->blocks[i], s );
 	}
+	printf( "Rendering %d terrain blocks.\n", count );
 }
 
 canyonTerrainBlock* canyonTerrainBlock_create( canyonTerrain* t ) {
@@ -754,6 +764,7 @@ void canyonTerrainBlock_generate( canyonTerrainBlock* b ) {
 	canyonTerrainBlock_createBuffers( b );
 	canyonTerrainBlock_calculateBuffers( b );
 	canyonTerrainBlock_calculateCollision( b );
+	canyonTerrainBlock_calculateAABB( b );
 }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
@@ -951,4 +962,20 @@ void canyonTerrainBlock_calculateCollision( canyonTerrainBlock* b ) {
 	b->collision->layers |= kCollisionLayerTerrain;
 	//b->collision->collide_with |= kCollisionLayerPlayer;
 	collision_addBody( b->collision );
+}
+
+void canyonTerrainBlock_calculateAABB( canyonTerrainBlock* b ) {
+	b->bb.min = b->vertex_buffer[0].position;
+	b->bb.max = b->vertex_buffer[0].position;
+	int vertex_count = canyonTerrainBlock_renderVertCount( b );
+	for ( int i = 1; i < vertex_count; ++i ) {
+		vector vert = b->vertex_buffer[i].position;
+		b->bb.min.coord.x = fminf( b->bb.min.coord.x, vert.coord.x );
+		b->bb.min.coord.y = fminf( b->bb.min.coord.y, vert.coord.y );
+		b->bb.min.coord.z = fminf( b->bb.min.coord.z, vert.coord.z );
+
+		b->bb.max.coord.x = fmaxf( b->bb.max.coord.x, vert.coord.x );
+		b->bb.max.coord.y = fmaxf( b->bb.max.coord.y, vert.coord.y );
+		b->bb.max.coord.z = fmaxf( b->bb.max.coord.z, vert.coord.z );
+	}
 }

@@ -43,4 +43,4 @@ void panel_show( engine* e, panel* p );
 
 // The draw function gets passed the current 'cursor' x and y
 void panel_draw( panel* p, float x, float y );
-void panel_render( void* panel_ );
+void panel_render( void* panel_, scene* s );

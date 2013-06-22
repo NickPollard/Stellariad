@@ -16,9 +16,9 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= false
-	debug_doodads_disabled	= false
+	debug_doodads_disabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 	debug_player_immobile	= false
 
 -- Load Modules
@@ -804,6 +804,7 @@ function playership_tick( ship, dt )
 		input_pitch = target_pitch - ship.pitch
 	else
 		input_yaw, input_pitch = ship.steering_input()
+		input_pitch = input_pitch
 	end
 
 	-- set to -1.0 to invert

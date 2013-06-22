@@ -23,6 +23,11 @@
 
 #define DEBUG_LUA false
 
+#if 1
+#define GRAPH_GPU_FPS
+#define GRAPH_FPS
+#endif
+
 extern scene* theScene;
 
 extern float depth;

@@ -72,7 +72,7 @@ void particleEmitterDef_deInit( particleEmitterDef* def );
 // *** Emitter functions
 particleEmitter* particleEmitter_create();
 particleEmitter* particle_newEmitter( particleEmitterDef* definition );
-void particleEmitter_render( void* data );
+void particleEmitter_render( void* data, scene* s );
 void particleEmitter_tick( void* e, float dt, engine* eng );
 void particleEmitter_destroy( particleEmitter* e );
 void particleEmitter_delete( particleEmitter* e );

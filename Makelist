@@ -5,6 +5,7 @@ SRCS =	src/camera.c \
 		src/collision.c \
 		src/dynamicfog.c \
 		src/engine.c \
+		src/frustum.c \
 		src/input.c \
 		src/light.c \
 		src/lua.c \

@@ -39,7 +39,6 @@
 
 bool	render_initialised = false;
 
-//#define GRAPH_GPU_FPS
 #ifdef GRAPH_GPU_FPS
 graph* gpu_fpsgraph; 
 graphData* gpu_fpsdata;
@@ -558,7 +557,8 @@ void render_init( void* app ) {
 #ifdef GRAPH_GPU_FPS
 #define kMaxGpuFPSFrames 256
 	gpu_fpsdata = graphData_new( kMaxGpuFPSFrames );
-	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 640, 240, (float)kMaxGpuFPSFrames, 0.05f, color_blue );
+	vector graph_blue = Vector( 0.2f, 0.2f, 0.8f, 1.f );
+	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 640, 240, (float)kMaxGpuFPSFrames, 0.033f, graph_blue );
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
 }
@@ -641,9 +641,9 @@ void render( scene* s ) {
 	
 	matrix_setIdentity( modelview );
 
-	float aspect = ((float)window_main.width) / ((float)window_main.height);
 	camera* cam = s->cam;
-	render_perspectiveMatrix( perspective, cam->fov, aspect, cam->z_near, cam->z_far );
+	cam->aspect = ((float)window_main.width) / ((float)window_main.height);
+	render_perspectiveMatrix( perspective, cam->fov, cam->aspect, cam->z_near, cam->z_far );
 
 	vector frustum[6];
 	camera_calculateFrustum( cam, frustum );
@@ -898,7 +898,7 @@ void render_renderThreadTick( engine* e ) {
 	static int framecount = 0;
 	++framecount;
 	graphData_append( gpu_fpsdata, (float)framecount, delta );
-	printf( "GPU Delta %.8f\n", delta );
+	printf( "GPU Delta %.4f\n", delta );
 #endif
 	// Indicate that we have finished
 	vthread_signalCondition( finished_render );

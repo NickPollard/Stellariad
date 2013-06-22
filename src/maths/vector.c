@@ -2,6 +2,7 @@
 #include "common.h"
 #include "vector.h"
 //----------------------
+#include "maths/quaternion.h"
 #include "maths/maths.h"
 
 const vector origin = {{ 0.f, 0.f, 0.f, 1.f }};
@@ -205,6 +206,11 @@ vector vector_fromQuaternion( quaternion q ) {
 	v.coord.z = q.z;
 	v.coord.w = 0.f;
 	return v;
+}
+
+vector vector_rotateAxisAngle( vector v, vector axis, float angle ) {
+	quaternion q = quaternion_fromAxisAngle( axis, angle );
+	return quaternion_rotation( q, v );
 }
 
 // *** Output

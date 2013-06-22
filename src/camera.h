@@ -7,6 +7,7 @@ struct camera_s {
 	float z_near;
 	float z_far;
 
+	float aspect; // aspect ratio of the render window
 	float fov; // in Radians
 //	float focalLength;
 //	float aperture;

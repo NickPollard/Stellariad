@@ -119,7 +119,8 @@ void ribbonEmitter_staticInit() {
 	ribbonEmitterAssets = map_create( kMaxRibbonAssets, sizeof( ribbonEmitterDef* ));
 }
 
-void ribbonEmitter_render( void* emitter ) {
+void ribbonEmitter_render( void* emitter, scene* s ) {
+	(void)s;
 	ribbonEmitter* r = emitter;
 	
 	// Build render arrays

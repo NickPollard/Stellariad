@@ -64,7 +64,8 @@ void panel_draw( panel* p, float x, float y ) {
 	draw->depth_mask = GL_FALSE;
 }
 
-void panel_render( void* panel_ ) {
+void panel_render( void* panel_, scene* s ) {
+	(void)s;
 	panel_draw( (panel*)panel_, 0.f, 0.f );
 }
 

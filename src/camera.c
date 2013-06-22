@@ -50,19 +50,28 @@ void camera_calculateFrustum( camera* c, vector* frustum ) {
 	vector view = matrix_vecMul( c->trans->world, &v );
 	vector p = *matrix_getTranslation( c->trans->world );
 
-	/*
-	vector_printf( "cam pos: ", &p );
-	vector_printf( "cam dir: ", &view );
-*/
-
 	vector front = view;
 	front.coord.w = Dot( &p, &view ) + c->z_near;
-	vector back = view;
-	back.coord.w = Dot( &p, &view ) + c->z_far;
-
-//	vector_printf( "Near plane: ", &front );
-//	vector_printf( "Far plane: ", &back );
+	vector back = vector_scaled(view, -1.f);
+	back.coord.w = 1.f;
+	back.coord.w = Dot( &p, &back ) - c->z_far;
 
 	frustum[0] = front;
 	frustum[1] = back;
+
+	// Calculate side-planes
+	// D is still based on the camera position
+	// Vector is based on field of view and aspect ratio
+
+	// Left vector is view, rotated around up, by fov/2
+
+	vector up = matrix_vecMul( c->trans->world, &y_axis );
+
+	vector left = vector_rotateAxisAngle(view, up, c->fov * 0.5f);
+	vector right = vector_rotateAxisAngle(view, up, c->fov * -0.5f);
+	left.coord.w = Dot( &p, &left );
+	right.coord.w = Dot( &p, &right );
+	
+	frustum[2] = left;
+	frustum[3] = right;
 }

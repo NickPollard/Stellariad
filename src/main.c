@@ -43,8 +43,6 @@ void runTests() {
 
 	test_input();
 
-	test_aabb_calculate();
-
 	//test_collision();
 }
 #endif // UNIT_TEST

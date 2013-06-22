@@ -5,7 +5,7 @@
 // Tick function signature
 typedef void (*tickfunc)( void*, float, engine* );
 // Render function signature
-typedef void (*renderfunc)( void*);
+typedef void (*renderfunc)( void*, scene* s );
 // Input function signature
 typedef void (*inputfunc)( void*, input* );
 
@@ -35,7 +35,7 @@ typedef struct {
 void delegate_tick(delegate* t, float dt, engine* eng );
 
 // render all objects in a delegate
-void delegate_render( delegate* d );
+void delegate_render( delegate* d, scene* s );
 
 // Process input for all objects in a delegate
 void delegate_input( delegate* d, input* i );

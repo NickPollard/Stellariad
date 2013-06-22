@@ -240,7 +240,8 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 }
 
 // Render a particleEmitter system
-void particleEmitter_render( void* data ) {
+void particleEmitter_render( void* data, scene* s ) {
+	(void)s;
 	particleEmitter* p = data;
 
 	if ( p->dead )

@@ -54,6 +54,7 @@ float vector_distance( const vector* a, const vector* b );
 bool vector_equal( const vector* a, const vector* b );
 
 vector vector_fromQuaternion( quaternion q );
+vector vector_rotateAxisAngle( vector v, vector axis, float angle );
 
 // *** Output
 void vector_print( const vector* v );

@@ -44,7 +44,7 @@ void ribbonEmitter_destroy( ribbonEmitter* r );
 ribbonEmitterDef* ribbonEmitterDef_create();
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng );
-void ribbonEmitter_render( void* emitter );
+void ribbonEmitter_render( void* emitter, scene* s );
 
 // Load a ribbon definition asset
 ribbonEmitterDef* ribbon_loadAsset( const char* filename );

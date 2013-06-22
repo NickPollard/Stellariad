@@ -24,7 +24,6 @@ float sun_fog( vec4 local_sun_dir, vec4 fragment_position ) {
 }
 
 void main() {
-	/*
 	// light-invariant calculations
 	vec4 material_diffuse = texture2D( tex, texcoord );
 	//gl_FragColor = material_diffuse;
@@ -44,8 +43,7 @@ void main() {
 	vec4 local_fog_color = fog_color + (sun_color * fog_sun_factor);
 	
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
-	*/
 	//gl_FragColor = texture2D( tex, texcoord );
-	gl_FragColor = vec4( 0.5, 0.5, 0.5, 1.0 );
+	//gl_FragColor = vec4( 0.5, 0.5, 0.5, 1.0 );
 }
 

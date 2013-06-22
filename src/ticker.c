@@ -15,9 +15,9 @@ void delegate_tick(delegate* d, float dt, engine* eng ) {
 	}
 }
 
-void delegate_render( delegate* d ) {
+void delegate_render( delegate* d, scene* s ) {
 	for ( int i = 0; i < d->count; i++ ) {
-		((renderfunc)d->tick)( d->data[i] );
+		((renderfunc)d->tick)( d->data[i], s );
 	}
 }
 
