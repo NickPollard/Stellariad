@@ -175,11 +175,14 @@ void canyonTerrain_render( void* data, scene* s ) {
 	render_resetModelView();
 	matrix_mulInPlace( modelview, modelview, t->trans->world );
 
+	/*
 	int count = 0;
 	for ( int i = 0; i < t->total_block_count; ++i ) {
 		count += canyonTerrainBlock_render( t->blocks[i], s );
 	}
-	printf( "Rendering %d terrain blocks.\n", count );
+	*/
+	(void)s;
+	//printf( "Rendering %d terrain blocks.\n", count );
 }
 
 canyonTerrainBlock* canyonTerrainBlock_create( canyonTerrain* t ) {

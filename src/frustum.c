@@ -5,7 +5,7 @@
 //-----------------------
 #include "render/debugdraw.h"
 
-#define kFrustumPlanes 4
+#define kFrustumPlanes 0
 
 void aabb_expand( aabb* bb, vector* points ) {
 	points[0] = bb->min;

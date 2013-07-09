@@ -18,7 +18,7 @@ C and only controlled remotely by Lua
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= true
+	debug_player_autofly	= false
 	debug_player_immobile	= false
 
 -- Load Modules
@@ -109,7 +109,7 @@ function gameobject_create( model_file )
 	vbody_setTransform( g.body, g.transform )
 	vscene_addModel( scene, g.model )
 	vphysic_activate( engine, g.physic )
-	v = Vector( 0.0, 0.0, 0.0, 0.0 )
+	local v = Vector( 0.0, 0.0, 0.0, 0.0 )
 	vphysic_setVelocity( g.physic, v )
 
 	return g
@@ -128,7 +128,7 @@ function gameobject_createAt( model_file, matrix )
 	vbody_setTransform( g.body, g.transform )
 	vscene_addModel( scene, g.model )
 	vphysic_activate( engine, g.physic )
-	v = Vector( 0.0, 0.0, 0.0, 0.0 )
+	local v = Vector( 0.0, 0.0, 0.0, 0.0 )
 	vphysic_setVelocity( g.physic, v )
 
 	return g
@@ -1133,31 +1133,6 @@ function update_despawns( transform )
 	end
 end
 
-function turret_state_inactive( turret, dt )
-	player_close = ( vtransform_distance( player_ship.transform, turret.transform ) < 200.0 )
-
-	if player_close then
-		return turret_state_active
-	else
-		return turret_state_inactive
-	end
-end
-
-function turret_state_active( turret, dt )
-	player_close = ( vtransform_distance( player_ship.transform, turret.transform ) < 200.0 )
-
-	if turret.cooldown < 0.0 then
-		turret_fire( turret )
-		turret.cooldown = turret_cooldown
-	end
-	turret.cooldown = turret.cooldown - dt
-
-	if player_close then
-		return turret_state_active
-	else
-		return turret_state_inactive
-	end
-end
 
 -- Interceptor Stats
 interceptor_min_speed = 3.0
@@ -1219,48 +1194,6 @@ function create_interceptor( model )
 	interceptor.tick = interceptor_tick
 	array.add( interceptors, interceptor )
 	return interceptor
-end
-
-function interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
-	local enter = nil
-	local attack = nil
-	local flee = nil
-	local flee_distance = 100
-	enter =		ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
-							function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
-									return attack 
-								else 
-									return enter 
-								end 
-							end )
-
-	attack =	ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						
-			function () 
-				local position = vtransform_getWorldPosition( player_ship.transform )
-				local unused, player_v = vcanyon_fromWorld( position ) 
-				position = vtransform_getWorldPosition( interceptor.transform )
-				local unused, interceptor_v = vcanyon_fromWorld( position ) 
-				if interceptor_v - player_v < flee_distance then return flee
-				else return attack end 
-				end )
-
-	flee = ai.state( entities.strafeFrom( interceptor, flee_to.x, flee_to.y, flee_to.z, flee_to.x, flee_to.y + 10, flee_to.z), function () return flee end )
-	return enter
-end
-
-function interceptor_behaviour( interceptor, move_to, attack_target, attack_type )
-	local enter = nil
-	local attack = nil
-	enter =		ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
-							function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
-									return attack 
-								else 
-									return enter 
-								end 
-							end )
-
-	attack =	ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						function () return attack end )
-	return enter
 end
 
 function interceptor_tick( interceptor, dt )

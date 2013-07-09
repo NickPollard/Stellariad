@@ -29,7 +29,7 @@ function entities.strafeTo( target_x, target_y, target_z, facing_x, facing_y, fa
 	end
 end
 
-function entities.strafeFrom( this, target_x, target_y, target_z, facing_x, facing_y, facing_z )
+function entities.strafeFrom( this, target_x, target_y, target_z ) 
 	local initial_position = vtransform_getWorldPosition( this.transform )
 	local x,y,z,w = vvector_values( initial_position )
 	local original = { x = x, y = y, z = z, w = w }
@@ -56,9 +56,6 @@ function entities.strafeFrom( this, target_x, target_y, target_z, facing_x, faci
 			local world_velocity = vquaternion_rotation( new_dir, Vector( 0.0, 0.0, speed, 0.0 ))
 			vphysic_setVelocity( entity.physic, world_velocity )
 			vtransform_setRotation( entity.transform, new_dir )
-
-		--local facing_position = Vector( facing_x, facing_y, facing_z, 1.0 )
-		--vtransform_facingWorld( entity.transform, facing_position )
 	end
 end
 

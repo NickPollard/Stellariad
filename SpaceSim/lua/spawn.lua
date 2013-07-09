@@ -50,10 +50,25 @@ function spawn.positionerTurret( spawn_space, current_positions )
 end
 
 function spawn.positionerInterceptor( spawn_space, current_positions )
-	-- Pick the most tall central space
+	-- Pick the tallest central space
 	local ranked_positions = array.rank( spawn_space.available_positions,
 		function( position )
 			return - math.abs( position.x ) + ( position.y ) * spawn_space.width
+		end )
+	array.add( current_positions, ranked_positions[1] )
+
+	-- Update current positions
+	local this_position = array.new( ranked_positions[1] )
+	spawn_space.available_positions = spawn.availablePositions( spawn_space.available_positions, this_position )
+
+	return current_positions
+end
+
+function spawn.positionerStrafer( spawn_space, current_positions )
+	-- Pick the tallest, widest space
+	local ranked_positions = array.rank( spawn_space.available_positions,
+		function( position )
+			return math.abs( position.x ) + ( position.y ) * spawn_space.width
 		end )
 	array.add( current_positions, ranked_positions[1] )
 
@@ -132,16 +147,30 @@ function spawn.spawnTurret( u, v )
 	vbody_setTransform( turret.body, turret.collision_transform )
 
 	-- ai
-	turret.behaviour = turret_state_inactive
+	turret.behaviour = ai.turret_state_inactive
 
 	turrets.count = turrets.count + 1
 	turrets[turrets.count] = turret
 end
 
+--[[
 local interceptor_spawn_u_offset = -200
 local interceptor_spawn_v_offset = -200
 local interceptor_spawn_y_offset = 100
+--]]
 local interceptor_target_v_offset = 100
+
+local interceptor_spawn_offset = {
+	u = -200,
+	v = -200,
+	y = 100
+}
+
+local strafer_spawn_offset = {
+	u = 10,
+	v = 50,
+	y = 30
+}
 
 function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type )
 	v = v + vrand( spawn.random, 0.0, 20.0 )
@@ -152,11 +181,9 @@ function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type 
 			return player_v > trigger_v
 		end,
 		function()
-			local r = vrand( spawn.random, 0.0, 1.0 )
-			local mirror
-			if r > 0.5 then mirror = -1.0 else mirror = 1.0 end
-			local spawn_x, spawn_y, spawn_z = vcanyon_position( u + mirror * interceptor_spawn_u_offset, v + interceptor_spawn_v_offset )
-			spawn_y = spawn_y + interceptor_spawn_y_offset
+			local mirror = vrand( spawn.random, 0.0, 1.0 ) > 0.5 and -1.0 or 1.0
+			local spawn_x, spawn_y, spawn_z = vcanyon_position( u + mirror * interceptor_spawn_offset.u, v + interceptor_spawn_offset.v )
+			spawn_y = spawn_y + interceptor_spawn_offset.y
 			local spawn_position = Vector( spawn_x, spawn_y, spawn_z, 1.0 )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset )
 			move_to = { x = x, y = y + height, z = z }
@@ -166,8 +193,31 @@ function spawn.spawnInterceptor( u, v, height, player_speed, model, attack_type 
 			vtransform_setWorldPosition( interceptor.transform, spawn_position )
 			local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
 			local attack_target = { x = x, y = move_to.y, z = z }
-			local flee_to = { x = spawn_x, y = spawn_y + interceptor_spawn_y_offset * 2, z = spawn_z }
-			interceptor.behaviour = interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
+			local flee_to = { x = spawn_x, y = spawn_y + interceptor_spawn_offset.y * 2, z = spawn_z }
+			interceptor.behaviour = ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
+		end
+		)
+end
+
+function spawn.spawnStrafer( u, v, height, player_speed, model )
+	v = v + vrand( spawn.random, 0.0, 20.0 )
+	local trigger_v = v - ( 300.0 + player_speed * 5 )
+	triggerWhen( function()
+		local position = vtransform_getWorldPosition( player_ship.transform )
+		local unused, player_v = vcanyon_fromWorld( position ) 
+			return player_v > trigger_v
+		end,
+		function()
+			vprint( "Spawning strafer." )
+			local mirror = vrand( spawn.random, 0.0, 1.0 ) > 0.5 and -1.0 or 1.0
+			local spawn_x, spawn_y, spawn_z = vcanyon_position( 0 + mirror * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
+			local spawn_position = Vector( spawn_x, spawn_y + height, spawn_z, 1.0 )
+			local move_x, move_y, move_z = vcanyon_position( 0 + mirror * -1.0 * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
+			vprint( "Strafer moving to " .. move_x .. " " .. move_y + height .. " " .. move_z )
+			move_to = { x = move_x, y = move_y + height, z = move_z }
+	
+			local strafer = create_interceptor( model )
+			strafer.behaviour = ai.strafer_behaviour( strafer, move_to )
 		end
 		)
 end
@@ -179,7 +229,9 @@ end
 
 function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
-	if r > 0.75 then
+	if r > 0.0 then
+		return function( coord ) spawn.spawnStrafer( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_red.s" ) end, spawn.positionerStrafer
+	elseif r > 0.75 then
 		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_red.s", interceptor_attack_homing ) end, spawn.positionerInterceptor
 	elseif r > 0.0 then
 		return function( coord ) spawn.spawnInterceptor( coord.u, coord.v, coord.y, player_speed, "dat/model/ship_green.s", interceptor_attack_gun ) end, spawn.positionerInterceptor
