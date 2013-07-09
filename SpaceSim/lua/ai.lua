@@ -1,8 +1,5 @@
 local ai = {}
 
-function ai.combinator( f )
-	return f( f )
-end
 ai.count = 1
 
 function ai.test( f )
@@ -14,15 +11,6 @@ function ai.test( f )
 	else
 		vprint( "##2" )
 		return f
-	end
-end
-
-function ai.test_combinator()
-	ai.count = 1
-	func = ai.test
-	vprint( "//////////////////////////////////////////// AI." )
-	while true do
-		func = ai.combinator( func )
 	end
 end
 
@@ -93,6 +81,81 @@ function ai.test_states()
 	while i < 10 do
 		test_state = test_state()
 		i = i + 1
+	end
+end
+
+function ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
+	local enter = nil
+	local attack = nil
+	local flee = nil
+	local flee_distance = 100
+	enter =		ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
+							function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
+									return attack 
+								else 
+									return enter 
+								end 
+							end )
+
+	attack =	ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						
+			function () 
+				local position = vtransform_getWorldPosition( player_ship.transform )
+				local unused, player_v = vcanyon_fromWorld( position ) 
+				position = vtransform_getWorldPosition( interceptor.transform )
+				local unused, interceptor_v = vcanyon_fromWorld( position ) 
+				if interceptor_v - player_v < flee_distance then return flee
+				else return attack end 
+				end )
+
+	flee = ai.state( entities.strafeFrom( interceptor, flee_to.x, flee_to.y, flee_to.z ), function () return flee end )
+	return enter
+end
+
+function ai.strafer_behaviour( strafer, move_to )
+	local strafe = nil
+	strafe = ai.state( entities.strafeFrom( strafer, move_to.x, move_to.y, move_to.z ),
+						function () return strafe end )
+	return strafe
+end
+
+function ai.interceptor_behaviour( interceptor, move_to, attack_target, attack_type )
+	local enter = nil
+	local attack = nil
+	enter =		ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
+							function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
+									return attack 
+								else 
+									return enter 
+								end 
+							end )
+
+	attack =	ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						function () return attack end )
+	return enter
+end
+
+function ai.turret_state_inactive( turret, dt )
+	player_close = ( vtransform_distance( player_ship.transform, turret.transform ) < 200.0 )
+
+	if player_close then
+		return ai.turret_state_active
+	else
+		return ai.turret_state_inactive
+	end
+end
+
+function ai.turret_state_active( turret, dt )
+	player_close = ( vtransform_distance( player_ship.transform, turret.transform ) < 200.0 )
+
+	if turret.cooldown < 0.0 then
+		turret_fire( turret )
+		turret.cooldown = turret_cooldown
+	end
+	turret.cooldown = turret.cooldown - dt
+
+	if player_close then
+		return ai.turret_state_active
+	else
+		return ai.turret_state_inactive
 	end
 end
 

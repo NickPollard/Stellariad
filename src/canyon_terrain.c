@@ -179,7 +179,8 @@ void canyonTerrain_render( void* data, scene* s ) {
 	for ( int i = 0; i < t->total_block_count; ++i ) {
 		count += canyonTerrainBlock_render( t->blocks[i], s );
 	}
-	printf( "Rendering %d terrain blocks.\n", count );
+	(void)s;
+	//printf( "Rendering %d terrain blocks.\n", count );
 }
 
 canyonTerrainBlock* canyonTerrainBlock_create( canyonTerrain* t ) {
