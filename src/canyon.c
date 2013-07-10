@@ -261,13 +261,14 @@ void terrain_canyonSpaceFromWorld( float x, float z, float* u, float* v ) {
 	// use the closest
 	float length_a = vector_lengthI( vector_sub( point, closest_a ));
 	float length_b = vector_lengthI( vector_sub( point, closest_b ));
+	float sign = vector_sub( point, closest_a ).coord.x < 0.f ? 1.f : -1.f;
 	if ( length_a < length_b ) {
 		//vector_printf( "Closest point: ", &closest_a );
-		*u = length_a;
+		*u = length_a * sign;
 		*v = canyon_v( closest_i, seg_pos_a );
 	} else {
 		//vector_printf( "Closest point: ", &closest_b );
-		*u = length_a;
+		*u = length_a * sign;
 		*v = canyon_v( closest_i - 1, seg_pos_b );
 	}
 	//printf( "terrain_canyonSpaceFromWorld: x,z ( %.2f, %.2f ) to u, v ( %.2f, %.2f )\n", x, z, *u, *v );
