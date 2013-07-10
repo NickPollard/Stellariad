@@ -97,7 +97,7 @@ void main() {
 
 	//local_fog_color.w = frag_color.w;
 
-	gl_FragColor = mix( fragColor, local_fog_color, fog );
+	gl_FragColor = mix( fragColor, local_fog_color, fog * fragColor.w );
 	//gl_FragColor = local_fog_color;
 
 	

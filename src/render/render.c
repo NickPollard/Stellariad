@@ -529,7 +529,7 @@ void render_init( void* app ) {
 	printf("RENDERING: Initialising OpenGL rendering settings.\n");
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
-	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );	// Standard Alpha Blending
+	glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );	// Standard Alpha Blending
 
 	// Backface Culling
 	glFrontFace( GL_CW );
