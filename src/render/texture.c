@@ -3,6 +3,7 @@
 #include "common.h"
 #include "render/texture.h"
 //---------------------
+#include "future.h"
 #include "worker.h"
 #include "maths/maths.h"
 #include "mem/allocator.h"
@@ -34,6 +35,7 @@ typedef struct textureRequest_s {
 	int			height;
 	int			stride;
 	textureProperties properties;
+	future*		future;
 } textureRequest;
 
 #define kMaxTextureRequests 32
@@ -59,6 +61,11 @@ void texture_tick() {
 					texture_free( r.bitmap );
 					break;
 			}
+			vAssert( r.future );
+			future_complete( r.future, r.filename );
+			// TODO - refcount
+			future_delete( r.future );
+			r.future = NULL;
 		}
 		texture_request_count = 0;
 	}
@@ -84,13 +91,21 @@ void* texture_workerLoadFile( void* args ) {
 	mem_free( args );
 	return NULL;
 }
+		
+textureRequest* textureRequest_new() {
+	textureRequest* r = &requests[texture_request_count++];
+	vAssert( !r->future );
+	r->future = future_create();
+	return r;
+}
 
 // Load a texture from an internal block of memory as a bitmap
 void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap, GLuint wrap_s, GLuint wrap_t ) {
 	vmutex_lock( &texture_mutex );
 	{
 		vAssert( texture_request_count < kMaxTextureRequests );
-		textureRequest* request = &requests[texture_request_count++];
+		textureRequest* request = textureRequest_new();
+
 		request->tex = tex;
 		*request->tex = kInvalidGLTexture;
 		request->type = kTextureMemRequest;
@@ -360,4 +375,6 @@ void texture_staticInit() {
 	textureCache_init();
 
 	static_texture_default = texture_load( "dat/img/test64rgba.tga" );
+
+	memset( requests, 0, sizeof( textureRequest ) * kMaxTextureRequests );
 }
