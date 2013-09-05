@@ -634,4 +634,9 @@ void array_remove( void** array, int* count, void* ptr ) {
 	}
 }
 
+window engine_mainWindow( engine* e ) {
+	(void)e;
+	return window_main;
+}
+
 // TODO - move array funcs out and unit-test (0, negative, out of bounds, end of array)

@@ -10,7 +10,6 @@ Lua should be able to do everything C can, but where performance is necessary, c
 C and only controlled remotely by Lua
 
 ]]--
-
 	pi = math.pi
 	two_pi = 2.0 * pi
 
@@ -18,7 +17,7 @@ C and only controlled remotely by Lua
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= true
+	debug_player_autofly	= false
 	debug_player_immobile	= false
 
 -- Load Modules
@@ -393,7 +392,7 @@ function init()
 
 	starting = true
 	color = Vector( 1.0, 1.0, 1.0, 1.0 )
-	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, 1280, 360 )
+	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
 	splash_intro_new()
 end
@@ -420,9 +419,9 @@ function setup_controls()
 	if touch_enabled then
 		-- Steering
 		local w = 720
-		local h = 720
-		local x = 1280 - w
-		local y = 720 - h
+		local h = screen_height
+		local x = screen_width - w
+		local y = screen_height - h
 		player_ship.joypad_mapper = drag_map()
 		player_ship.joypad = vcreateTouchPad( input, x, y, w, h )
 		player_ship.steering_input = steering_input_drag
@@ -431,12 +430,9 @@ function setup_controls()
 		-- Firing Trigger
 		local x = 0
 		local y = 0
-		local w = 1280 - 720
-		local h = 720
+		local w = screen_width - 720
+		local h = screen_height
 		player_ship.fire_trigger = vcreateTouchPad( input, x, y, w, h )
-
-		player_ship.roll_left = vcreateTouchPad( input, 0, 720 - 150, 150, 150 )
-		player_ship.roll_right = vcreateTouchPad( input, 1280 - 150, 720 - 150, 150, 150 )
 
 		local swipe_left = { direction = Vector( -1.0, 0.0, 0.0, 0.0 ) }
 		local swipe_right = { direction = Vector( 1.0, 0.0, 0.0, 0.0 ) }
@@ -518,7 +514,7 @@ end
 function splash_intro()
 	vtexture_preload( "dat/img/splash_author.tga" )
 	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga", 512, 256 )
-	local bg = ui.show_splash( "dat/img/black.tga", 1280, 720 )
+	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
 	inTime( 2.0, function () 
 		ui.hide_splash( studio_splash ) 
 		local author_splash = ui.show_splash( "dat/img/splash_author.tga", 512, 256 )
@@ -583,10 +579,10 @@ end
 
 function skies_splash() 
 	local f = future:new()
-	ui.show_splash_future( "dat/img/splash_skies.tga", 1280, 720 )
+	ui.show_splash_future( "dat/img/splash_skies.tga", screen_width, screen_height )
 		:onComplete( function ( splash )
-			local w = 1280
-			local h = 720
+			local w = screen_width
+			local h = screen_height
 			local touch_to_play = createTouchPad( input, 0, 0, w, h )
 			--inTime( 4.0, function ()
 			touch_to_play:onTouch( function ()
@@ -600,7 +596,7 @@ end
 
 function splash_intro_new()
 	vtexture_preload( "dat/img/splash_author.tga" )
-	local bg = ui.show_splash( "dat/img/black.tga", 1280, 720 )
+	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
 	studio_splash():onComplete( function (s)
 		author_splash():onComplete( function (a)
 			skies_splash():onComplete( function (a)

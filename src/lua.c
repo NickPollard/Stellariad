@@ -9,6 +9,7 @@
 #include "mem/allocator.h"
 #include "system/file.h"
 #include "system/string.h"
+#include "render/render.h"
 
 #define kLuaMaxVectors 64
 vector lua_vectors[kLuaMaxVectors];
@@ -165,6 +166,11 @@ void lua_setConstant_ptr( lua_State* l, const char* name, void* ptr ) {
 	lua_setglobal( l, name ); // Store in the global variable named <name>
 }
 
+void lua_setConstant_int( lua_State* l, const char* name, int num ) {
+	lua_pushnumber( l, (double)num );
+	lua_setglobal( l, name ); // Store in the global variable named <name>
+}
+
 void lua_setConstant_string( lua_State* l, const char* name, const char* string ) {
 	lua_pushstring( l, string );
 	lua_setglobal( l, name );
@@ -238,6 +244,8 @@ lua_State* vlua_create( engine* e, const char* filename ) {
 	luaLibrary_import( l );
 
 	lua_setConstant_ptr( l, "engine", e );
+	lua_setConstant_int( l, "screen_width", engine_mainWindow( e ).width );
+	lua_setConstant_int( l, "screen_height", engine_mainWindow( e ).height );
 	lua_setConstant_ptr( l, "input", e->input );
 
 	int err = lua_pcall( l, 0, 0, 0 );

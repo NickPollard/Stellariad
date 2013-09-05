@@ -318,6 +318,7 @@ void render_createWindow( void* app, window* w ) {
     eglGetConfigAttrib( display, config, EGL_NATIVE_VISUAL_ID, &egl_visual_id );
     ANativeWindow_setBuffersGeometry( ((struct android_app*)app)->window, 0, 0, egl_visual_id );
 	EGLNativeWindowType native_win = ((struct android_app*)app)->window;
+
 #endif
 #ifdef LINUX_X
 	(void)app;
@@ -343,6 +344,7 @@ void render_createWindow( void* app, window* w ) {
 	w->display = display;
 	w->surface = surface;
 	w->context = context;
+
     eglQuerySurface(display, surface, EGL_WIDTH, &w->width);
     eglQuerySurface(display, surface, EGL_HEIGHT, &w->height);
 }

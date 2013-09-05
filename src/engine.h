@@ -144,3 +144,5 @@ void stopPostTick( engine* e, void* entity, tickfunc tick );
 int array_find( void** array, int count, void* ptr );
 void array_add( void** array, int* count, void* ptr );
 void array_remove( void** array, int* count, void* ptr );
+
+window engine_mainWindow( engine* e );

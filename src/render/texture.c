@@ -61,11 +61,11 @@ void texture_tick() {
 					texture_free( r.bitmap );
 					break;
 			}
-			vAssert( r.future );
-			future_complete( r.future, r.filename );
+			//vAssert( r.future );
+			//future_complete( r.future, r.filename );
 			// TODO - refcount
-			future_delete( r.future );
-			r.future = NULL;
+			//future_delete( r.future );
+			//r.future = NULL;
 		}
 		texture_request_count = 0;
 	}
@@ -94,8 +94,8 @@ void* texture_workerLoadFile( void* args ) {
 		
 textureRequest* textureRequest_new() {
 	textureRequest* r = &requests[texture_request_count++];
-	vAssert( !r->future );
-	r->future = future_create();
+	//vAssert( !r->future );
+	//r->future = future_create();
 	return r;
 }
 
