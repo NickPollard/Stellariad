@@ -56,7 +56,7 @@ vector directional_light_direction;
 
 gl_resources resources;
 
-window window_main = { 1280, 720, 0, 0, 0, true };
+window window_main = { 1196, 720, 0, 0, 0, true };
 
 GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size ) {
 	//printf( "Allocating oGL buffer.\n" );
@@ -804,7 +804,7 @@ void render_drawBatch( drawCall* draw ) {
 	}
 }
 
-void render_drawCallBatch( int count, drawCall* calls ) {
+void render_drawCallBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
 	render_lighting( theScene );
@@ -813,6 +813,8 @@ void render_drawCallBatch( int count, drawCall* calls ) {
 	render_setUniform_matrix( *resources.uniforms.worldspace,	modelview );
 	render_setUniform_vector( *resources.uniforms.viewspace_up, &viewspace_up );
 	render_setUniform_vector( *resources.uniforms.directional_light_direction, &directional_light_direction );
+	vector screen_size = Vector( w->width, w->height, 0.f, 0.f );
+	render_setUniform_vector( *resources.uniforms.screen_size, &screen_size );
 
 	render_sceneParams( &sceneParams_main );
 
@@ -821,13 +823,13 @@ void render_drawCallBatch( int count, drawCall* calls ) {
 	}
 }
 
-void render_drawPass( renderPass* pass ) {
+void render_drawPass( window* w, renderPass* pass ) {
 	// Draw each batch of drawcalls
 	for ( int i = 0; i < kCallBufferCount; i++ ) {
 		drawCall* batch = pass->call_buffer[i];
 		int count = pass->next_call_index[i];
 		if ( count > 0 )
-			render_drawCallBatch( count, batch );	
+			render_drawCallBatch( w, count, batch );	
 	}
 }
 
@@ -857,26 +859,26 @@ void render_draw( window* w, engine* e ) {
 	glDisable( GL_BLEND );
 	glDepthMask( GL_TRUE );
 	glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-	render_drawPass( &renderPass_depth );
+	render_drawPass( w, &renderPass_depth );
 
 	glEnable( GL_DEPTH_TEST );
 	glDisable( GL_BLEND );
 	glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-	render_drawPass( &renderPass_main );
+	render_drawPass( w, &renderPass_main );
 
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
-	render_drawPass( &renderPass_alpha );
+	render_drawPass( w, &renderPass_alpha );
 	
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
-	render_drawPass( &renderPass_ui );
+	render_drawPass( w, &renderPass_ui );
 
 	// No depth-test for debug
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
-	render_drawPass( &renderPass_debug );
+	render_drawPass( w, &renderPass_debug );
 
 	render_swapBuffers( w );
 }

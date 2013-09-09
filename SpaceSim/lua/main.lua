@@ -529,8 +529,7 @@ end
 
 function studio_splash() 
 	local f = future:new()
-	ui.show_splash_future( "dat/img/splash_vitruvian.tga", 512, 256 )
-		:onComplete( function ( splash ) inTime( 2.0, function ()
+	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 ):onComplete( function ( splash ) inTime( 2.0, function ()
 			ui.hide_splash( splash )
 			f:complete( nil )
 		end ) end ) 
@@ -539,9 +538,8 @@ end
 
 function author_splash() 
 	local f = future:new()
-	ui.show_splash_future( "dat/img/splash_author.tga", 512, 256 )
-		:onComplete( function ( splash )inTime( 2.0, function ()
-			ui.hide_splash( splash )
+	ui.splash( "dat/img/splash_author.tga", 512, 256 ):onComplete( function ( s ) inTime( 2.0, function ()
+			ui.hide_splash( s )
 			f:complete( nil )
 		end ) end ) 
 	return f
@@ -579,7 +577,7 @@ end
 
 function skies_splash() 
 	local f = future:new()
-	ui.show_splash_future( "dat/img/splash_skies.tga", screen_width, screen_height )
+	ui.splash( "dat/img/splash_skies.tga", screen_width, screen_height )
 		:onComplete( function ( splash )
 			local w = screen_width
 			local h = screen_height

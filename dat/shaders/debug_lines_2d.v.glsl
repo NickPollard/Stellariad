@@ -15,7 +15,7 @@ attribute vec4 color;
 varying vec4 frag_color;
 
 // Uniform
-const vec2 screen_size = vec2( 1280.0, 720.0 );
+uniform vec4 screen_size; // = vec2( 1280.0, 720.0 );
 
 void main() {
 	vec2 screen_position = position.xy * vec2( 2.0/screen_size.x, 2.0/screen_size.y ) + vec2( -1.0, -1.0 );

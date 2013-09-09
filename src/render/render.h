@@ -31,7 +31,8 @@ typedef struct sceneParams_s sceneParams;
 	f( camera_space_sun_direction ) \
 	f( sun_color ) \
 	f( viewspace_up ) \
-	f( directional_light_direction )
+	f( directional_light_direction ) \
+	f( screen_size )
 
 #define DECLARE_AS_GLINT_P( var ) \
 	GLint* var;
