@@ -10,12 +10,13 @@ Lua should be able to do everything C can, but where performance is necessary, c
 C and only controlled remotely by Lua
 
 ]]--
+
 	pi = math.pi
 	two_pi = 2.0 * pi
 
 -- Debug settings
 	debug_spawning_disabled	= false
-	debug_doodads_disabled	= true
+	debug_doodads_disabled	= false
 	debug_player_immortal	= true
 	debug_player_autofly	= false
 	debug_player_immobile	= false
@@ -55,6 +56,7 @@ C and only controlled remotely by Lua
 	missiles		= { count = 0 }
 	turrets			= { count = 0 }
 	interceptors	= { count = 0 }
+	all_doodads			= { count = 0 }
 
 -- Settings
 	-- Weapons
@@ -89,6 +91,19 @@ C and only controlled remotely by Lua
 	turret_cooldown			= 0.5		-- (seconds)
 	homing_missile_cooldown = 3.0		-- (seconds)
 
+-- Doodads
+	doodads = {}
+	doodads.interval = 30.0
+
+-- spawn properties
+	spawn_offset = 0.0
+	spawn_interval = 300.0
+	spawn_distance = 900.0
+	doodad_spawn_distance = 1500.0
+	despawn_distance = 100.0			-- how far behind to despawn units
+-- spawn tracking
+	entities_spawned = 0.0
+	doodads_spawned = 0.0
 
 	tickers = list:empty() 
 
@@ -389,6 +404,7 @@ starting = true
 function init()
 	vprint( "init" )
 	spawn.init()
+	doodads.random = vrand_newSeq()
 
 	starting = true
 	color = Vector( 1.0, 1.0, 1.0, 1.0 )
@@ -412,6 +428,11 @@ function ship_delete( ship )
 	array.remove( interceptors, ship )
 	gameobject_delete( ship )
 	ship.behaviour = ai.dead
+end
+
+function doodad_delete( doodad )
+	array.remove( all_doodads, doodad )
+	gameobject_delete( doodad )
 end
 
 function setup_controls()
@@ -481,7 +502,7 @@ function gameplay_start()
 			spawning_active = true
 		end
 		entities_spawned = 0.0
-		doodads_spawned = 0.0
+		--doodads_spawned = 0.0
 	end )
 end
 
@@ -932,6 +953,7 @@ function tick( dt )
 
 	if not debug_doodads_disabled then
 		update_doodads( player_ship.transform )
+		update_doodad_despawns( player_ship.transform )
 	end
 
 	tick_array( turrets, dt )
@@ -963,6 +985,10 @@ function delay( time, command )
 		print( string.format( "Delay timer: %d", time ))
 		delay( time-1, command )
 	end
+end
+
+function doodad_spawn_index( pos )
+	return math.floor( ( pos - spawn_offset ) / doodads.interval )
 end
 
 function spawn_index( pos )
@@ -1011,15 +1037,6 @@ function spawn_atCanyon( u, v, model )
 	vtransform_setWorldPosition( obj.transform, position )
 end
 
--- spawn properties
-spawn_offset = 0.0
-spawn_interval = 300.0
-spawn_distance = 900.0
-doodad_spawn_distance = 1500.0
-despawn_distance = 100.0 -- how far behind to despawn units
--- spawn tracking
-entities_spawned = 0.0
-doodads_spawned = 0.0
 
 -- Spawn all entities in the given range
 function entities_spawnRange( near, far )
@@ -1045,6 +1062,7 @@ function spawn_doodad( u, v, model )
 	local position = Vector( x, y, z, 1.0 )
 	local doodad = gameobject_create( model )
 	vtransform_setWorldPosition( doodad.transform, position )
+	array.add( all_doodads, doodad )
 end
 
 function spawn_bunker( u, v, model )
@@ -1069,14 +1087,31 @@ function spawn_bunker( u, v, model )
 	return doodad
 end
 
+function doodads_spawnSkyscraper( u, v )
+	local r = vrand( doodads.random, 0.0, 1.0 )
+	if r < 0.2 then
+		d = spawn_doodad( u, v, "dat/model/skyscraper_blocks.s" )
+	elseif r < 0.4 then
+		d = spawn_doodad( u, v, "dat/model/skyscraper_slant.s" )
+	elseif r < 0.6 then
+		d = spawn_doodad( u, v, "dat/model/skyscraper_towers.s" )
+	end
+end
+
 function doodads_spawnRange( near, far )
-	local i = spawn_index( near ) + 1
-	local spawn_v = i * spawn_interval
+	local i = doodad_spawn_index( near ) + 1
+	local spawn_v = i * doodads.interval
 	while library.contains( spawn_v, near, far ) do
 		local doodad_offset_u = 130.0
-		local doodad = spawn_bunker( doodad_offset_u, spawn_v, "dat/model/borehole.s" )
+		local d = nil
+		doodads_spawnSkyscraper( doodad_offset_u, spawn_v )
+		doodads_spawnSkyscraper( -doodad_offset_u, spawn_v )
+		doodads_spawnSkyscraper( doodad_offset_u + 30.0, spawn_v )
+		doodads_spawnSkyscraper( doodad_offset_u + 60.0, spawn_v )
+		doodads_spawnSkyscraper( -doodad_offset_u - 30.0, spawn_v )
+		doodads_spawnSkyscraper( -doodad_offset_u - 60.0, spawn_v )
 		i = i + 1
-		spawn_v = i * spawn_interval
+		spawn_v = i * doodads.interval
 	end
 end
 
@@ -1122,6 +1157,24 @@ function update_despawns( transform )
 			if v < despawn_up_to then
 				ship_delete( unit )
 				unit = nil
+			end
+		end
+	end
+end
+
+function update_doodad_despawns( transform ) 
+	local pos = vtransform_getWorldPosition( transform )
+	local u,v = vcanyon_fromWorld( pos )
+	local despawn_up_to = v - despawn_distance
+
+	for doodad in array.iterator( all_doodads ) do
+		-- TODO remove them properly
+		if doodad.transform then
+			unit_pos = vtransform_getWorldPosition( doodad.transform )
+			u,v = vcanyon_fromWorld( unit_pos )
+			if v < despawn_up_to then
+				doodad_delete( doodad )
+				doodad = nil
 			end
 		end
 	end
