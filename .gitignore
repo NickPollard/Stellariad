@@ -25,3 +25,6 @@ gmon.out
 #android local properties
 android/gen/R.java.d
 android/local.properties
+
+#log
+log.txt
