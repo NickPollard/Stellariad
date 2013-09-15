@@ -9,6 +9,7 @@
 #include "dynamicfog.h"
 #include "font.h"
 #include "input.h"
+#include "log.h"
 #include "lua.h"
 #include "maths/maths.h"
 #include "model.h"
@@ -302,6 +303,10 @@ void init(int argc, char** argv) {
 	// Pools
 	transform_initPool();
 	modelInstance_initPool();
+
+	// *** Init Logging
+	// TODO - date/time naming
+	log_init( "log.txt" );
 
 	// *** Static Module initialization
 	scene_initStatic();

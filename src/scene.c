@@ -97,7 +97,7 @@ void scene_removeModelInstanceParticleEmitters( scene* s, modelInstance* instanc
 		// If the scene is active, deactivate components immediately
 		if ( s->eng ) {
 			engine_removeRender( s->eng, instance->emitters[i], particleEmitter_render );
-			stopPostTick( s->eng, instance->emitters[i], particleEmitter_tick );
+			//stopPostTick( s->eng, instance->emitters[i], particleEmitter_tick );
 		}
 	}
 }

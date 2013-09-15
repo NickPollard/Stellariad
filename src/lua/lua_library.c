@@ -255,7 +255,7 @@ int LUA_physic_destroy( lua_State* l ) {
 int LUA_transform_destroy( lua_State* l ) {
 	scene* s = lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
-	lua_assert( t );
+	luaAssert( l, t );
 	scene_removeTransform( s, t );
 	transform_delete( t );
 	return 0;
@@ -512,6 +512,9 @@ int LUA_transform_setWorldPosition( lua_State* l ) {
 int LUA_transform_getWorldPosition( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
 	//printf( "lua_transform_getWorldPosition - transform = " xPTRf "\n", (uintptr_t)t );
+#ifdef DEBUG_SANITY_CHECK_POINTERS
+	luaAssert( l, t > 0xffff );
+#endif // DEBUG_SANITY_CHECK_POINTERS
 	const vector* v = transform_getWorldPosition( t );
 	lua_pushptr( l, (void*)v );
 	return 1;
@@ -699,6 +702,9 @@ int LUA_canyonPosition( lua_State* l ) {
 // Get the Canyon U,V position of a point from a given world position
 int LUA_canyon_fromWorld( lua_State* l ) {
 	vector* world_position = lua_toptr( l, 1 );
+#ifdef DEBUG_SANITY_CHECK_POINTERS
+	luaAssert( l, world_position > 0xffff );
+#endif // DEBUG_SANITY_CHECK_POINTERS
 	float u, v;
 	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
 	lua_pushnumber( l, u );
@@ -815,8 +821,6 @@ int LUA_vector_add( lua_State* l ) {
 int LUA_vector_subtract( lua_State* l ) {
 	const vector* a = lua_toptr( l, 1 );
 	const vector* b = lua_toptr( l, 2 );
-	lua_assert( a != 0x70 );
-	lua_assert( b != 0x70 );
 	vector* v = lua_createVector();
 	*v = vector_sub( *a, *b );
 	lua_pushptr( l, v );

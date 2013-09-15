@@ -84,6 +84,7 @@ void lua_retrieve( lua_State* l, int ref );
 int lua_store( lua_State* l );
 void* lua_toptr( lua_State* l, int index );
 void lua_assertnumber( lua_State* l, int index );
+void luaAssert( lua_State* l, bool condition );
 vector* lua_createVector( );
 matrix* lua_createMatrix();
 quaternion* lua_createQuaternion( );

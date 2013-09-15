@@ -75,7 +75,10 @@ void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	for ( int i = 0; i < m->emitter_count; i++ ) {
 		instance->emitters[i] = particleEmitter_create();
 #ifdef DEBUG_PARTICLE_SOURCES
-		instance->emitters[i]->debug_creator = string_createCopy( "modelInstance subEmitter" );
+		model* m = model_fromInstance( instance );
+		char buffer[256];
+		sprintf( buffer, "modelInstance subEmitter for \"%s\"", m->filename );
+		instance->emitters[i]->debug_creator = string_createCopy( buffer );
 #endif // DEBUG
 
 		vAssert( m->emitters[i]->definition );

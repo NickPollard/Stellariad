@@ -9,6 +9,7 @@ SRCS =	src/camera.c \
 		src/future.c \
 		src/input.c \
 		src/light.c \
+		src/log.c \
 		src/lua.c \
 		src/main.c \
 		src/model.c \

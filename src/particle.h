@@ -4,7 +4,7 @@
 #include "render/render.h"
 
 //#define DEBUG_PARTICLE_LIVENESS_TEST
-//#define DEBUG_PARTICE_SOURCES
+#define DEBUG_PARTICLE_SOURCES
 
 #define kMaxParticles 128
 #define kMaxParticleVerts (kMaxParticles * 6)

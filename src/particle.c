@@ -2,6 +2,7 @@
 #include "src/common.h"
 #include "src/particle.h"
 //---------------------
+#include "log.h"
 #include "model.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
@@ -71,7 +72,7 @@ particleEmitter* particleEmitter_create() {
 	if ( !free ) {
 		for ( int i = 0; i < kMaxActiveParticles; ++i ) {
 			particleEmitter* e = &static_particle_pool->pool[i];
-			printf("Age: %.2f, Particle created by: %s.\n", e->emitter_age, e->debug_creator );
+			vlog("Age: %.2f, Particle created by: %s. Dead = %s, Dying = %s, Oneshot = %s\n", e->emitter_age, e->debug_creator, e->dead ? "true" : "false", e->dying ? "true" : "false", e->oneshot ? "true" : "false" );
 		}
 	}
 #endif //DEBUG
@@ -133,6 +134,7 @@ void particleEmitter_spawnParticle( particleEmitter* e ) {
 void particleEmitter_kill( engine* eng, particleEmitter* e ) {
 	engine_removeRender( eng, e, particleEmitter_render );
 	stopTick( eng, e, particleEmitter_tick );
+	stopPostTick( eng, e, particleEmitter_tick );
 	particleEmitter_delete( e );
 }
 

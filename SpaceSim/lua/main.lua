@@ -18,7 +18,7 @@ C and only controlled remotely by Lua
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= false
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 	debug_player_immobile	= false
 
 -- Load Modules
