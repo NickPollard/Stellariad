@@ -112,6 +112,7 @@ void transform_concatenate(transform* t) {
 // Concatenate the parent world space transforms to produce this world space transform from local
 int transform_concatenate(transform* t) {
 //	printf( "concatenate transform. This = %x, Parent = %x\n", (unsigned int)t, (unsigned int)t->parent );
+	vAssert( t );
 	if (t->parent)	{
 		if (transform_concatenate(t->parent) || transform_isDirty(t)) {
 			transform_markDirty(t);

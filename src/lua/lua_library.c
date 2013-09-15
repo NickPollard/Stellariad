@@ -30,6 +30,8 @@
 #include "system/string.h"
 #include "ui/panel.h"
 
+#define DEBUG_SANITY_CHECK_POINTERS
+
 // *** Forward Declarations
 void lua_completeFuturePtr( lua_State* l, int future_ref, void* ptr );
 
@@ -513,7 +515,7 @@ int LUA_transform_getWorldPosition( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
 	//printf( "lua_transform_getWorldPosition - transform = " xPTRf "\n", (uintptr_t)t );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
-	luaAssert( l, t > 0xffff );
+	luaAssert( l, (uintptr_t)t > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
 	const vector* v = transform_getWorldPosition( t );
 	lua_pushptr( l, (void*)v );
@@ -703,7 +705,7 @@ int LUA_canyonPosition( lua_State* l ) {
 int LUA_canyon_fromWorld( lua_State* l ) {
 	vector* world_position = lua_toptr( l, 1 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
-	luaAssert( l, world_position > 0xffff );
+	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
 	float u, v;
 	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
