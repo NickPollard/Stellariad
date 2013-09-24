@@ -158,6 +158,7 @@ void engine_tick( engine* e ) {
 
 	input_tick( e->input, dt );
 	if ( e->onTick && luaCallback_enabled( e->onTick ) ) {
+		lua_setActiveState( e->lua );
 #if DEBUG_LUA
 		printf("Calling engine::onTick handler: %s\n", e->onTick->func);
 #endif
@@ -173,6 +174,7 @@ void engine_tick( engine* e ) {
 			lua_stacktrace( e->lua );
 			vAssert( 0 );
 		}
+		lua_setActiveState( NULL );
 	}
 
 	collision_processResults( e->frame_counter, dt );

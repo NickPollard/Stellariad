@@ -35,6 +35,11 @@
 // *** Forward Declarations
 void lua_completeFuturePtr( lua_State* l, int future_ref, void* ptr );
 
+int LUA_vassert( lua_State* l ) {
+	bool b = lua_toboolean( l, 1 );
+	luaAssert( l, b );
+	return 0;
+}
 
 int LUA_print( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
@@ -46,8 +51,16 @@ int LUA_print( lua_State* l ) {
 }
 
 transform* lua_toTransform( lua_State* l, int i ) {
+	if (!lua_isnumber( l, i )) {
+		return NULL;
+	}
 	transformHandle h = lua_tonumber( l, i );
 	transform* t = transform_fromHandle( h );
+	
+	if( (uintptr_t)t <= 0xffff ) {
+		printf( "Transform handle: %d.\n", (int)h );
+	}
+	luaAssert( l, (uintptr_t)t > 0xffff );
 	return t;
 }
 
@@ -56,6 +69,26 @@ int LUA_transform_valid( lua_State* l ) {
 	lua_pushboolean( l, b );
 	return 1;
 }
+
+void lua_optionSome( lua_State* l, const void* ptr ) {
+	// TODO - wrapper for accessing paths, e.g. turn option.some into these two commands
+	lua_getglobal( l, "option" ); // Get the option table on to the stack
+	lua_getfield( l, -1, "some" ); // Look up the 'some' value
+	lua_getglobal( l, "option" ); // Get option again (Self pointer)
+	lua_pushptr( l, (void*)ptr );
+	lua_pcall( l, 2, 1, 0 );
+	lua_remove( l, -2 ); // remove the first option table
+}
+
+void lua_optionNone( lua_State* l ) {
+	// TODO - wrapper for accessing paths, e.g. turn option.some into these two commands
+	lua_getglobal( l, "option" ); // Get the option table on to the stack
+	lua_getfield( l, -1, "none" ); // Look up the 'some' value
+	lua_getglobal( l, "option" ); // Get option again (Self pointer)
+	lua_pcall( l, 1, 1, 0 );
+	lua_remove( l, -2 ); // remove the first option table
+}
+
 
 
 #define LUA_CREATE_( type, func ) \
@@ -130,7 +163,7 @@ void lua_collisionCallback( body* this, body* other, void* data ) {
 	int ref = callback_data->callback_ref;
 
 	lua_retrieve( l, ref );
-	vAssert( this->intdata );
+	luaAssert( l, this->intdata );
 	lua_retrieve( l, this->intdata );
 	if ( other->intdata ) {
 		lua_retrieve( l, other->intdata );
@@ -181,7 +214,7 @@ int LUA_deleteModelInstance( lua_State* l ) {
 int LUA_scene_addModel( lua_State* l ) {
 	scene* s = lua_toptr( l, 1 );	
 	modelInstance* m = lua_toptr( l, 2 );	
-	vAssert( m->trans );
+	luaAssert( l, m->trans );
 	scene_addModel( s, m );
 	return 0;
 }
@@ -239,14 +272,14 @@ int LUA_body_registerCollisionCallback( lua_State* l ) {
 
 int LUA_body_destroy( lua_State* l ) {
 	body* b = lua_toptr( l, 1 );
-	vAssert( b );
+	luaAssert( l, b );
 	collision_removeBody( b );
 	return 0;
 }
 
 int LUA_physic_destroy( lua_State* l ) {
 	physic* p = lua_toptr( l, 1 );
-	vAssert( p );
+	luaAssert( l, p );
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
@@ -515,10 +548,15 @@ int LUA_transform_getWorldPosition( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
 	//printf( "lua_transform_getWorldPosition - transform = " xPTRf "\n", (uintptr_t)t );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
+	luaAssert( l, t );
 	luaAssert( l, (uintptr_t)t > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
-	const vector* v = transform_getWorldPosition( t );
-	lua_pushptr( l, (void*)v );
+	if ( t ) {
+		const vector* v = transform_getWorldPosition( t );
+		lua_optionSome( l, v );
+	} else {
+		lua_optionNone( l );
+	}
 	return 1;
 }
 
@@ -664,7 +702,7 @@ int LUA_particle_create( lua_State* l ) {
 
 int LUA_particle_destroy( lua_State* l ) {
 	particleEmitter* emitter = lua_toptr( l, 1 );
-	vAssert( emitter );
+	luaAssert( l, emitter );
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 	particleEmitter_assertActive( emitter );
 #endif // DEBUG_PARTICLE_LIVENESS_TEST
@@ -1025,6 +1063,7 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_bit_AND, "bitwiseAND" );
 
 	// *** General
+	lua_registerFunction( l, LUA_vassert, "vassert" );
 	lua_registerFunction( l, LUA_registerCallback, "registerEventHandler" );
 	lua_registerFunction( l, LUA_print, "vprint" );
 	lua_registerFunction( l, LUA_debugdraw_cross, "vdebugdraw_cross" );

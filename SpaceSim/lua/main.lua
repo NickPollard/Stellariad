@@ -15,8 +15,8 @@ C and only controlled remotely by Lua
 	two_pi = 2.0 * pi
 
 -- Debug settings
-	debug_spawning_disabled	= false
-	debug_doodads_disabled	= false
+	debug_spawning_disabled	= true
+	debug_doodads_disabled	= true
 	debug_player_immortal	= true
 	debug_player_autofly	= true
 	debug_player_immobile	= false
@@ -30,6 +30,7 @@ C and only controlled remotely by Lua
 	future		= require "future"
 	library		= require "library"
 	list		= require "list"
+	option		= require "option"
 	spawn		= require "spawn"
 	timers		= require "timers"
 	triggers	= require "triggers"
@@ -117,7 +118,6 @@ function gameobject_create( model_file )
 	g.physic = vcreatePhysic()
 	g.transform = vcreateTransform()
 	g.body = vcreateBodySphere( g )
-	--g.body = vcreateBodyMesh( g, g.model )
 	vmodel_setTransform( g.model, g.transform )
 	vphysic_setTransform( g.physic, g.transform )
 	vbody_setTransform( g.body, g.transform )
@@ -136,7 +136,6 @@ function gameobject_createAt( model_file, matrix )
 	g.transform = vcreateTransform()
 	vtransform_setWorldSpaceByMatrix( g.transform, matrix )
 	g.body = vcreateBodySphere( g )
-	--g.body = vcreateBodyMesh( g, g.model )
 	vmodel_setTransform( g.model, g.transform )
 	vphysic_setTransform( g.physic, g.transform )
 	vbody_setTransform( g.body, g.transform )
@@ -162,10 +161,8 @@ function gameobject_delete( g )
 		vdeleteModelInstance( g.model )
 		g.model = nil
 	end
-	if g.transform then
-		if vtransform_valid(g.transform) then
-			vdestroyTransform( scene, g.transform )
-		end
+	if vtransform_valid(g.transform) then
+		vdestroyTransform( scene, g.transform )
 		g.transform = nil
 	end
 	if g.physic then
@@ -203,6 +200,7 @@ end
 function findClosestEnemies( transform, count )
 	local targets = array.filter( interceptors, 
 		function ( interceptor )
+			if not vtransform_valid( interceptor.transform ) then return 1000000.0 end
 			local interceptor_position = vtransform_getWorldPosition( interceptor.transform )
 			local current_position = vtransform_getWorldPosition( transform )
 			local displacement = vvector_subtract( interceptor_position, current_position )
@@ -262,15 +260,9 @@ function create_projectile( source, offset, model, speed )
 	local muzzle_matrix = vtransformWorldMatrix( source.transform )
 	vmatrix_setTranslation ( muzzle_matrix, muzzle_world_pos )
 
-	--vtransform_setWorldSpaceByMatrix( projectile.transform, muzzle_matrix )
 	-- Create a new Projectile
 	local projectile = gameobject_createAt( model, muzzle_matrix )
-	
 	projectile.tick = nil
-
-
-	--vtransform_setWorldSpaceByTransform( projectile.transform, source.transform )
-	--vtransform_setWorldPosition( projectile.transform, muzzle_world_pos )
 
 	-- Apply initial velocity
 	local source_velocity = Vector( 0.0, 0.0, speed, 0.0 )
@@ -279,7 +271,6 @@ function create_projectile( source, offset, model, speed )
 
 	-- Store the projectile so it doesn't get garbage collected
 	array.add( missiles, projectile )
-
 	return projectile
 end
 
@@ -341,7 +332,7 @@ end
 
 function homing_missile_tick( target_transform )
 	return function ( missile, dt )
-		if missile.physic and missile.transform and vtransform_valid(target_transform) then
+		if missile.physic and vtransform_valid( target_transform ) and vtransform_valid( missile.transform ) then
 			local current_position = vtransform_getWorldPosition( missile.transform )
 			local target_position = vtransform_getWorldPosition( target_transform )
 			local target_direction = vvector_normalize( vvector_subtract( target_position, current_position ))
@@ -369,7 +360,7 @@ function triggerWhen( trigger, action )
 end
 
 function playership_cleanup( p )
-	if p and p.camera_transform and vtransform_valid( p.camera_transform ) then
+	if p and vtransform_valid( p.camera_transform ) then
 		vdestroyTransform( scene, p.camera_transform )
 	end
 end
@@ -801,25 +792,26 @@ function yaw( ship, dt )
 end
 
 function playership_tick( ship, dt )
+	if ship == nil or ship.transform == nil then return end
 	local yaw_per_second = 1.5 
 	local pitch_per_second = 1.5
 
-	local input_yaw, input_pitch
+	local input_yaw = 0.0
+	local input_pitch = 0.0
 	if debug_player_autofly then
-		local current_pos = vtransform_getWorldPosition( ship.transform )
-		local current_u, current_v = vcanyon_fromWorld( current_pos )
-		local target_delta_v = 50
-		local target_u = 0
-		local target_v = current_v + target_delta_v
-		local x, y, z = vcanyon_position( target_u, target_v )
-		local target_pos = Vector( x, y, z, 1.0 )
-		local m = vmatrix_facing( target_pos, current_pos )
-		local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
-		input_yaw = target_yaw - ship.yaw
-		input_pitch = target_pitch - ship.pitch
+		local option_pos = vtransform_getWorldPosition( ship.transform )
+		option_pos:foreach( function ( p )
+			local current_u, current_v = vcanyon_fromWorld( p )
+			local target_v = current_v + 50
+			local x, y, z = vcanyon_position( 0, target_v )
+			local target_pos = Vector( x, y, z, 1.0 )
+			local m = vmatrix_facing( target_pos, p )
+			local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
+			input_yaw = target_yaw - ship.yaw
+			input_pitch = target_pitch - ship.pitch
+		end )
 	else
 		input_yaw, input_pitch = ship.steering_input()
-		input_pitch = input_pitch
 	end
 
 	-- set to -1.0 to invert
@@ -1139,7 +1131,7 @@ function update_despawns( transform )
 
 	for unit in array.iterator( interceptors ) do
 		-- TODO remove them properly
-		if unit.transform then
+		if vtransform_valid( unit.transform ) then
 			unit_pos = vtransform_getWorldPosition( unit.transform )
 			u,v = vcanyon_fromWorld( unit_pos )
 			if v < despawn_up_to then
@@ -1163,14 +1155,17 @@ function update_despawns( transform )
 end
 
 function update_doodad_despawns( transform ) 
+	if not vtransform_valid(transform) then
+		return
+	end
 	local pos = vtransform_getWorldPosition( transform )
 	local u,v = vcanyon_fromWorld( pos )
 	local despawn_up_to = v - despawn_distance
 
 	for doodad in array.iterator( all_doodads ) do
 		-- TODO remove them properly
-		if doodad.transform then
-			unit_pos = vtransform_getWorldPosition( doodad.transform )
+		if vtransform_valid(doodad.transform) then
+			local unit_pos = vtransform_getWorldPosition( doodad.transform )
 			u,v = vcanyon_fromWorld( unit_pos )
 			if v < despawn_up_to then
 				doodad_delete( doodad )

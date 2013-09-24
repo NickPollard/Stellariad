@@ -37,6 +37,7 @@ typedef struct heightField_s {
 	float width;		// How wide (in game units) - X - the field is
 	float length;		// How long (in game units) - Z - the field is
 	vector *verts;
+	int vert_count;
 	aabb2d	aabb;
 } heightField;
 

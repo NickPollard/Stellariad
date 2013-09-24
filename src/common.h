@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include "lua_debug.h" // For Lua Debugging
 
 #include "common.fwd.h"
 
@@ -69,6 +70,7 @@
 
 #define vAssert( a )	if ( !(a) ) { \
 							printf( "Assert Failed: " #a " (%s:%d)\n", __FILE__, __LINE__ ); \
+							lua_activeStateStack( ); \
 							assert( (a) ); \
 						}
 #define vAssertMsg( a, msg )	if ( !(a) ) { \

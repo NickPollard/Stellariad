@@ -21,11 +21,17 @@ int lua_quaternion_count = 0;
 matrix lua_matrices[kLuaMaxMatrices];
 int lua_matrix_count = 0;
 
+lua_State* active_lua_state = NULL;
+
 const char* game_lua_path = NULL;
 
 void lua_keycodes( lua_State* l );
 
 // *** Helpers ***
+
+void lua_setActiveState( lua_State* l ) {
+	active_lua_state = l;
+}
 
 void luaAssert( lua_State* l, bool condition ) {
 	if ( !condition ) {
@@ -283,12 +289,18 @@ void lua_setGameLuaPath( const char* path ) {
 }
 
 void lua_stacktrace( lua_State* l ) {
-    lua_Debug debug_entry;
-    int depth = 0;
-    while (lua_getstack( l, depth, &debug_entry )) {
-        int status = lua_getinfo( l, "Sln", &debug_entry );
-        vAssert(status);
-        printf( "%s(%d): %s\n", debug_entry.short_src, debug_entry.currentline, debug_entry.name ? debug_entry.name : "?" );
-        depth++;
-    }
+	if ( l ) {
+		lua_Debug debug_entry;
+		int depth = 0;
+		while (lua_getstack( l, depth, &debug_entry )) {
+			int status = lua_getinfo( l, "Sln", &debug_entry );
+			vAssert(status);
+			printf( "%s(%d): %s\n", debug_entry.short_src, debug_entry.currentline, debug_entry.name ? debug_entry.name : "?" );
+			depth++;
+		}
+	}
+}
+
+void lua_activeStateStack() {
+	lua_stacktrace( active_lua_state );
 }

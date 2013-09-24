@@ -15,8 +15,6 @@ end
 function ui.splash( image, w, h )
 	local f = future:new()
 	local color = Vector( 1.0, 1.0, 1.0, 1.0 )
-	vprint( "width: " .. screen_width )
-	vprint( "height: " .. screen_height )
 	local centre_x = screen_width * 0.5
 	local centre_y = screen_height * 0.5
 	local splash = vuiPanel_create_future( engine, image, color, 

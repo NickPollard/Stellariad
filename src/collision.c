@@ -37,7 +37,9 @@ bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, 
 void shape_delete( shape* s );
 
 static inline vector heightField_vertex( heightField* h, int x, int z ) { 
-	return h->verts[x + z * h->x_samples];
+	int index = x + z * h->x_samples;
+	vAssert( index >= 0 && index < h->vert_count );
+	return h->verts[index];
 }
 
 void body_delete( body* b ) {
@@ -50,6 +52,8 @@ void collision_clearEvents() {
 }
 
 void collision_event( body* a, body* b ) {
+	vAssert( event_count >= 0 );
+	vAssert( event_count < kMaxCollisionEvents );
 	collisionEvent* event = &collision_events[event_count++];
 	event->a = a;
 	event->b = b;
@@ -770,8 +774,8 @@ heightField* heightField_create( float width, float length, int x_samples, int z
 	h->length = length;
 	h->x_samples = x_samples;
 	h->z_samples = z_samples;
-	int vert_count = x_samples * z_samples;
-	h->verts =  mem_alloc( sizeof( h->verts[0] ) * vert_count );
+	h->vert_count = x_samples * z_samples;
+	h->verts =  mem_alloc( sizeof( h->verts[0] ) * h->vert_count );
 	return h;
 }
 

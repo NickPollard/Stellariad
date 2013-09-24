@@ -131,19 +131,16 @@ int transform_concatenate(transform* t) {
 // Mark the transform as dirty (needs concatenation)
 void transform_markDirty(transform* t) {
 	t->isDirty = 1;
-//	t->local[3][3] = 2.f;
 }
 
 // Mark the transform as clean (doesn't need concatenation)
 void transform_markClean(transform* t) {
 	t->isDirty = 0;
-//	t->local[3][3] = 1.f;
 }
 
 // Is the transform dirty? (does it need concatenating?)
 int transform_isDirty(transform* t) {
 	return t->isDirty;
-//	return (t->local[3][3] > 1.f);
 }
 
 // Set the translation of the localspace transformation matrix
@@ -191,14 +188,17 @@ void transform_roll( transform* t, float roll ) {
 }
 
 const vector* transform_getWorldPosition( transform* t ) {
+	vAssert( (uintptr_t)t > 0xffff );
 	return matrix_getTranslation( t->world );
 }
 
 const vector* transform_worldTranslation( transform* t ) {
+	vAssert( (uintptr_t)t > 0xffff );
 	return matrix_getTranslation( t->world );
 }
 
 quaternion transform_getWorldRotation( transform* t ) {
+	vAssert( (uintptr_t)t > 0xffff );
 	return matrix_getRotation( t->world );
 }
 
@@ -240,7 +240,11 @@ short transform_uidOfIndex( short index ) {
 }
 
 transform* transform_atIndex( short index ) {
-	return &static_transform_pool->pool[index];
+	vAssert( 0 <= index );
+	vAssert( index < kMaxTransforms );
+	transform* t = &static_transform_pool->pool[index];
+	vAssert( (uintptr_t)t > 0xffff );
+	return t;
 }
 
 short transform_indexOf( transform* t ) {
@@ -253,10 +257,20 @@ transform* transform_fromHandle( transformHandle h ) {
 	// If identical, return it, otherwise null
 	short uid = transformHandle_uid( h );
 	short index = transformHandle_index( h );
+	vAssert( 0 <= index );
+	vAssert( index < kMaxTransforms );
+	transform* t = NULL;
 	if ( !static_transform_pool->free[index] && transform_uidOfIndex( index ) == uid ) {
-		return transform_atIndex( index );
+		t = transform_atIndex( index );
 	}
 	else {
-		return NULL;
+		t = NULL;
 	}
+	if( (uintptr_t)t <= 0xffff ) {
+		printf( "Transform uid: %d.\n", (int)uid );
+		printf( "Transform index: %d.\n", (int)index );
+		printf( "Transform handle: 0x%x.\n", (int)h );
+		printf( "Transform t: 0x" xPTRf ".\n", (uintptr_t)t );
+	}
+	return t;
 }
