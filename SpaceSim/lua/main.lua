@@ -799,8 +799,7 @@ function playership_tick( ship, dt )
 	local input_yaw = 0.0
 	local input_pitch = 0.0
 	if debug_player_autofly then
-		local option_pos = vtransform_getWorldPosition( ship.transform )
-		option_pos:foreach( function ( p )
+		vtransform_getWorldPosition( ship.transform ):foreach( function ( p )
 			local current_u, current_v = vcanyon_fromWorld( p )
 			local target_v = current_v + 50
 			local x, y, z = vcanyon_position( 0, target_v )
@@ -1168,8 +1167,7 @@ function update_doodad_despawns( transform )
 		for doodad in array.iterator( all_doodads ) do
 			-- TODO remove them properly
 			if vtransform_valid(doodad.transform) then
-				local unit_pos = vtransform_getWorldPosition( doodad.transform )
-				unit_pos:foreach( function ( p_ )
+				vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
 					u,v = vcanyon_fromWorld( p_ )
 					if v < despawn_up_to then
 						doodad_delete( doodad )
