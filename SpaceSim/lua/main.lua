@@ -16,7 +16,7 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= true
-	debug_doodads_disabled	= true
+	debug_doodads_disabled	= false
 	debug_player_immortal	= true
 	debug_player_autofly	= true
 	debug_player_immobile	= false
@@ -1108,11 +1108,13 @@ function doodads_spawnRange( near, far )
 end
 
 function update_doodads( transform )
-	local pos = vtransform_getWorldPosition( transform )
-	local u,v = vcanyon_fromWorld( pos )
-	local spawn_up_to = v + doodad_spawn_distance
-	doodads_spawnRange( doodads_spawned, spawn_up_to )
-	doodads_spawned = spawn_up_to
+	local option_pos = vtransform_getWorldPosition( transform )
+	option_pos:foreach( function( p ) 
+		local u,v = vcanyon_fromWorld( p )
+		local spawn_up_to = v + doodad_spawn_distance
+		doodads_spawnRange( doodads_spawned, spawn_up_to )
+		doodads_spawned = spawn_up_to
+	end )
 end
 
 -- Spawn all entities that need to be spawned this frame
@@ -1158,21 +1160,25 @@ function update_doodad_despawns( transform )
 	if not vtransform_valid(transform) then
 		return
 	end
-	local pos = vtransform_getWorldPosition( transform )
-	local u,v = vcanyon_fromWorld( pos )
-	local despawn_up_to = v - despawn_distance
+	local option_pos = vtransform_getWorldPosition( transform )
+	option_pos:foreach( function ( p )
+		local u,v = vcanyon_fromWorld( p )
+		local despawn_up_to = v - despawn_distance
 
-	for doodad in array.iterator( all_doodads ) do
-		-- TODO remove them properly
-		if vtransform_valid(doodad.transform) then
-			local unit_pos = vtransform_getWorldPosition( doodad.transform )
-			u,v = vcanyon_fromWorld( unit_pos )
-			if v < despawn_up_to then
-				doodad_delete( doodad )
-				doodad = nil
+		for doodad in array.iterator( all_doodads ) do
+			-- TODO remove them properly
+			if vtransform_valid(doodad.transform) then
+				local unit_pos = vtransform_getWorldPosition( doodad.transform )
+				unit_pos:foreach( function ( p_ )
+					u,v = vcanyon_fromWorld( p_ )
+					if v < despawn_up_to then
+						doodad_delete( doodad )
+						doodad = nil
+					end
+				end )
 			end
 		end
-	end
+	end )
 end
 
 function interceptor_fire( interceptor )
