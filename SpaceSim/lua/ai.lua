@@ -31,12 +31,14 @@ function ai.state( tick, transition )
 	end
 end
 
+--[[
 function ai.queue3( a, b, c )
 	state_a = ai.state( a, function() return state_b end )
 	state_b = ai.state( b, function() return state_c end )
 	state_c = ai.state( c, function() return nil end )
 	return state_a
 end
+--]]
 
 function ai.queue( ... )
 	return ai.queue_internal( arg )
@@ -89,7 +91,7 @@ function ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, att
 	local attack = nil
 	local flee = nil
 	local flee_distance = 100
-	enter =		ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
+	enter =	ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
 							function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
 									return attack 
 								else 
@@ -97,19 +99,49 @@ function ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, att
 								end 
 							end )
 
-	attack =	ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						
-			function () 
-				local position = vtransform_getWorldPosition( player_ship.transform )
-				local unused, player_v = vcanyon_fromWorld( position ) 
-				position = vtransform_getWorldPosition( interceptor.transform )
-				local unused, interceptor_v = vcanyon_fromWorld( position ) 
-				if interceptor_v - player_v < flee_distance then return flee
-				else return attack end 
-				end )
+	attack = ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						
+		function ()
+			--[[
+		local position = vtransform_getWorldPosition( player_ship.transform )
+		local unused, player_v = vcanyon_fromWorld( position ) 
+		position = vtransform_getWorldPosition( interceptor.transform )
+		local unused, interceptor_v = vcanyon_fromWorld( position ) 
+		if interceptor_v - player_v < flee_distance then return flee
+		else return attack end 
+		--]]
+		return attack
+		end )
+	flee = ai.state( entities.strafeFrom( interceptor, flee_to.x, flee_to.y, flee_to.z ), function () return flee end )
+	return enter
+end
+
+			--[[
+function ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, attack_type, flee_to )
+	local enter = nil
+	local attack = nil
+	local flee = nil
+	enter =	ai.state( entities.strafeTo( move_to.x, move_to.y, move_to.z, attack_target.x, move_to.y, attack_target.z ),		
+		function () if entities.atPosition( interceptor, move_to.x, move_to.y, move_to.z, 5.0 ) then 
+				return attack 
+			else
+				return enter 
+			end
+							end ) 
+	attack = ai.state( attack_type( attack_target.x, attack_target.y, attack_target.z ),						
+		function () 
+			vtransform_getWorldPosition( player_ship.transform ):map( function( p )
+				local unused, player_v = vcanyon_fromWorld( p ) 
+				vtransform_getWorldPosition( interceptor.transform ):map( function( p_ )
+					local unused, interceptor_v = vcanyon_fromWorld( p_ )  
+					return interceptor_v - player_v < 100 and flee or attack
+				end ):getOrElse( attack )
+			end ):getOrElse( attack )
+		end )
 
 	flee = ai.state( entities.strafeFrom( interceptor, flee_to.x, flee_to.y, flee_to.z ), function () return flee end )
 	return enter
 end
+--]]
 
 function ai.strafer_behaviour( strafer, move_to )
 	local strafe = nil
@@ -161,5 +193,11 @@ end
 
 ai.dead = nil
 ai.dead = ai.state( function () end, function () return ai.dead end )
+
+function ai.tick( entity, dt )
+	if entity.behaviour then
+		entity.behaviour = entity.behaviour( entity, dt )
+	end
+end
 
 return ai

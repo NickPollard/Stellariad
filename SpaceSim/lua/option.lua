@@ -45,7 +45,7 @@ function option:orElse( b )
 end
 
 function option:getOrElse( b )
-	if self.some then
+	if self.isSome then
 		return self:get()
 	else
 		return b

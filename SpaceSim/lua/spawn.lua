@@ -229,10 +229,12 @@ local type_strafer = {
 function spawn.triggeredSpawn( v, player_speed, func )
 	local trigger_v = v + vrand( spawn.random, 0.0, 2.0 ) - ( 300.0 + player_speed * 5 )
 	triggerWhen( function()
-			local unused, player_v = vcanyon_fromWorld( vtransform_getWorldPosition( player_ship.transform ))
+		return vtransform_getWorldPosition( player_ship.transform ):map( function( p )
+			local unused, player_v = vcanyon_fromWorld( p )
 			return player_v > trigger_v
-		end,
-		func )
+		end ):getOrElse( false )
+	end,
+	func )
 end
 
 function spawn.spawnInterceptor( u, v, height, enemy_type )
@@ -243,7 +245,7 @@ function spawn.spawnInterceptor( u, v, height, enemy_type )
 	local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset )
 	move_to = { x = x, y = y + height, z = z }
 
-	local interceptor = create_interceptor( enemy_type )
+	local interceptor = spawn.create_interceptor( enemy_type )
 
 	vtransform_setWorldPosition( interceptor.transform, spawn_position )
 	local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
@@ -261,7 +263,7 @@ function spawn.spawnStrafer( u, v, height, enemy_type )
 	move_y = move_y + height
 	local move_to = { x = move_x, y = move_y, z = move_z }
 
-	local strafer = create_interceptor( enemy_type )
+	local strafer = spawn.create_interceptor( enemy_type )
 	vtransform_setWorldPosition( strafer.transform, spawn_position )
 	strafer.behaviour = ai.strafer_behaviour( strafer, move_to )
 end
@@ -274,7 +276,7 @@ end
 
 function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
-	if r > 0.8 then
+	if r > 0.08 then
 		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnStrafer( coord.u, coord.v, coord.y, type_strafer ) end) end, spawn.positionerStrafer
 	elseif r > 0.5 then
 		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnInterceptor( coord.u, coord.v, coord.y, type_interceptor_missile ) end) end, spawn.positionerInterceptor
@@ -297,6 +299,31 @@ function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
 		i = i + 1
 	end
 	return group
+end
+
+function spawn.create_interceptor( enemy_type )
+	local interceptor = spawn.create_enemy( enemy_type )
+	array.add( interceptors, interceptor )
+	return interceptor
+end
+
+function spawn.create_enemy( enemy_type )
+	local enemy = gameobject_create( enemy_type.model )
+	
+	-- Collision
+	vbody_registerCollisionCallback( enemy.body, ship_collisionHandler )
+	vbody_setLayers( enemy.body, collision_layer_enemy )
+	vbody_setCollidableLayers( enemy.body, collision_layer_player )
+
+	-- Movement
+	enemy.speed = enemy_type.speed
+	enemy.acceleration = enemy_type.acceleration
+
+	-- Activate
+	enemy.cooldown = 0.0
+	enemy.tick = ai.tick
+
+	return enemy
 end
 
 return spawn

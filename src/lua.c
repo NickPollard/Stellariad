@@ -289,6 +289,7 @@ void lua_setGameLuaPath( const char* path ) {
 }
 
 void lua_stacktrace( lua_State* l ) {
+	printf( "#### Lua Stacktrace ####\n" );
 	if ( l ) {
 		lua_Debug debug_entry;
 		int depth = 0;
@@ -299,6 +300,7 @@ void lua_stacktrace( lua_State* l ) {
 			depth++;
 		}
 	}
+	printf( "########################\n" );
 }
 
 void lua_activeStateStack() {
