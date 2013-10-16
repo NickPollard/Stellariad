@@ -45,7 +45,7 @@ void main() {
 #else
 	// light-invariant calculations
 	vec4 view_direction = normalize( frag_position );
-
+	vec4 material_diffuse = texture2D( tex, texcoord );
 	vec4 total_light_color = light_ambient;
 
 	// Directional light
@@ -60,8 +60,8 @@ void main() {
 		vec4 spec_bounce = reflect( light_direction, cameraSpace_frag_normal );
 		float spec = max( 0.0, dot( spec_bounce, -view_direction ));
 		float shininess = 10.0;
-		float specular = pow( spec, shininess );
-		total_light_color += directional_light_specular * pow( spec, shininess );
+		//float specular = pow( spec, shininess );
+		total_light_color += directional_light_specular * pow( spec, shininess ) * material_diffuse.a;
 #endif
 	}
 #ifdef POINT_LIGHTS	
@@ -86,7 +86,6 @@ void main() {
 	}
 #endif
 
-	vec4 material_diffuse = texture2D( tex, texcoord );
 	vec4 fragColor =	total_light_color * material_diffuse;
 	
 	// sunlight on fog
@@ -95,6 +94,7 @@ void main() {
 
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
 	gl_FragColor.w = 1.0;
+	//gl_FragColor = vec4( 0.0, 0.0, material_diffuse.a, 1.0 );
 #endif
 
 }
