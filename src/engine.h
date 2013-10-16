@@ -68,6 +68,7 @@ struct engine_s {
 	lua_State* lua;					//!< Engine wide persistant lua state
 	luaInterface* callbacks;		//!< Lua Interface for callbacks from the engine
 	luaCallback* onTick;			//!< OnTick event handler
+	const char* script_file;
 
 	delegatelist* tickers;	
 	delegatelist* post_tickers;	

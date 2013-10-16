@@ -43,6 +43,8 @@
 
 IMPLEMENT_LIST(delegate)
 
+#define kNumWorkerThreads 2
+
 // System libraries
 
 // *** Static Hacks
@@ -221,12 +223,13 @@ void engine_handleKeyPress(engine* e, uchar key, int x, int y) {
 	}
 }
 
+
 // Initialise the Lua subsystem so that it is ready for use
 void engine_initLua(engine* e, int argc, char** argv) {
 	(void)argc;
 	(void)argv;
 	lua_setGameLuaPath( "SpaceSim/lua/" );
-	e->lua = vlua_create( e, "SpaceSim/lua/main.lua" );
+	e->lua = vlua_create( e, e->script_file );
 }
 
 // Create a new engine
@@ -246,7 +249,6 @@ engine* engine_create() {
 
 // Initialise the engine
 void engine_init(engine* e, int argc, char** argv) {
-
 	e->running = true;
 
 	timer_init(e->timer);
@@ -256,20 +258,11 @@ void engine_init(engine* e, int argc, char** argv) {
 	vfile_systemInit();
 
 	// *** Initialise OpenGL
-	// On Android this is done in response to window events
-	// see Android.c
+	// On Android this is done in response to window events : see Android.c
 #ifndef ANDROID
-	//render_init();
-	// Kick off rendering thread
-	// Pass a pointer to the engine as args
-	vthread render_thread = vthread_create( render_renderThreadFunc, (void*)e );
-	(void)render_thread;
-	// Wait for initialization to finish
-	while ( !render_initialised ) {
-//		printf( "blarg.\n" );
-		vthread_waitCondition( finished_render );
-//		sleep( 0 );
-	}
+	// Start render thread & wait for initialization to finish
+	vthread_create( render_renderThreadFunc, (void*)e );
+	while ( !render_initialised ) vthread_waitCondition( finished_render );
 #endif // ANDROID
 
 	// *** Start up Core Systems
@@ -279,6 +272,11 @@ void engine_init(engine* e, int argc, char** argv) {
 	//font_init();
 
 	// *** Initialise Lua
+	e->script_file = "SpaceSim/lua/main.lua";
+	if ( argc > 1 ) {
+		printf( "Setting script file: %s\n", argv[1] );
+		e->script_file = argv[1];
+	}
 	engine_initLua(e, argc, argv);
 	luaInterface_registerCallback(e->callbacks, "onTick", "tick");
 
@@ -286,7 +284,6 @@ void engine_init(engine* e, int argc, char** argv) {
 	canyon_staticInit();
 	canyon_generateInitialPoints();
 
-#define kNumWorkerThreads 2
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
 		vthread_create( worker_threadFunc, NULL );
 	}
@@ -298,7 +295,6 @@ void engine_init(engine* e, int argc, char** argv) {
 // Initialises the application
 // Static Initialization should happen here
 void init(int argc, char** argv) {
-
 	// *** Initialise Memory
 	mem_init( argc, argv );
 	string_staticInit();
@@ -539,7 +535,6 @@ delegate* engine_findInputDelegate( engine* e, inputfunc in ) {
 delegate* engine_addDelegate( delegatelist** d, void* func ) {
 	delegatelist* dl = *d;
 	if ( !*d ) {
-//		*d = mem_alloc( sizeof( delegatelist ));
 		*d = delegatelist_create();
 		dl = *d;
 	}
