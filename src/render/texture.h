@@ -8,6 +8,7 @@
 
 // Globals
 extern texture* static_texture_default;
+extern texture* static_texture_reflective;
 
 void texture_staticInit();
 

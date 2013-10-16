@@ -16,6 +16,7 @@ typedef struct sceneParams_s sceneParams;
 	f( projection ) \
 	f( modelview ) \
 	f( worldspace ) \
+	f( camera_to_world ) \
 	f( light_position ) \
 	f( light_diffuse ) \
 	f( light_specular ) \
@@ -56,29 +57,18 @@ typedef struct sceneParams_s sceneParams;
 typedef struct gl_resources_s {
 	GLuint vertex_buffer[kVboCount];
 	GLuint element_buffer[kVboCount];
-	GLuint texture;
+	//GLuint texture;
 
-	struct {
-		SHADER_UNIFORMS( DECLARE_AS_GLINT_P )
-	} uniforms;
-	struct {
-		SHADER_UNIFORMS( DECLARE_AS_GLINT_P )
-	} particle_uniforms;
-
-	struct {
-		VERTEX_ATTRIBS( DECLARE_AS_GLINT_P )
-			/*
-		GLint position;
-		GLint normal;
-		GLint uv;
-		*/
-	} attributes;
+	struct { SHADER_UNIFORMS( DECLARE_AS_GLINT_P ) } uniforms;
+	struct { SHADER_UNIFORMS( DECLARE_AS_GLINT_P ) } particle_uniforms;
+	struct { VERTEX_ATTRIBS( DECLARE_AS_GLINT_P ) } attributes;
 
 	// Shader objects
 	GLuint vertex_shader, fragment_shader, program;
 	GLuint particle_vertex_shader, particle_fragment_shader, particle_program;
 
 	shader* shader_default;
+	shader* shader_reflective;
 	shader* shader_particle;
 	shader* shader_terrain;
 	shader* shader_skybox;

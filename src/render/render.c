@@ -49,7 +49,7 @@ frame_timer* gpu_fps_timer = NULL;
 
 // *** Shader Pipeline
 
-matrix modelview, camera_mtx, camera_inverse;
+matrix modelview, camera_mtx, camera_inverse, camera_matrix;
 matrix perspective;
 vector viewspace_up;
 vector directional_light_direction;
@@ -352,6 +352,7 @@ void render_createWindow( void* app, window* w ) {
 void render_buildShaders() {
 	// Load Shaders								Vertex								Fragment
 	resources.shader_default	= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
+	resources.shader_reflective	= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
 	resources.shader_particle	= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
 	resources.shader_terrain	= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox		= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
@@ -369,7 +370,7 @@ void render_buildShaders() {
 }
 
 #define kMaxDrawCalls 2048
-#define kCallBufferCount 8		// Needs to be at least as many as we have shaders
+#define kCallBufferCount 12		// Needs to be at least as many as we have shaders
 // Each shader has it's own buffer for drawcalls
 // This means drawcalls get batched by shader
 drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
@@ -653,6 +654,7 @@ void render( scene* s ) {
 	render_validateMatrix( cam->trans->world );
 	matrix_cpy( camera_mtx, cam->trans->world );
 	matrix_inverse( camera_inverse, cam->trans->world );
+	matrix_cpy( camera_matrix, cam->trans->world );
 	render_resetModelView();
 	render_validateMatrix( modelview );
 
@@ -811,6 +813,7 @@ void render_drawCallBatch( window* w, int count, drawCall* calls ) {
 	// Set up uniform matrices
 	render_setUniform_matrix( *resources.uniforms.projection,	perspective );
 	render_setUniform_matrix( *resources.uniforms.worldspace,	modelview );
+	render_setUniform_matrix( *resources.uniforms.camera_to_world, camera_matrix );
 	render_setUniform_vector( *resources.uniforms.viewspace_up, &viewspace_up );
 	render_setUniform_vector( *resources.uniforms.directional_light_direction, &directional_light_direction );
 	vector screen_size = Vector( w->width, w->height, 0.f, 0.f );

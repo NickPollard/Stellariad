@@ -23,6 +23,7 @@ void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap,
 
 // Globals
 texture* static_texture_default = NULL;
+texture* static_texture_reflective = NULL;
 vmutex	texture_mutex = kMutexInitialiser;
 static heapAllocator*	texture_heap = NULL;
 
@@ -375,6 +376,7 @@ void texture_staticInit() {
 	textureCache_init();
 
 	static_texture_default = texture_load( "dat/img/test64rgba.tga" );
+	static_texture_reflective = texture_load( "dat/img/CGSkies_0037_free.tga" );
 
 	memset( requests, 0, sizeof( textureRequest ) * kMaxTextureRequests );
 }
