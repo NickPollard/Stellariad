@@ -67,8 +67,7 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->element_buffer = NULL;
 
 	m->texture_diffuse = static_texture_default;
-	//m->shader = resources.shader_default;
-	m->shader = resources.shader_reflective;
+	m->shader = resources.shader_default;
 	vAssert( m->shader );
 
 	m->vertex_VBO = 0;

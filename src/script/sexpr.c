@@ -8,6 +8,7 @@
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/render.h"
 #include "render/texture.h"
 #include "system/hash.h"
 #include "system/file.h"
@@ -159,6 +160,12 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 	if ( diffuse_term ) {
 		vAssert( diffuse_term->child );
 		m->texture_diffuse = texture_load( diffuse_term->child->value );
+	}
+	
+	sexpr* shader_term = sexpr_findChildNamed( "shader", s );
+	if ( shader_term ) {
+		vAssert( shader_term->child );
+		m->shader = render_shaderByName( shader_term->child->value );
 	}
 	
 	return m;

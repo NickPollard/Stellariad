@@ -209,3 +209,5 @@ void* render_renderThreadFunc( void* args );
 // Manage render windows
 void render_destroyWindow( window* w );
 
+// Find a shader by it's name
+shader* render_shaderByName( const char* name );

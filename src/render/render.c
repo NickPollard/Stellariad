@@ -19,6 +19,7 @@
 #include "render/texture.h"
 #include "system/file.h"
 #include "system/hash.h"
+#include "system/string.h"
 // temp
 #include "engine.h"
 
@@ -367,6 +368,15 @@ void render_buildShaders() {
 	assert( resources.uniforms.var != NULL );
 	SHADER_UNIFORMS( GET_UNIFORM_LOCATION )
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
+}
+
+shader* render_shaderByName( const char* name ) {
+	if (string_equal(name, "phong"))
+		return resources.shader_default;
+	else if (string_equal(name, "reflective"))
+		return resources.shader_reflective;
+	else
+		return resources.shader_default;
 }
 
 #define kMaxDrawCalls 2048
