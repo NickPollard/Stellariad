@@ -48,7 +48,9 @@ void main() {
 	vec2 refl_coord = vec2( refl_bounce.x, abs(refl_bounce.y));
 	vec4 reflection = texture2D( tex_b, refl_coord ) * material_diffuse.a;
 
-	vec4 fragColor = total_light_color * material_diffuse + reflection;
+	float fresnel = 0.5 + 0.5 * clamp(1.0 - dot( -view_direction, cameraSpace_frag_normal ), 0.0, 1.0);
+
+	vec4 fragColor = total_light_color * material_diffuse + reflection * fresnel;
 	vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, view_direction ));
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
 }
