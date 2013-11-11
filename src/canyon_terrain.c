@@ -888,6 +888,12 @@ void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	(void)dt;
 	(void)eng;
 	canyonTerrain* t = data;
+
+	vector v = Vector( 0.0, 0.0, 30.0, 1.0 );
+	t->sample_point = matrix_vecMul( theScene->cam->trans->world, &v );
+	canyon_seekForWorldPosition( t->sample_point );
+	zone_sample_point = t->sample_point;
+
 	canyonTerrain_updateBlocks( t );
 }
 

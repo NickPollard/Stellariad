@@ -2,5 +2,5 @@
 while /bin/true
 do
 inotifywait -rqq -e close_write src
-make debug 2>&1 | sed -e 's/[a-zA-Z]*\/[a-zA-Z]*.\(c\|h\)/\x1b[31m&\x1b[0m/'
+make debug 2>&1 | sed -e 's/[a-zA-Z_]*\/[a-zA-Z_]*\.\(c\|h\|o\)/\x1b[31m&\x1b[0m/'
 done

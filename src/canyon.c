@@ -456,8 +456,10 @@ void canyon_tick( void* canyon_data, float dt, engine* eng ) {
 	canyonZone_tick( c, dt );
 }
 
-canyon* canyon_create() {
+canyon* canyon_create( scene* s, const char* file ) {
 	canyon* c = mem_alloc( sizeof( canyon ));
 	memset( c, 0, sizeof( canyon ));
+	c->scene = s;
+	canyonZone_load( c, file );
 	return c;
 }

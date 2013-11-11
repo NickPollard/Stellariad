@@ -18,10 +18,10 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= true
-	debug_doodads_disabled	= false
+	debug_doodads_disabled	= true
 	debug_player_immortal	= true
 	debug_player_autofly	= false
-	debug_player_immobile	= false
+	debug_player_immobile	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -51,7 +51,7 @@ C and only controlled remotely by Lua
 	collision_layer_terrain	= 8
 
 -- Camera
-	camera		= "chase"
+	camera		= "fly"
 	flycam		= nil
 	chasecam 	= nil
 
@@ -62,6 +62,7 @@ C and only controlled remotely by Lua
 	all_doodads			= { count = 0 }
 
 -- Settings
+	player_ship_model = "dat/model/cube.s"
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
@@ -372,7 +373,7 @@ end
 
 -- Create a player. The player is a specialised form of Gameobject
 function playership_create()
-	local p = gameobject_create( "dat/model/ship_new.s" )
+	local p = gameobject_create( player_ship_model )
 	p.speed = 0.0
 	p.cooldown = 0.0
 	p.missile_cooldown = 0.0
@@ -528,7 +529,7 @@ function restart()
 
 	chasecam = vchasecam_follow( engine, player_ship.camera_transform )
 	flycam = vflycam( engine )
-	vscene_setCamera( chasecam )
+	vscene_setCamera( flycam )
 	setup_controls()
 end
 
@@ -807,6 +808,7 @@ function playership_tick( ship, dt )
 
 	local input_yaw = 0.0
 	local input_pitch = 0.0
+	--[[
 	if debug_player_autofly then
 		vtransform_getWorldPosition( ship.transform ):foreach( function ( p )
 			local current_u, current_v = vcanyon_fromWorld( p )
@@ -821,17 +823,19 @@ function playership_tick( ship, dt )
 	else
 		input_yaw, input_pitch = ship.steering_input()
 	end
+	--]]
 
 	-- set to -1.0 to invert
 	local invert_pitch = 1.0
 	local pitch = invert_pitch * input_pitch * pitch_per_second * dt;
-	local yaw_delta = input_yaw * yaw_per_second * dt;
+	local yaw_delta = 1.0 * yaw_per_second * dt;
 
 	-- pitch
 	ship.pitch = ship.pitch + pitch
 
 	local strafe = 0.0
 
+	--[[
 	if not ship.aileron_roll then
 		local aileron_roll_left = false
 		local aileron_roll_right = false
@@ -849,6 +853,7 @@ function playership_tick( ship, dt )
 			ship_aileronRoll( ship, -1.0 )
 		end
 	end
+	--]]
 
 	ship.yaw_history[ship.yaw_history_index ] = ship.yaw
 	ship.yaw_history_index = ( ship.yaw_history_index ) % 10 + 1
@@ -898,7 +903,7 @@ function playership_tick( ship, dt )
 	delta_speed = player_ship_acceleration * dt;
 	ship.speed = math.min( ship.speed + delta_speed, player_ship_max_speed )
 
-	playership_weaponsTick( ship, dt )
+	--playership_weaponsTick( ship, dt )
 
 	-- Physics
 	local forward_v = vtransformVector( ship.transform, Vector( 0.0, 0.0, ship.speed, 0.0 ))
@@ -906,7 +911,7 @@ function playership_tick( ship, dt )
 	local world_v = vvector_add( forward_v, strafe_v )
 
 	if ship.physic then
-		vphysic_setVelocity( ship.physic, world_v )
+		--vphysic_setVelocity( ship.physic, world_v )
 	end
 end
 

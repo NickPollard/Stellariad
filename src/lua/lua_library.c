@@ -835,6 +835,19 @@ int LUA_body_setCollidableLayers( lua_State* l ) {
 	return 0;
 }
 
+int LUA_createCanyon(lua_State* l) {
+	engine* e = lua_toptr( l, 1 );
+	scene* s = lua_toptr( l, 2 );
+	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
+	startTick( e, c, canyon_tick );
+	
+	canyonTerrain* t = canyonTerrain_create( c, 14, 18, 40, 40, 640.f, 960.f );
+	canyonTerrain_setLodIntervals( t, 1, 3 );
+	startTick( e, (void*)t, canyonTerrain_tick );
+	engine_addRender( e, (void*)t, canyonTerrain_render );
+	return 0;
+}
+
 int LUA_debugdraw_cross( lua_State* l ) {
 	vector* center = lua_toptr( l, 1 );
 	float radius = lua_tonumber( l, 2 );
@@ -1054,6 +1067,7 @@ void lua_keycodes( lua_State* l ) {
 	lua_setglobal( l, "key" ); // store the table in the 'key' global variable
 }
 
+
 void luaLibrary_import( lua_State* l ) {
 
 	/////////////// Functions /////////////////
@@ -1113,6 +1127,9 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_scene_addModel, "vscene_addModel" );
 	lua_registerFunction( l, LUA_scene_removeModel, "vscene_removeModel" );
 	lua_registerFunction( l, LUA_texturePreload, "vtexture_preload" );
+
+	// *** Terrain
+	lua_registerFunction( l, LUA_createCanyon, "vcanyon_create" );
 
 	// *** Physic
 	lua_registerFunction( l, LUA_createphysic, "vcreatePhysic" );

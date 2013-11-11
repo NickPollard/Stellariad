@@ -17,11 +17,11 @@ C and only controlled remotely by Lua
 	local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
 
 -- Debug settings
-	debug_spawning_disabled	= false
-	debug_doodads_disabled	= false
+	debug_spawning_disabled	= true
+	debug_doodads_disabled	= true
 	debug_player_immortal	= false
 	debug_player_autofly	= false
-	debug_player_immobile	= false
+	debug_player_immobile	= true
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"
@@ -59,9 +59,11 @@ C and only controlled remotely by Lua
 	missiles		= { count = 0 }
 	turrets			= { count = 0 }
 	interceptors	= { count = 0 }
-	all_doodads			= { count = 0 }
+	all_doodads		= { count = 0 }
 
 -- Settings
+	player_ship_model = "dat/model/ship_warthog.s"
+	--player_ship_model = "dat/model/cube.s"
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
@@ -372,7 +374,7 @@ end
 
 -- Create a player. The player is a specialised form of Gameobject
 function playership_create()
-	local p = gameobject_create( "dat/model/ship_new.s" )
+	local p = gameobject_create( player_ship_model )
 	p.speed = 0.0
 	p.cooldown = 0.0
 	p.missile_cooldown = 0.0
@@ -630,6 +632,7 @@ end
 
 function start()
 	fx.preload()
+	vcanyon_create(engine, scene)
 
 	test()
 

@@ -49,7 +49,6 @@ IMPLEMENT_LIST(delegate)
 
 // *** Static Hacks
 scene* theScene = NULL;
-canyonTerrain* theCanyonTerrain = NULL;
 
 #ifdef LINUX_X
 xwindow xwindow_main = { NULL, 0x0, false };
@@ -76,20 +75,6 @@ frame_timer* fps_timer;
 void test_engine_init( engine* e ) {
 	theScene = test_scene_init( e );
 	lua_setScene( e->lua, theScene );
-
-	{
-		canyon* c = canyon_create();
-		c->scene = theScene;
-		canyonZone_load( c, "dat/script/lisp/canyon_zones.s" );
-		startTick( e, c, canyon_tick );
-		
-		//canyonTerrain* t = canyonTerrain_create( c, 7, 9, 48, 48, 640.f, 960.f );
-		canyonTerrain* t = canyonTerrain_create( c, 14, 18, 40, 40, 640.f, 960.f );
-		canyonTerrain_setLodIntervals( t, 1, 3 );
-		startTick( e, (void*)t, canyonTerrain_tick );
-		engine_addRender( e, (void*)t, canyonTerrain_render );
-		theCanyonTerrain = t;
-	}
 
 #ifdef GRAPH_FPS
 #define kMaxFPSFrames 256
@@ -193,14 +178,6 @@ void engine_tick( engine* e ) {
 	//countVisibleParticleEmitters( e );
 	//countActiveParticleEmitters( e );
 
-
-
-	vector v = Vector( 0.0, 0.0, 30.0, 1.0 );
-	theCanyonTerrain->sample_point = matrix_vecMul( theScene->cam->trans->world, &v );
-	//const vector* camera_position = matrix_getTranslation( theScene->cam->trans->world );
-	//canyon_seekForWorldPosition( *camera_position );
-	canyon_seekForWorldPosition( theCanyonTerrain->sample_point );
-	zone_sample_point = theCanyonTerrain->sample_point;
 	PROFILE_END( PROFILE_ENGINE_TICK );
 }
 
@@ -454,7 +431,7 @@ void engine_run(engine* e) {
 			usleep( 2 );
 		}
 #ifndef ANDROID
-		//usleep( 10000 );
+		usleep( 10000 );
 #endif
 
 #if PROFILE_ENABLE
