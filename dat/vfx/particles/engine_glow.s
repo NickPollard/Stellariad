@@ -6,7 +6,7 @@
 												(0.1 0.4 0.4 0.4 0.0)
 												(0.2 0.1 0.2 0.3 0.0)
 												(0.4 0.0 0.1 0.3 0.0)
-												(0.5 0.0 0.0 0.3 0.0)))))
+												(0.5 0.2 0.0 0.3 0.0)))))
 			(attribute "lifetime" 0.5)
 			(attribute "texture" "dat/img/lensflare.tga")
 			(attribute "spawn_rate" (property (quote ((0.0 10.0)))))
