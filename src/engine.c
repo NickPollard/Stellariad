@@ -249,7 +249,7 @@ void engine_init(engine* e, int argc, char** argv) {
 	//font_init();
 
 	// *** Initialise Lua
-	e->script_file = "SpaceSim/lua/main.lua";
+	e->script_file = "SpaceSim/lua/test.lua";
 	if ( argc > 1 ) {
 		printf( "Setting script file: %s\n", argv[1] );
 		e->script_file = argv[1];

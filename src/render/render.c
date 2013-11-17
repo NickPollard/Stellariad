@@ -354,6 +354,7 @@ void render_buildShaders() {
 	// Load Shaders								Vertex								Fragment
 	resources.shader_default	= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
 	resources.shader_reflective	= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
+	resources.shader_refl_normal= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
 	resources.shader_particle	= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
 	resources.shader_terrain	= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox		= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
@@ -375,6 +376,8 @@ shader* render_shaderByName( const char* name ) {
 		return resources.shader_default;
 	else if (string_equal(name, "reflective"))
 		return resources.shader_reflective;
+	else if (string_equal(name, "refl_normal"))
+		return resources.shader_refl_normal;
 	else
 		return resources.shader_default;
 }
@@ -800,10 +803,10 @@ void render_drawBatch( drawCall* draw ) {
 		if ( *resources.uniforms.tex_d ) {
 			render_setUniform_texture( *resources.uniforms.tex_d,		draw->texture_d );
 		}
-		/*
 		if ( *resources.uniforms.tex_normal ) {
 			render_setUniform_texture( *resources.uniforms.tex_normal,		draw->texture_normal );
 		}
+		/*
 		if ( *resources.uniforms.tex_b_normal ) {
 			render_setUniform_texture( *resources.uniforms.tex_b_normal,	draw->texture_b_normal );
 		}

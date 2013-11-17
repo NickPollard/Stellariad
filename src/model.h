@@ -37,6 +37,7 @@ struct mesh_s {
 	unsigned short*	element_buffer;
 
 	texture*		texture_diffuse;
+	texture*		texture_normal;
 
 	//
 	GLuint*		vertex_VBO;

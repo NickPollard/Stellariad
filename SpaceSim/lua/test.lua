@@ -62,7 +62,7 @@ C and only controlled remotely by Lua
 	all_doodads			= { count = 0 }
 
 -- Settings
-	player_ship_model = "dat/model/cube.s"
+	player_ship_model = "dat/model/skyscraper_blocks.s"
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
@@ -890,6 +890,8 @@ function playership_tick( ship, dt )
 		local roll_offset = library.modf( ship.roll + pi, two_pi ) - pi
 		camera_roll = roll_offset * camera_roll_scale
 	end
+
+	ship.roll = 0.0
 	
 	vtransform_eulerAngles( ship.transform, ship.yaw, ship.pitch, ship.roll )
 	-- Camera transform shares ship position and yaw, pitch; but not roll

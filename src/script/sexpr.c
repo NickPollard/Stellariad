@@ -161,6 +161,12 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 		vAssert( diffuse_term->child );
 		m->texture_diffuse = texture_load( diffuse_term->child->value );
 	}
+
+	sexpr* normal_term = sexpr_findChildNamed( "normal_texture", s );
+	if ( normal_term ) {
+		vAssert( normal_term->child );
+		m->texture_normal = texture_load( normal_term->child->value );
+	}
 	
 	sexpr* shader_term = sexpr_findChildNamed( "shader", s );
 	if ( shader_term ) {

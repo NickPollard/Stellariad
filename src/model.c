@@ -67,6 +67,7 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->element_buffer = NULL;
 
 	m->texture_diffuse = static_texture_default;
+	m->texture_normal = texture_load( "dat/img/terrain/cliff_normal.tga" ); // TODO - from model file
 	m->shader = resources.shader_default;
 	vAssert( m->shader );
 
@@ -152,6 +153,7 @@ void mesh_render( mesh* m ) {
 		vAssert( *m->element_VBO != 0 );
 		drawCall* draw = drawCall_create( &renderPass_main, m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
+		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
 		//drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );

@@ -69,6 +69,7 @@ typedef struct gl_resources_s {
 
 	shader* shader_default;
 	shader* shader_reflective;
+	shader* shader_refl_normal;
 	shader* shader_particle;
 	shader* shader_terrain;
 	shader* shader_skybox;
