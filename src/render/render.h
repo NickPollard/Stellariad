@@ -74,6 +74,7 @@ typedef struct gl_resources_s {
 	shader* shader_terrain;
 	shader* shader_skybox;
 	shader* shader_ui;
+	shader* shader_gaussian;
 	shader* shader_filter;
 	shader* shader_debug;
 	shader* shader_debug_2d;
@@ -113,6 +114,7 @@ extern renderPass renderPass_ui;
 extern renderPass renderPass_debug;
 extern sceneParams sceneParams_main;
 extern window window_main;
+extern bool draw_bloom_filter;
 
 void render_setBuffers( float* vertex_buffer, int vertex_buffer_size, int* element_buffer, int element_buffer_size );
 

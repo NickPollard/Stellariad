@@ -96,6 +96,9 @@ void input_initKeyCodes( xwindow* xwin ) {
 	key_codes[KEY_W] = XKeysymToKeycode( xwin->display, XK_W );
 	key_codes[KEY_S] = XKeysymToKeycode( xwin->display, XK_S );
 	key_codes[KEY_A] = XKeysymToKeycode( xwin->display, XK_A );
+	key_codes[KEY_B] = XKeysymToKeycode( xwin->display, XK_B );
+	key_codes[KEY_T] = XKeysymToKeycode( xwin->display, XK_T );
+	key_codes[KEY_L] = XKeysymToKeycode( xwin->display, XK_L );
 	key_codes[KEY_D] = XKeysymToKeycode( xwin->display, XK_D );
 	key_codes[KEY_Q] = XKeysymToKeycode( xwin->display, XK_Q );
 	key_codes[KEY_E] = XKeysymToKeycode( xwin->display, XK_E );

@@ -39,6 +39,9 @@
 #endif
 
 bool	render_initialised = false;
+bool	draw_bloom_filter = true;
+
+const int downscale = 1;
 
 #ifdef GRAPH_GPU_FPS
 graph* gpu_fpsgraph; 
@@ -87,7 +90,7 @@ typedef struct bufferCopyRequest_s {
 	GLsizei		size;
 } bufferCopyRequest;
 
-#define	kMaxBufferRequests	512
+#define	kMaxBufferRequests	1024
 bufferRequest	buffer_requests[kMaxBufferRequests];
 int				buffer_request_count = 0;
 
@@ -359,6 +362,7 @@ void render_buildShaders() {
 	resources.shader_terrain	= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox		= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
 	resources.shader_ui			= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
+	resources.shader_gaussian	= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
 	resources.shader_filter		= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
 	resources.shader_debug		= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
 	resources.shader_debug_2d	= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
@@ -371,6 +375,7 @@ void render_buildShaders() {
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
 }
 
+// TODO - hashmap
 shader* render_shaderByName( const char* name ) {
 	if (string_equal(name, "phong"))
 		return resources.shader_default;
@@ -497,43 +502,65 @@ void render_clear() {
 	GLuint render_frame_buffer;
 	GLuint render_texture;
 	GLuint render_depth_buffer;
+	GLuint render_depth_texture;
 
 void render_initFrameBuffer( window w ) {
-	glGenFramebuffers( 1, &render_frame_buffer );
-	glGenTextures( 1, &render_texture );
-	glGenRenderbuffers( 1, &render_depth_buffer );
+	int width = w.width / downscale;
+	int height = w.height / downscale;
 
 	// Create Frame Buffer
+	glGenFramebuffers( 1, &render_frame_buffer );
 	glBindFramebuffer( GL_FRAMEBUFFER, render_frame_buffer );
-	// Create render texture
-	glBindTexture( GL_TEXTURE_2D, render_texture );
 
-	// Set up sampling parameters, use defaults for now
-	// Bilinear interpolation, clamped
+	// Create render texture
+	glGenTextures( 1, &render_texture );
+	glBindTexture( GL_TEXTURE_2D, render_texture );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE );
 
-	int width = w.width;
-	int height = w.height;
-
 	glTexImage2D( GL_TEXTURE_2D,
 		   			0,			// No Mipmaps for now
-					GL_RGBA,	// 3-channel, 8-bits per channel (32-bit stride)
+					GL_RGB,	// 3-channel, 8-bits per channel (32-bit stride)
 					width, height,
 					0,			// Border, unused
-					GL_RGBA,		// TGA uses BGR order internally
+					GL_RGB,		// TGA uses BGR order internally
 					GL_UNSIGNED_BYTE,	// 8-bits per channel
 					NULL );
 
 
-	// Attach render texture to framebuffer
-	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
-	// Generate and Attach Depth Buffer to framebuffer
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
+#if 0
+	glGenRenderbuffers( 1, &render_depth_buffer );
 	glBindRenderbuffer( GL_RENDERBUFFER, render_depth_buffer );
 	glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height );
 	glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth_buffer );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
+#else 
+	glGenTextures( 1, &render_depth_texture );
+	glBindTexture( GL_TEXTURE_2D, render_depth_texture );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE );
+	glTexImage2D( GL_TEXTURE_2D,
+		   			0,						// No Mipmaps for now
+					GL_DEPTH_COMPONENT,
+					width, height,
+					0,						// Border, unused
+					GL_DEPTH_COMPONENT,
+					GL_UNSIGNED_SHORT,		// 16-bits
+					NULL );
+
+	// Attach render texture to framebuffer
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, render_depth_texture, 0 );
+#endif
+
+	vAssert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glBindTexture( GL_TEXTURE_2D, 0 );
 }
@@ -543,6 +570,8 @@ void render_init( void* app ) {
 	render_createWindow( app, &window_main );
 
 	printf("RENDERING: Initialising OpenGL rendering settings.\n");
+	const char* extension_string = (const char*)glGetString( GL_EXTENSIONS );
+	printf( "Extensions supported: %s\n", extension_string );
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );	// Standard Alpha Blending
@@ -851,26 +880,88 @@ void render_drawPass( window* w, renderPass* pass ) {
 
 void render_attachFrameBuffer() {
 	glBindFramebuffer( GL_FRAMEBUFFER, render_frame_buffer );
+	render_clear();
+	glViewport(0, 0, window_main.width / downscale, window_main.height / downscale);
 }
 
 void render_unattachFrameBuffer() {
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
+GLuint* postProcess_vertex_VBO = 0;
+GLuint* postProcess_element_VBO = 0;
+
+void render_drawFrameBuffer( window* w ) {
+	//render_clear();
+	shader_activate( resources.shader_gaussian );
+	render_setUniform_texture( *resources.uniforms.tex,	render_texture );
+	vector screen_size = Vector( w->width, w->height, 0.f, 0.f );
+	render_setUniform_vector( *resources.uniforms.screen_size, &screen_size );
+
+	vertex vertex_buffer[4];
+	float width = w->width;
+	float h = w->height;
+	vertex_buffer[0].position = Vector(0.f, 0.f, 0.f, 1.f);
+	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
+	vertex_buffer[2].position = Vector(0.f, h, 0.f, 1.f);
+	vertex_buffer[3].position = Vector(width, h, 0.f, 1.f);
+	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
+	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
+	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
+	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
+	float a = 1.0f;
+	vertex_buffer[0].color = Vector(a, a, a, a);
+	vertex_buffer[1].color = Vector(a, a, a, a);
+	vertex_buffer[2].color = Vector(a, a, a, a);
+	vertex_buffer[3].color = Vector(a, a, a, a);
+	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
+	int element_count = 6;
+	if (!postProcess_vertex_VBO) {
+		postProcess_vertex_VBO = mem_alloc(sizeof(GLuint));
+		*postProcess_vertex_VBO = resources.vertex_buffer[0];
+	}
+	if (!postProcess_element_VBO) postProcess_element_VBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
+	if ( *postProcess_vertex_VBO != kInvalidBuffer && postProcess_element_VBO != kInvalidBuffer ) {
+		glBindBuffer( GL_ARRAY_BUFFER, *postProcess_vertex_VBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, *postProcess_element_VBO );
+		GLsizei vertex_buffer_size	= element_count * sizeof( vertex );
+		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
+		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
+		VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+	}
+}
+
 void render_draw( window* w, engine* e ) {
 	(void)e;
 	render_set3D( w->width, w->height );
 	render_clear();
-	
-	/*
-	memcpy( &renderPass_depth, &renderPass_main, sizeof( renderPass ));
-	for ( int i = 0; i < kCallBufferCount; ++i ) {
-		for ( int j = 0; j < kMaxDrawCalls; ++j ) {
-			renderPass_depth.call_buffer[i][j].vitae_shader = resources.shader_depth;
-		}
-	}
-	*/
 
+	render_attachFrameBuffer();
+	{
+	glEnable( GL_DEPTH_TEST );
+	glDisable( GL_BLEND );
+	glDepthMask( GL_TRUE );
+	glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+	render_drawPass( w, &renderPass_depth );
+
+		glDepthMask( GL_TRUE );
+		glEnable( GL_DEPTH_TEST );
+		glDisable( GL_BLEND );
+		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+		render_drawPass( w, &renderPass_main );
+
+		glEnable( GL_DEPTH_TEST );
+		glEnable( GL_BLEND );
+		render_drawPass( w, &renderPass_alpha );
+	}
+	render_unattachFrameBuffer();
+	glViewport(0, 0, w->width, w->height);
+
+	// AGAIN!
+	/*
 	glEnable( GL_DEPTH_TEST );
 	glDisable( GL_BLEND );
 	glDepthMask( GL_TRUE );
@@ -885,10 +976,15 @@ void render_draw( window* w, engine* e ) {
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 	render_drawPass( w, &renderPass_alpha );
-	
+	*/
+
+	// DONE
+
+
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
+	if ( draw_bloom_filter ) render_drawFrameBuffer( w );
 	render_drawPass( w, &renderPass_ui );
 
 	// No depth-test for debug

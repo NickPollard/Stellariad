@@ -40,6 +40,7 @@ static const size_t lightArraySize = sizeof( light* ) * MAX_LIGHTS;
 
 keybind scene_debug_transforms_toggle;
 keybind scene_debug_lights_toggle;
+keybind render_bloom_filter_toggle;
 
 void scene_initStatic( ) {
 	scene_debug_transforms_toggle = input_registerKeybind( );
@@ -47,6 +48,9 @@ void scene_initStatic( ) {
 
 	scene_debug_lights_toggle = input_registerKeybind( );
 	input_setDefaultKeyBind( scene_debug_lights_toggle, KEY_L );
+	
+	render_bloom_filter_toggle = input_registerKeybind( );
+	input_setDefaultKeyBind( render_bloom_filter_toggle, KEY_B );
 }
 
 // Add an existing modelInstance to the scene
@@ -281,10 +285,12 @@ void scene_debugLights( scene* s ) {
 }
 // Process input for the scene
 void scene_input( scene* s, input* in ) {
-	if ( input_keybindPressed( in, scene_debug_transforms_toggle ) )
+	if ( input_keybindPressed( in, scene_debug_transforms_toggle ))
 		s->debug_flags ^= kSceneDebugTransforms;
-	if ( input_keybindPressed( in, scene_debug_lights_toggle ) )
+	if ( input_keybindPressed( in, scene_debug_lights_toggle ))
 		s->debug_flags ^= kSceneLightsTransforms;
+	if ( input_keybindPressed( in, render_bloom_filter_toggle ))
+		draw_bloom_filter = !draw_bloom_filter;
 }
 
 // Update the scene

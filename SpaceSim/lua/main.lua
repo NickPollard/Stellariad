@@ -17,11 +17,11 @@ C and only controlled remotely by Lua
 	local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
 
 -- Debug settings
-	debug_spawning_disabled	= true
-	debug_doodads_disabled	= true
-	debug_player_immortal	= false
-	debug_player_autofly	= false
-	debug_player_immobile	= true
+	debug_spawning_disabled	= false
+	debug_doodads_disabled	= false
+	debug_player_immortal	= true
+	debug_player_autofly	= true
+	debug_player_immobile	= false
 
 -- Load Modules
 	package.path = "./SpaceSim/lua/?.lua"

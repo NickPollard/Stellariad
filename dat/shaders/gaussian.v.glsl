@@ -1,5 +1,4 @@
-// UI vertex shader
-
+// gaussian vertex shader
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -11,7 +10,7 @@ attribute vec4 uv;
 attribute vec4 normal;
 attribute vec4 color;
 
-uniform vec4 screen_size; // = vec2( 1280.0, 720.0 );
+uniform vec4 screen_size;
 
 varying vec2 texcoord;
 varying vec4 ui_color;

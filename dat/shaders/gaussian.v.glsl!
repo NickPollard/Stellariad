@@ -1,9 +1,5 @@
 // UI vertex shader
 
-#ifdef GL_ES
-precision mediump float;
-#endif
-
 attribute vec4 position;
 
 // Need these for shader to work, even though they're unused, as we're currently setting them through macros
