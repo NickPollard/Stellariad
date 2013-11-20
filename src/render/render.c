@@ -41,8 +41,6 @@
 bool	render_initialised = false;
 bool	draw_bloom_filter = true;
 
-const int downscale = 1;
-
 #ifdef GRAPH_GPU_FPS
 graph* gpu_fpsgraph; 
 graphData* gpu_fpsdata;
@@ -363,6 +361,7 @@ void render_buildShaders() {
 	resources.shader_skybox		= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
 	resources.shader_ui			= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
 	resources.shader_gaussian	= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
+	resources.shader_gaussian_vert	= shader_load( "dat/shaders/gaussian_vert.v.glsl",		"dat/shaders/gaussian_vert.f.glsl" );
 	resources.shader_filter		= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
 	resources.shader_debug		= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
 	resources.shader_debug_2d	= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
@@ -499,22 +498,37 @@ void render_clear() {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
-	GLuint render_frame_buffer;
-	GLuint render_texture;
-	GLuint render_depth_buffer;
-	GLuint render_depth_texture;
+GLuint render_frame_buffer;
+GLuint render_texture;
+GLuint render_depth_buffer;
+GLuint render_depth_texture;
 
-void render_initFrameBuffer( window w ) {
-	int width = w.width / downscale;
-	int height = w.height / downscale;
+typedef struct frameBuffer_s {
+	GLuint frame_buffer;
+	GLuint texture;
+	GLuint depth_texture;
+	GLuint depth_buffer;
+	int width;
+	int height;
+} frameBuffer;
+
+frameBuffer* render_first_buffer = NULL;
+frameBuffer* render_second_buffer = NULL;
+frameBuffer* render_third_buffer = NULL;
+frameBuffer* render_fourth_buffer = NULL;
+
+frameBuffer* render_initFrameBuffer( int width, int height ) {
+	frameBuffer* buffer = mem_alloc(sizeof( frameBuffer ));
+	buffer->width = width;
+	buffer->height = height;
 
 	// Create Frame Buffer
-	glGenFramebuffers( 1, &render_frame_buffer );
-	glBindFramebuffer( GL_FRAMEBUFFER, render_frame_buffer );
+	glGenFramebuffers( 1, &buffer->frame_buffer );
+	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
 
 	// Create render texture
-	glGenTextures( 1, &render_texture );
-	glBindTexture( GL_TEXTURE_2D, render_texture );
+	glGenTextures( 1, &buffer->texture );
+	glBindTexture( GL_TEXTURE_2D, buffer->texture );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
@@ -539,8 +553,8 @@ void render_initFrameBuffer( window w ) {
 	glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth_buffer );
 	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
 #else 
-	glGenTextures( 1, &render_depth_texture );
-	glBindTexture( GL_TEXTURE_2D, render_depth_texture );
+	glGenTextures( 1, &buffer->depth_texture );
+	glBindTexture( GL_TEXTURE_2D, buffer->depth_texture );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
@@ -555,14 +569,15 @@ void render_initFrameBuffer( window w ) {
 					NULL );
 
 	// Attach render texture to framebuffer
-	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
-	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, render_depth_texture, 0 );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->texture, 0 );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer->depth_texture, 0 );
 #endif
 
 	vAssert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glBindTexture( GL_TEXTURE_2D, 0 );
+	return buffer;
 }
 
 // Initialise the 3D rendering
@@ -597,7 +612,13 @@ void render_init( void* app ) {
 	render_draw_buffer = mem_alloc( kRenderDrawBufferSize );
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
-	render_initFrameBuffer( window_main );
+	const int downscale = 2;
+	int w = window_main.width / downscale;
+	int h = window_main.height / downscale;
+	render_first_buffer = render_initFrameBuffer( window_main.width, window_main.height );
+	render_second_buffer = render_initFrameBuffer( w, h );
+	render_third_buffer = render_initFrameBuffer( w, h );
+	render_fourth_buffer = render_initFrameBuffer( w, h );
 
 #ifdef GRAPH_GPU_FPS
 #define kMaxGpuFPSFrames 256
@@ -878,10 +899,10 @@ void render_drawPass( window* w, renderPass* pass ) {
 	}
 }
 
-void render_attachFrameBuffer() {
-	glBindFramebuffer( GL_FRAMEBUFFER, render_frame_buffer );
+void render_attachFrameBuffer(frameBuffer* buffer) {
+	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
 	render_clear();
-	glViewport(0, 0, window_main.width / downscale, window_main.height / downscale);
+	glViewport(0, 0, buffer->width, buffer->height);
 }
 
 void render_unattachFrameBuffer() {
@@ -891,10 +912,9 @@ void render_unattachFrameBuffer() {
 GLuint* postProcess_vertex_VBO = 0;
 GLuint* postProcess_element_VBO = 0;
 
-void render_drawFrameBuffer( window* w ) {
-	//render_clear();
-	shader_activate( resources.shader_gaussian );
-	render_setUniform_texture( *resources.uniforms.tex,	render_texture );
+void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float alpha ) {
+	shader_activate( s );
+	render_setUniform_texture( *resources.uniforms.tex,	buffer->texture );
 	vector screen_size = Vector( w->width, w->height, 0.f, 0.f );
 	render_setUniform_vector( *resources.uniforms.screen_size, &screen_size );
 
@@ -909,11 +929,10 @@ void render_drawFrameBuffer( window* w ) {
 	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
 	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
 	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
-	float a = 1.0f;
-	vertex_buffer[0].color = Vector(a, a, a, a);
-	vertex_buffer[1].color = Vector(a, a, a, a);
-	vertex_buffer[2].color = Vector(a, a, a, a);
-	vertex_buffer[3].color = Vector(a, a, a, a);
+	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	int element_count = 6;
 	if (!postProcess_vertex_VBO) {
@@ -939,13 +958,14 @@ void render_draw( window* w, engine* e ) {
 	render_set3D( w->width, w->height );
 	render_clear();
 
-	render_attachFrameBuffer();
+	// Draw normally AND to the frame buffer
+	render_attachFrameBuffer(render_first_buffer);
 	{
-	glEnable( GL_DEPTH_TEST );
-	glDisable( GL_BLEND );
-	glDepthMask( GL_TRUE );
-	glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-	render_drawPass( w, &renderPass_depth );
+		glEnable( GL_DEPTH_TEST );
+		glDisable( GL_BLEND );
+		glDepthMask( GL_TRUE );
+		glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+		render_drawPass( w, &renderPass_depth );
 
 		glDepthMask( GL_TRUE );
 		glEnable( GL_DEPTH_TEST );
@@ -959,32 +979,41 @@ void render_draw( window* w, engine* e ) {
 	}
 	render_unattachFrameBuffer();
 	glViewport(0, 0, w->width, w->height);
+	render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
 
-	// AGAIN!
-	/*
-	glEnable( GL_DEPTH_TEST );
-	glDisable( GL_BLEND );
-	glDepthMask( GL_TRUE );
-	glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-	render_drawPass( w, &renderPass_depth );
+	// Downsize extra buffer // TODO
 
-	glEnable( GL_DEPTH_TEST );
-	glDisable( GL_BLEND );
-	glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-	render_drawPass( w, &renderPass_main );
-
-	glEnable( GL_DEPTH_TEST );
-	glEnable( GL_BLEND );
-	render_drawPass( w, &renderPass_alpha );
-	*/
-
-	// DONE
-
+	// Draw back from buffer
 
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
-	if ( draw_bloom_filter ) render_drawFrameBuffer( w );
+
+	if ( draw_bloom_filter ) {
+		// downscale pass
+		render_current_texture_unit = 0;
+		render_attachFrameBuffer( render_second_buffer ); 
+		{
+	   		render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
+		}
+		render_unattachFrameBuffer();
+		// horizontal pass
+		render_attachFrameBuffer( render_third_buffer ); 
+		{
+	   		render_drawFrameBuffer( w, render_first_buffer, resources.shader_gaussian, 1.f );
+		}
+		render_unattachFrameBuffer();
+		// vertical pass
+		render_attachFrameBuffer( render_fourth_buffer ); 
+		{
+	   		render_drawFrameBuffer( w, render_third_buffer, resources.shader_gaussian_vert, 1.f );
+		}
+		render_unattachFrameBuffer();
+
+		//render_drawComposite( w, render_first_buffer, render_fourth_buffer, resources.shader_mix );
+		glViewport(0, 0, w->width, w->height);
+	   	render_drawFrameBuffer( w, render_fourth_buffer, resources.shader_ui, 0.3f );
+	}
 	render_drawPass( w, &renderPass_ui );
 
 	// No depth-test for debug

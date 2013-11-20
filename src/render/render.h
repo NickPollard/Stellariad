@@ -75,6 +75,7 @@ typedef struct gl_resources_s {
 	shader* shader_skybox;
 	shader* shader_ui;
 	shader* shader_gaussian;
+	shader* shader_gaussian_vert;
 	shader* shader_filter;
 	shader* shader_debug;
 	shader* shader_debug_2d;
