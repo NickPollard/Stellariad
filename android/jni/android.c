@@ -100,7 +100,7 @@ static void handle_cmd( struct android_app* app, int32_t cmd ) {
 				input_setWindowSize( e->input, window_main.width, window_main.height );
 				e->active = true;
 				//render_init();
-                draw_frame( &window_main );
+                //draw_frame( &window_main );
             }
             break;
         case APP_CMD_TERM_WINDOW:

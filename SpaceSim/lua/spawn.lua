@@ -276,7 +276,7 @@ end
 
 function spawn.randomEnemy( player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
-	if r > 0.08 then
+	if r > 0.8 then
 		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnStrafer( coord.u, coord.v, coord.y, type_strafer ) end) end, spawn.positionerStrafer
 	elseif r > 0.5 then
 		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnInterceptor( coord.u, coord.v, coord.y, type_interceptor_missile ) end) end, spawn.positionerInterceptor

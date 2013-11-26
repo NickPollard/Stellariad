@@ -60,6 +60,9 @@ gl_resources resources;
 
 window window_main = { 1196, 720, 0, 0, 0, true };
 
+// *** Properties of the GL implementation
+GLint max_texture_units = 0;
+
 GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size ) {
 	//printf( "Allocating oGL buffer.\n" );
 	GLuint buffer; // The OpenGL object handle we generate
@@ -595,6 +598,13 @@ void render_init( void* app ) {
 	glFrontFace( GL_CW );
 	glEnable( GL_CULL_FACE );
 
+#ifdef RENDER_OPENGL
+	glGetIntegerv( GL_MAX_TEXTURE_UNITS, &max_texture_units );
+#endif
+#ifdef RENDER_OPENGL_ES
+	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_texture_units );
+#endif
+
 	texture_staticInit();
 	shader_init();
 	render_buildShaders();
@@ -612,7 +622,7 @@ void render_init( void* app ) {
 	render_draw_buffer = mem_alloc( kRenderDrawBufferSize );
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
-	const int downscale = 2;
+	const int downscale = 8;
 	int w = window_main.width / downscale;
 	int h = window_main.height / downscale;
 	render_first_buffer = render_initFrameBuffer( window_main.width, window_main.height );
@@ -675,22 +685,17 @@ int render_current_texture_unit = 0;
 // It binds the given texture to an available texture unit
 // and sets the uniform to that
 void render_setUniform_texture( GLuint uniform, GLuint texture ) {
-	GLint max_texture_units = 0;
-#ifdef RENDER_OPENGL
-	glGetIntegerv( GL_MAX_TEXTURE_UNITS, &max_texture_units );
-#endif
-#ifdef RENDER_OPENGL_ES
-	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_texture_units );
-#endif
-	vAssert( render_current_texture_unit < max_texture_units );
+	if ((int)uniform >= 0 ) {
+		vAssert( render_current_texture_unit < max_texture_units );
 
-	// Activate a texture unit
-	glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
+		// Activate a texture unit
+		glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
 
-	// Bind the texture to that texture unit
-	glBindTexture( GL_TEXTURE_2D, texture );
-	glUniform1i( uniform, render_current_texture_unit );
-	render_current_texture_unit++;
+		// Bind the texture to that texture unit
+		glBindTexture( GL_TEXTURE_2D, texture );
+		glUniform1i( uniform, render_current_texture_unit );
+		render_current_texture_unit++;
+	}
 }
 
 void render_setUniform_vector( GLuint uniform, vector* v ) {
@@ -959,7 +964,7 @@ void render_draw( window* w, engine* e ) {
 	render_clear();
 
 	// Draw normally AND to the frame buffer
-	render_attachFrameBuffer(render_first_buffer);
+	//render_attachFrameBuffer(render_first_buffer);
 	{
 		glEnable( GL_DEPTH_TEST );
 		glDisable( GL_BLEND );
@@ -977,9 +982,9 @@ void render_draw( window* w, engine* e ) {
 		glEnable( GL_BLEND );
 		render_drawPass( w, &renderPass_alpha );
 	}
-	render_unattachFrameBuffer();
+	//render_unattachFrameBuffer();
 	glViewport(0, 0, w->width, w->height);
-	render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
+	//render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
 
 	// Downsize extra buffer // TODO
 
@@ -989,6 +994,7 @@ void render_draw( window* w, engine* e ) {
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 
+	/*
 	if ( draw_bloom_filter ) {
 		// downscale pass
 		render_current_texture_unit = 0;
@@ -1015,6 +1021,7 @@ void render_draw( window* w, engine* e ) {
 	   	render_drawFrameBuffer( w, render_fourth_buffer, resources.shader_ui, 0.3f );
 	}
 	render_drawPass( w, &renderPass_ui );
+	*/
 
 	// No depth-test for debug
 	glDisable( GL_DEPTH_TEST );

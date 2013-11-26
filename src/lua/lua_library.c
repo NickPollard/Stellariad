@@ -762,6 +762,13 @@ int LUA_dynamicSky_blend( lua_State* l ) {
 	return 0;
 }
 
+int LUA_fx_toggleBloom( lua_State* l ) {
+	(void)l;
+	draw_bloom_filter = !draw_bloom_filter;
+	printf( "Toggling bloom: %s\n", draw_bloom_filter ? "on" : "off" );
+	return 0;
+}
+
 int LUA_createUIPanel( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
 	const char* texture_path = lua_tostring( l, 2 );
@@ -1189,6 +1196,8 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_canyon_fromWorld, "vcanyon_fromWorld" );
 	lua_registerFunction( l, LUA_dynamicSky_blend, "vdynamicSky_blend" );
 
+	// *** fx
+	lua_registerFunction( l, LUA_fx_toggleBloom, "vfx_toggleBloom" );
 	/////////////// Constants /////////////////
 
 	lua_keycodes( l );

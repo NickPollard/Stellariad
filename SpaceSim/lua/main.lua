@@ -405,7 +405,7 @@ function init()
 	doodads.random = vrand_newSeq()
 
 	starting = true
-	color = Vector( 1.0, 1.0, 1.0, 1.0 )
+	--color = Vector( 1.0, 1.0, 1.0, 1.0 )
 	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
 	splash_intro_new()
@@ -462,6 +462,13 @@ function setup_controls()
 	else
 		player_ship.steering_input = steering_input_keyboard
 	end
+	setup_debug_controls()
+end
+
+function setup_debug_controls()
+	bloom_toggle = vcreateTouchPad( input, 0, 0, 150, 150 )
+	local color = Vector( 0.15, 0.15, 0.15, 0.3 )
+	local bloom_display = vuiPanel_create( engine, "dat/img/white.tga", color, 0, screen_height - 150, 150, 150 )
 end
 
 function player_ship_collisionHandler( ship, collider )
@@ -909,6 +916,16 @@ function playership_tick( ship, dt )
 	end
 end
 
+function debug_tick( dt )
+	if touch_enabled and vtouchPadTouched( bloom_toggle ) then
+		vfx_toggleBloom()
+	end
+
+	if vkeyPressed( input, key.c ) then
+		toggle_camera()
+	end
+end
+
 function toggle_camera()
 	if camera == "chase" then
 		vprint( "Activate Flycam" )
@@ -918,12 +935,6 @@ function toggle_camera()
 		vprint( "Activate Chasecam" )
 		camera = "chase"
 		vscene_setCamera( chasecam )
-	end
-end
-
-function debug_tick()
-	if vkeyPressed( input, key.c ) then
-		toggle_camera()
 	end
 end
 
@@ -940,7 +951,7 @@ function tick( dt )
 		playership_tick( player_ship, dt )
 	end
 
-	debug_tick()
+	debug_tick( dt )
 
 	timers.tick( dt )
 	triggers.tick( dt )

@@ -17,7 +17,7 @@ const float g3 = 0.12;
 
 void main() {
 #if 1
-	float radius = 2.0;
+	float radius = 8.0;
 	float w = 1.5 * radius / screen_size.x;
 	float h = 1.5 * radius / screen_size.y;
 	float m = 0.30;

@@ -51,8 +51,10 @@ typedef struct sceneParams_s sceneParams;
 	resources.attributes.attrib = (shader_findConstant( mhash( #attrib )));
 
 #define VERTEX_ATTRIB_POINTER( attrib ) \
-	glVertexAttribPointer( *resources.attributes.attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, attrib) ); \
-	glEnableVertexAttribArray( *resources.attributes.attrib );
+	if ( *resources.attributes.attrib >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, attrib) ); \
+		glEnableVertexAttribArray( *resources.attributes.attrib ); \
+	}
 
 typedef struct gl_resources_s {
 	GLuint vertex_buffer[kVboCount];
