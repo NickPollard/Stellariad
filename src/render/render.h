@@ -89,7 +89,7 @@ struct vertex_s {
 	vector	normal;
 	vector	uv;
 	vector	color;
-	float	padding;
+	//float	padding; // Do I need this? Think I put this here for 32-byte padding at some point
 };
 
 typedef struct vertex_s particle_vertex;
@@ -165,18 +165,8 @@ typedef void (*func_getIV)( GLuint, GLenum, GLint* );
 typedef void (*func_getInfoLog)( GLuint, GLint, GLint*, GLchar* );
 
 void gl_dumpInfoLog( GLuint object, func_getIV getIV, func_getInfoLog getInfoLog );
-GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size );
-
-// Asynchronosuly create a GPU buffer
-GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size );
-// Free it
-void render_freeBuffer( void* buffer );
-
-// Asynchronously copy data to a GPU  buffer
-void render_bufferCopy( GLenum target, GLuint buffer, const void* data, GLsizei size );
 
 // Draw Calls
-
 typedef struct drawCall_s {
 	// Shader
 	shader*		vitae_shader;

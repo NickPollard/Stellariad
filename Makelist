@@ -42,6 +42,7 @@ SRCS =	src/camera.c \
 		src/mem/allocator.c \
 		src/mem/bitpool.c \
 		src/render/debugdraw.c \
+		src/render/graphicsbuffer.c \
 		src/render/modelinstance.c \
 		src/render/render.c \
 		src/render/shader.c \

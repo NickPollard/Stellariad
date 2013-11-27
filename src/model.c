@@ -8,6 +8,7 @@
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
 #include "render/render.h"
 #include "render/shader.h"

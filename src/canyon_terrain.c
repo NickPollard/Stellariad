@@ -11,6 +11,7 @@
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/debugdraw.h"
+#include "render/graphicsbuffer.h"
 #include "render/texture.h"
 
 #define CANYON_TERRAIN_INDEXED 1

@@ -14,6 +14,7 @@
 #include "debug/debuggraph.h"
 #include "maths/vector.h"
 #include "render/debugdraw.h"
+#include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
 #include "render/shader.h"
 #include "render/texture.h"
@@ -63,120 +64,7 @@ window window_main = { 1196, 720, 0, 0, 0, true };
 // *** Properties of the GL implementation
 GLint max_texture_units = 0;
 
-GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size ) {
-	//printf( "Allocating oGL buffer.\n" );
-	GLuint buffer; // The OpenGL object handle we generate
-	glGenBuffers( 1, &buffer );				// Generate a buffer name - effectively just a declaration
-	glBindBuffer( target, buffer );			// Bind the buffer name to a target, creating the vertex buffer object
-	// Usage hint can be: GL_[VARYING]_[USE]
-	// Varying: STATIC / DYNAMIC / STREAM
-	// Use: DRAW / READ / COPY
-	// OpenGL ES only supports dynamic/static draw
-	glBufferData( target, size, data, /*Usage hint*/ GL_STATIC_DRAW );	// Allocate the buffer, optionally copying data
-	//glFinish();
-	return buffer;
-}
 
-typedef struct bufferRequest_s {
-	GLenum		target;
-	const void*	data;
-	GLsizei		size;
-	GLuint*		ptr;
-} bufferRequest;
-
-typedef struct bufferCopyRequest_s {
-	GLuint		buffer;
-	GLenum		target;
-	const void*	data;
-	GLsizei		size;
-} bufferCopyRequest;
-
-#define	kMaxBufferRequests	1024
-bufferRequest	buffer_requests[kMaxBufferRequests];
-int				buffer_request_count = 0;
-
-#define	kMaxBufferCopyRequests	128
-bufferCopyRequest	buffer_copy_requests[kMaxBufferCopyRequests];
-int				buffer_copy_request_count = 0;
-
-// Mutex for buffer requests
-vmutex buffer_mutex = kMutexInitialiser;
-
-bufferRequest* getBufferRequest() {
-	vAssert( buffer_request_count < kMaxBufferRequests );
-	bufferRequest* r = &buffer_requests[buffer_request_count++];
-	return r;
-}
-
-bufferCopyRequest* getBufferCopyRequest() {
-	vAssert( buffer_copy_request_count < kMaxBufferCopyRequests );
-	bufferCopyRequest* r = &buffer_copy_requests[buffer_copy_request_count++];
-	return r;
-}
-
-// Asynchronously copy data to a VertexBufferObject
-void render_bufferCopy( GLenum target, GLuint buffer, const void* data, GLsizei size ) {
-	bufferCopyRequest* b = NULL;
-	vmutex_lock( &buffer_mutex );
-	{
-		b = getBufferCopyRequest();
-		vAssert( b );
-		b->buffer	= buffer;
-		b->target	= target;
-		b->data		= data;
-		b->size		= size;
-	}
-	vmutex_unlock( &buffer_mutex );
-}
-
-// Asynchronously create a VertexBufferObject
-GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size ) {
-//	printf( "RENDER: Buffer requested.\n" );
-	bufferRequest* b = NULL;
-	vmutex_lock( &buffer_mutex );
-	{
-		b = getBufferRequest();
-		vAssert( b );
-		b->target	= target;
-		b->data		= data;
-		b->size		= size;
-		// Needs to allocate a GLuint somewhere
-		// and return a pointer to that
-		b->ptr = mem_alloc( sizeof( GLuint ));
-		// Initialise this to 0, so we can ignore ones that haven't been set up yet
-		*(b->ptr) = kInvalidBuffer;
-	}
-	vmutex_unlock( &buffer_mutex );
-	return b->ptr;
-}
-
-void render_freeBuffer( void* buffer ) {
-	mem_free( buffer );
-}
-
-// Load any waiting buffer requests
-void render_bufferTick() {
-	vmutex_lock( &buffer_mutex );
-	{
-		// TODO: This could be a lock-free queue
-		for ( int i = 0; i < buffer_request_count; i++ ) {
-			bufferRequest* b = &buffer_requests[i];
-			*b->ptr = render_glBufferCreate( b->target, b->data, b->size );
-			//printf( "Created buffer %x for request for %d bytes.\n", *b->ptr, b->size );
-		}
-		buffer_request_count = 0;
-		
-		for ( int i = 0; i < buffer_copy_request_count; i++ ) {
-			bufferCopyRequest* b = &buffer_copy_requests[i];
-			glBindBuffer( b->target, b->buffer );
-			int origin = 0; // We're copyping the whole buffer
-			glBufferSubData( b->target, origin, b->size, b->data );
-			//printf( "Created buffer %x for request for %d bytes.\n", *b->ptr, b->size );
-		}
-		buffer_copy_request_count = 0;
-	}
-	vmutex_unlock( &buffer_mutex );
-}
 
 EGLNativeWindowType os_createWindow() {
 #ifdef LINUX_X
@@ -413,9 +301,6 @@ struct sceneParams_s {
 	vector	sun_color;
 };
 
-#define kMaxRenderPasses 16
-renderPass	render_pass[kMaxRenderPasses];
-
 renderPass renderPass_main;
 renderPass renderPass_alpha;
 renderPass renderPass_ui;
@@ -455,7 +340,6 @@ void* render_bufferAlloc( size_t size ) {
 void render_resetBufferBuffer() {
 	render_draw_buffer_free = render_draw_buffer;
 }
-// Private Function declarations
 
 void render_set3D( int w, int h ) {
 	glViewport(0, 0, w, h);
@@ -498,7 +382,8 @@ void render_lighting( scene* s ) {
 // Clear information from last draw
 void render_clear() {
 	glClearColor( 0.f, 0.f, 0.f, 0.f );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	//glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	glClear( GL_DEPTH_BUFFER_BIT );
 }
 
 GLuint render_frame_buffer;
@@ -804,6 +689,7 @@ void render_printShader( shader* s ) {
 }
 
 void render_drawCall_draw( drawCall* draw ) {
+	vAssert( draw->element_count > 0 );
 	// Bind Correct buffers
 	glBindBuffer( GL_ARRAY_BUFFER, draw->vertex_VBO );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, draw->element_VBO );
@@ -833,52 +719,35 @@ void render_drawCall_draw( drawCall* draw ) {
 
 	// Now Draw!
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-	vAssert( draw->element_count > 0 );
-	/*
-	render_printShader( draw->vitae_shader );
-	printf( "Vertex buffer " xPTRf ", element_buffer " xPTRf ".\n", (uintptr_t)draw->vertex_buffer, (uintptr_t)draw->element_buffer );
-	printf( "element count %d, element_buffer_offset %d.\n", draw->element_count, draw->element_buffer_offset );
-	*/
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
-	VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+	//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 }
 
-void render_drawBatch( drawCall* draw ) {
-	// Reset the current texture unit so we have as many as we need for this batch
-	render_current_texture_unit = 0;
-	// Only draw if we have a valid texture
-	if ( draw->texture != kInvalidGLTexture ) {
-		render_setUniform_texture( *resources.uniforms.tex,			draw->texture );
-		if ( *resources.uniforms.tex_b ) {
-			render_setUniform_texture( *resources.uniforms.tex_b,		draw->texture_b );
+void render_drawTextureBatch( drawCall* draw ) {
+	render_setUniform_matrix( *resources.uniforms.modelview, draw->modelview );
+	render_drawCall_draw( draw );
+}
+
+/*
+void groupByTexture( int count, drawCall* unsorted, int* num_groups, int** group_size, drawCall*** groups ) {
+	*num_groups = 0;
+	for ( int i = 0; i < count; ++i ) {
+		if (drawCall[i].texture !inList) {
+			++(*num_groups);
 		}
-		if ( *resources.uniforms.tex_c ) {
-			render_setUniform_texture( *resources.uniforms.tex_c,		draw->texture_c );
-		}
-		if ( *resources.uniforms.tex_d ) {
-			render_setUniform_texture( *resources.uniforms.tex_d,		draw->texture_d );
-		}
-		if ( *resources.uniforms.tex_normal ) {
-			render_setUniform_texture( *resources.uniforms.tex_normal,		draw->texture_normal );
-		}
-		/*
-		if ( *resources.uniforms.tex_b_normal ) {
-			render_setUniform_texture( *resources.uniforms.tex_b_normal,	draw->texture_b_normal );
-		}
-		if ( *resources.uniforms.tex_lookup ) {
-			render_setUniform_texture( *resources.uniforms.tex_lookup,		draw->texture_lookup );
-		}
-		*/
-		render_setUniform_matrix( *resources.uniforms.modelview,	draw->modelview );
-		render_drawCall_draw( draw );
 	}
 }
+*/
+int compareTexture( const void* a, const void* b ) {
+	const drawCall* draw_a = a;
+	const drawCall* draw_b = b;
+	return ((int)draw_a->texture) - ((int)draw_b->texture);
+}
 
-void render_drawCallBatch( window* w, int count, drawCall* calls ) {
+void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
 	render_lighting( theScene );
-	// Set up uniform matrices
 	render_setUniform_matrix( *resources.uniforms.projection,	perspective );
 	render_setUniform_matrix( *resources.uniforms.worldspace,	modelview );
 	render_setUniform_matrix( *resources.uniforms.camera_to_world, camera_matrix );
@@ -889,18 +758,48 @@ void render_drawCallBatch( window* w, int count, drawCall* calls ) {
 
 	render_sceneParams( &sceneParams_main );
 
-	for ( int i = 0; i < count; i++ ) {
-		render_drawBatch( &calls[i] );
+	/*
+	// Batch by texture
+	int num_groups;
+	int* group_size;
+	drawCall** groups;
+	groupByTexture( count, calls, &num_groups, &group_size, &groups )
+	mem_Free(group_size);
+	*/
+	drawCall* sorted = mem_alloc( sizeof(drawCall) * count );
+	memcpy( sorted, calls, sizeof(drawCall) * count );
+	qsort( sorted, count, sizeof(drawCall), &compareTexture );
+
+	// Reset the current texture unit so we have as many as we need for this batch
+	render_current_texture_unit = 0;
+	// Only draw if we have a valid texture
+	GLuint current_texture = -1;
+	drawCall* draw = &sorted[0];
+	if ( draw->texture != kInvalidGLTexture ) {
+		for ( int i = 0; i < count; i++ ) {
+			drawCall* draw = &sorted[i];
+			if (draw->texture != current_texture) {
+				current_texture = draw->texture;
+				render_current_texture_unit = 0;
+				render_setUniform_texture( *resources.uniforms.tex, draw->texture );
+				if ( *resources.uniforms.tex_b ) render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
+				if ( *resources.uniforms.tex_c ) render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
+				if ( *resources.uniforms.tex_d ) render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
+				if ( *resources.uniforms.tex_normal ) render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
+			}
+			render_drawTextureBatch( &sorted[i] );
+		}
 	}
+	mem_free( sorted );
 }
 
+// Draw each batch of drawcalls
 void render_drawPass( window* w, renderPass* pass ) {
-	// Draw each batch of drawcalls
 	for ( int i = 0; i < kCallBufferCount; i++ ) {
 		drawCall* batch = pass->call_buffer[i];
 		int count = pass->next_call_index[i];
 		if ( count > 0 )
-			render_drawCallBatch( w, count, batch );	
+			render_drawShaderBatch( w, count, batch );	
 	}
 }
 
@@ -954,7 +853,7 @@ void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float al
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 	}
 }
 
@@ -966,19 +865,19 @@ void render_draw( window* w, engine* e ) {
 	// Draw normally AND to the frame buffer
 	//render_attachFrameBuffer(render_first_buffer);
 	{
-		glEnable( GL_DEPTH_TEST );
+		//glEnable( GL_DEPTH_TEST );
 		glDisable( GL_BLEND );
 		glDepthMask( GL_TRUE );
 		glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 		render_drawPass( w, &renderPass_depth );
 
-		glDepthMask( GL_TRUE );
-		glEnable( GL_DEPTH_TEST );
+		//glDepthMask( GL_TRUE );
+		//glEnable( GL_DEPTH_TEST );
 		glDisable( GL_BLEND );
 		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 		render_drawPass( w, &renderPass_main );
 
-		glEnable( GL_DEPTH_TEST );
+		//glEnable( GL_DEPTH_TEST );
 		glEnable( GL_BLEND );
 		render_drawPass( w, &renderPass_alpha );
 	}
