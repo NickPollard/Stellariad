@@ -693,7 +693,8 @@ GLuint current_VBO = -1;
 void render_drawCall_draw( drawCall* draw ) {
 	vAssert( draw->element_count > 0 );
 	// Bind Correct buffers
-	bool new_buffer = draw->vertex_VBO != current_VBO;
+	bool new_buffer = (draw->vertex_VBO != current_VBO);
+	//bool new_buffer = true;
 
 	if ( new_buffer ) {
 		current_VBO = draw->vertex_VBO;
@@ -725,11 +726,13 @@ void render_drawCall_draw( drawCall* draw ) {
 	}
 
 	// Now Draw!
-	if ( new_buffer ) {
+	//if ( new_buffer ) {
 		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-	}
+	//}
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
-	//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+	//if ( new_buffer ) {
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+	//}
 }
 
 void render_drawTextureBatch( drawCall* draw ) {
@@ -759,7 +762,10 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 
 	drawCall* sorted = mem_alloc( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
-	qsort( sorted, count, sizeof(drawCall), &compareTexture );
+	bool ui_shader = calls[0].vitae_shader != resources.shader_ui;
+	if ( ui_shader ) {
+		qsort( sorted, count, sizeof(drawCall), &compareTexture );
+	}
 
 	// Reset the current texture unit so we have as many as we need for this batch
 	render_current_texture_unit = 0;
@@ -769,7 +775,7 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	if ( draw->texture != kInvalidGLTexture ) {
 		for ( int i = 0; i < count; i++ ) {
 			drawCall* draw = &sorted[i];
-			if (draw->texture != current_texture) {
+			if (draw->texture != current_texture || ui_shader) {
 				current_texture = draw->texture;
 				render_current_texture_unit = 0;
 				render_setUniform_texture( *resources.uniforms.tex, draw->texture );
@@ -796,7 +802,7 @@ void render_drawPass( window* w, renderPass* pass ) {
 
 void render_attachFrameBuffer(frameBuffer* buffer) {
 	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
-	render_clear();
+	//render_clear();
 	glViewport(0, 0, buffer->width, buffer->height);
 }
 
@@ -835,8 +841,7 @@ void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float al
 		*postProcess_vertex_VBO = resources.vertex_buffer[0];
 	}
 	if (!postProcess_element_VBO) postProcess_element_VBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
-	if ( *postProcess_vertex_VBO != kInvalidBuffer && postProcess_element_VBO != kInvalidBuffer ) {
-		current_VBO = *postProcess_vertex_VBO;
+	if ( *postProcess_vertex_VBO != kInvalidBuffer && *postProcess_element_VBO != kInvalidBuffer ) {
 		glBindBuffer( GL_ARRAY_BUFFER, *postProcess_vertex_VBO );
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, *postProcess_element_VBO );
 		GLsizei vertex_buffer_size	= element_count * sizeof( vertex );
@@ -846,6 +851,7 @@ void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float al
 		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+		current_VBO = *postProcess_vertex_VBO;
 	}
 }
 
@@ -855,8 +861,9 @@ void render_draw( window* w, engine* e ) {
 	render_clear();
 
 	// Draw normally AND to the frame buffer
-	//render_attachFrameBuffer(render_first_buffer);
+	render_attachFrameBuffer(render_first_buffer);
 	{
+		render_clear();
 		//glEnable( GL_DEPTH_TEST );
 		glDisable( GL_BLEND );
 		glDepthMask( GL_TRUE );
@@ -873,19 +880,14 @@ void render_draw( window* w, engine* e ) {
 		glEnable( GL_BLEND );
 		render_drawPass( w, &renderPass_alpha );
 	}
-	//render_unattachFrameBuffer();
+	render_unattachFrameBuffer();
 	glViewport(0, 0, w->width, w->height);
-	//render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
-
-	// Downsize extra buffer // TODO
-
-	// Draw back from buffer
+	render_drawFrameBuffer( w, render_first_buffer, resources.shader_ui, 1.f );
 
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 
-	/*
 	if ( draw_bloom_filter ) {
 		// downscale pass
 		render_current_texture_unit = 0;
@@ -907,12 +909,10 @@ void render_draw( window* w, engine* e ) {
 		}
 		render_unattachFrameBuffer();
 
-		//render_drawComposite( w, render_first_buffer, render_fourth_buffer, resources.shader_mix );
 		glViewport(0, 0, w->width, w->height);
 	   	render_drawFrameBuffer( w, render_fourth_buffer, resources.shader_ui, 0.3f );
 	}
 	render_drawPass( w, &renderPass_ui );
-	*/
 
 	// No depth-test for debug
 	glDisable( GL_DEPTH_TEST );
