@@ -688,11 +688,18 @@ void render_printShader( shader* s ) {
 		printf( "shader: filter\n" );
 }
 
+GLuint current_VBO = -1;
+
 void render_drawCall_draw( drawCall* draw ) {
 	vAssert( draw->element_count > 0 );
 	// Bind Correct buffers
-	glBindBuffer( GL_ARRAY_BUFFER, draw->vertex_VBO );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, draw->element_VBO );
+	bool new_buffer = draw->vertex_VBO != current_VBO;
+
+	if ( new_buffer ) {
+		current_VBO = draw->vertex_VBO;
+		glBindBuffer( GL_ARRAY_BUFFER, draw->vertex_VBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, draw->element_VBO );
+	}	
 	
 	// If required, copy our data to the GPU
 	if ( draw->vertex_VBO == resources.vertex_buffer[0] ) {
@@ -718,7 +725,9 @@ void render_drawCall_draw( drawCall* draw ) {
 	}
 
 	// Now Draw!
-	VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+	if ( new_buffer ) {
+		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+	}
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
 	//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 }
@@ -728,16 +737,6 @@ void render_drawTextureBatch( drawCall* draw ) {
 	render_drawCall_draw( draw );
 }
 
-/*
-void groupByTexture( int count, drawCall* unsorted, int* num_groups, int** group_size, drawCall*** groups ) {
-	*num_groups = 0;
-	for ( int i = 0; i < count; ++i ) {
-		if (drawCall[i].texture !inList) {
-			++(*num_groups);
-		}
-	}
-}
-*/
 int compareTexture( const void* a, const void* b ) {
 	const drawCall* draw_a = a;
 	const drawCall* draw_b = b;
@@ -758,14 +757,6 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 
 	render_sceneParams( &sceneParams_main );
 
-	/*
-	// Batch by texture
-	int num_groups;
-	int* group_size;
-	drawCall** groups;
-	groupByTexture( count, calls, &num_groups, &group_size, &groups )
-	mem_Free(group_size);
-	*/
 	drawCall* sorted = mem_alloc( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
 	qsort( sorted, count, sizeof(drawCall), &compareTexture );
@@ -845,6 +836,7 @@ void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float al
 	}
 	if (!postProcess_element_VBO) postProcess_element_VBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
 	if ( *postProcess_vertex_VBO != kInvalidBuffer && postProcess_element_VBO != kInvalidBuffer ) {
+		current_VBO = *postProcess_vertex_VBO;
 		glBindBuffer( GL_ARRAY_BUFFER, *postProcess_vertex_VBO );
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, *postProcess_element_VBO );
 		GLsizei vertex_buffer_size	= element_count * sizeof( vertex );
