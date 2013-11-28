@@ -20,7 +20,7 @@ C and only controlled remotely by Lua
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= false
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 	debug_player_immobile	= false
 
 -- Load Modules
@@ -466,9 +466,11 @@ function setup_controls()
 end
 
 function setup_debug_controls()
-	bloom_toggle = vcreateTouchPad( input, 0, 0, 150, 150 )
-	local color = Vector( 0.15, 0.15, 0.15, 0.3 )
-	local bloom_display = vuiPanel_create( engine, "dat/img/white.tga", color, 0, screen_height - 150, 150, 150 )
+	if touch_enabled then
+		bloom_toggle = vcreateTouchPad( input, 0, 0, 150, 150 )
+		local color = Vector( 0.15, 0.15, 0.15, 0.3 )
+		local bloom_display = vuiPanel_create( engine, "dat/img/white.tga", color, 0, screen_height - 150, 150, 150 )
+	end
 end
 
 function player_ship_collisionHandler( ship, collider )
