@@ -3,6 +3,13 @@
 
 #ifndef ANDROID
 #define LINUX_X // At the moment we only support linux apart from Android
+#define IF_LINUX(src) src
+#define IF_ANDROID(src)
+#endif
+
+#ifdef ANDROID
+#define IF_LINUX(src)
+#define IF_ANDROID(src) src
 #endif
 
 #include <assert.h>

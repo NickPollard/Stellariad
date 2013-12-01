@@ -290,7 +290,7 @@ void scene_input( scene* s, input* in ) {
 	if ( input_keybindPressed( in, scene_debug_lights_toggle ))
 		s->debug_flags ^= kSceneLightsTransforms;
 	if ( input_keybindPressed( in, render_bloom_filter_toggle ))
-		draw_bloom_filter = !draw_bloom_filter;
+		render_bloom_enabled = !render_bloom_enabled;
 }
 
 // Update the scene

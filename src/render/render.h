@@ -117,7 +117,7 @@ extern renderPass renderPass_ui;
 extern renderPass renderPass_debug;
 extern sceneParams sceneParams_main;
 extern window window_main;
-extern bool draw_bloom_filter;
+extern bool render_bloom_enabled;
 
 void render_setBuffers( float* vertex_buffer, int vertex_buffer_size, int* element_buffer, int element_buffer_size );
 

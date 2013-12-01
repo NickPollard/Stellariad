@@ -16,6 +16,7 @@
 #include "render/debugdraw.h"
 #include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
+#include "render/renderwindow.h"
 #include "render/shader.h"
 #include "render/texture.h"
 #include "system/file.h"
@@ -25,30 +26,23 @@
 #include "engine.h"
 
 #ifdef LINUX_X
-#include <X11/Xlib.h>
+#include <render/render_linux.h>
+#endif
+#ifdef ANDROID
+#include <render/render_android.h>
 #endif
 
 // Rendering API declaration
-#ifdef ANDROID
-#define RENDER_OPENGL_ES
-#define RENDER_GL_API EGL_OPENGL_ES_API
-#endif
-
-#ifdef LINUX_X
-#define RENDER_OPENGL
-#define RENDER_GL_API EGL_OPENGL_API
-#endif
-
 bool	render_initialised = false;
-bool	draw_bloom_filter = true;
+bool	render_bloom_enabled = true;
 
 #ifdef GRAPH_GPU_FPS
-graph* gpu_fpsgraph; 
-graphData* gpu_fpsdata;
-frame_timer* gpu_fps_timer = NULL;
+graph*			gpu_fpsgraph; 
+graphData*		gpu_fpsdata;
+frame_timer* 	gpu_fps_timer = NULL;
 #endif // GRAPH_GPU_FPS
 
-#define MAX_VERTEX_ARRAY_COUNT 1024
+#define kMaxVertexArrayCount 1024
 
 // *** Shader Pipeline
 
@@ -62,186 +56,11 @@ gl_resources resources;
 window window_main = { 1196, 720, 0, 0, 0, true };
 
 // *** Properties of the GL implementation
-GLint max_texture_units = 0;
+typedef struct GraphicsSystem_s {
+	GLint maxTextureUnits;
+} GraphicsSystem;
 
-
-
-EGLNativeWindowType os_createWindow() {
-#ifdef LINUX_X
-	// Get the XServer display
-	Display* display	= XOpenDisplay(NULL);
-
-	int x = 0, y = 0;
-	int border_width = 0;
-
-	int white_color = XWhitePixel( display, 0 );
-	int black_color = XBlackPixel( display, 0 );
-
-	// Create the window
-	Window window = XCreateSimpleWindow( display, DefaultRootWindow( display ), 
-			x, y, 
-			window_main.width, window_main.height,
-		   	border_width, 
-			black_color, black_color );
-
-	// We want to get MapNotify events
-	XSelectInput( display, window, ButtonPressMask|KeyPressMask|KeyReleaseMask|KeymapStateMask|StructureNotifyMask );
-
-	// Setup client messaging to receive a client delete message
-	Atom wm_delete=XInternAtom( display, "WM_DELETE_WINDOW", true );
-	XSetWMProtocols( display, window, &wm_delete, 1 );
-
-	GC gc = XCreateGC( display, window, 0, NULL );
-	XSetForeground( display, gc, white_color );
-
-	XStoreName( display, window, "Vitae");
-	XMapWindow( display, window );
-
-	// Wait for the MapNotify event
-	for(;;) {
-		XEvent e;
-		XNextEvent( display, &e );
-		if ( e.type == MapNotify )
-			break;
-	}
-
-	xwindow_main.display = display;
-	xwindow_main.window = window;
-	xwindow_main.open = true;
-
-	// TODO - this shouldn't happen here.
-	// Window creation needs to be moved out of Render
-	input_initKeyCodes( &xwindow_main );
-
-	return window;
-#endif
-}
-
-// Tear down the EGL context currently associated with the display.
-void render_destroyWindow( window* w ) {
-    if ( w->display != EGL_NO_DISPLAY ) {
-        eglMakeCurrent( w->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
-        if ( w->context != EGL_NO_CONTEXT ) {
-            eglDestroyContext( w->display, w->context );
-        }
-        if ( w->surface != EGL_NO_SURFACE) {
-            eglDestroySurface( w->display, w->surface );
-        }
-        eglTerminate( w->display );
-    }
-    w->display = EGL_NO_DISPLAY;
-    w->context = EGL_NO_CONTEXT;
-    w->surface = EGL_NO_SURFACE;
-}
-
-EGLNativeDisplayType render_getDefaultOSDisplay() {
-#ifdef LINUX_X
-	return XOpenDisplay(NULL);
-#endif // LINUX_X
-#ifdef ANDROID
-	return EGL_DEFAULT_DISPLAY;
-#endif // ANDROID
-}
-
-void render_createWindow( void* app, window* w ) {
-    // initialize OpenGL ES and EGL
-
-    /*
-     * Here specify the attributes of the desired configuration.
-     * Below, we select an EGLConfig with at least 8 bits per color
-     * component compatible with on-screen windows
-     */
-#ifdef RENDER_OPENGL_ES
-    const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-            EGL_NONE
-    };
-
-	// Ask for a GLES2 context	
-	const EGLint context_attribs[] = {
-		EGL_CONTEXT_CLIENT_VERSION, 2, 
-		EGL_NONE
-	};
-#endif // OPENGL_ES
-#ifdef RENDER_OPENGL
-	const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT, // We want OpenGL, not OpenGL_ES
-            EGL_NONE
-    };
-	// Don't need, as we're not using OpenGL_ES
-	const EGLint context_attribs[] = {
-		EGL_NONE
-	};
-#endif // RENDER_OPENGL
-
-    EGLint numConfigs;
-    EGLConfig config;
-    EGLSurface surface;
-    EGLContext context;
-
-    EGLDisplay display = eglGetDisplay( render_getDefaultOSDisplay() );
-	EGLint minor = 0, major = 0;
-    EGLBoolean result = eglInitialize( display, &major, &minor );
-	vAssert( result == EGL_TRUE );
-
-    /* Here, the application chooses the configuration it desires. In this
-     * sample, we have a very simplified selection process, where we pick
-     * the first EGLConfig that matches our criteria */
-	printf( "EGL Choosing Config.\n" );
-    eglChooseConfig( display, attribs, &config, 1, &numConfigs );
-	vAssert( result == EGL_TRUE );
-
-	// We need to create a window first, outside EGL
-#ifdef ANDROID
-    /* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
-     * guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
-     * As soon as we picked a EGLConfig, we can safely reconfigure the
-     * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
-    EGLint egl_visual_id;
-    eglGetConfigAttrib( display, config, EGL_NATIVE_VISUAL_ID, &egl_visual_id );
-    ANativeWindow_setBuffersGeometry( ((struct android_app*)app)->window, 0, 0, egl_visual_id );
-	EGLNativeWindowType native_win = ((struct android_app*)app)->window;
-
-#endif
-#ifdef LINUX_X
-	(void)app;
-	EGLNativeWindowType native_win = os_createWindow();
-#endif
-
-	printf( "EGL Creating Surface.\n" );
-    surface = eglCreateWindowSurface( display, config, native_win, NULL );
-	if ( surface == EGL_NO_SURFACE ) {
-		printf( "Unable to create EGL surface (eglError: %d)\n", eglGetError() );
-		vAssert( 0 );
-	}
-	result = eglBindAPI( RENDER_GL_API );
-	vAssert( result == EGL_TRUE );
-  
-	printf( "EGL Creating Context.\n" );
-    context = eglCreateContext(display, config, NULL, context_attribs );
-
-    result = eglMakeCurrent(display, surface, surface, context);
-	vAssert( result == EGL_TRUE );
-
-	// Store our EGL params with out render window
-	w->display = display;
-	w->surface = surface;
-	w->context = context;
-
-    eglQuerySurface(display, surface, EGL_WIDTH, &w->width);
-    eglQuerySurface(display, surface, EGL_HEIGHT, &w->height);
-}
-
+GraphicsSystem graphicsSystem = { 0 };
 void render_buildShaders() {
 	// Load Shaders								Vertex								Fragment
 	resources.shader_default	= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
@@ -484,10 +303,10 @@ void render_init( void* app ) {
 	glEnable( GL_CULL_FACE );
 
 #ifdef RENDER_OPENGL
-	glGetIntegerv( GL_MAX_TEXTURE_UNITS, &max_texture_units );
+	glGetIntegerv( GL_MAX_TEXTURE_UNITS, &graphicsSystem.maxTextureUnits );
 #endif
 #ifdef RENDER_OPENGL_ES
-	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_texture_units );
+	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &graphicsSystem.maxTextureUnits );
 #endif
 
 	texture_staticInit();
@@ -496,11 +315,11 @@ void render_init( void* app ) {
 	skybox_init();
 	
 	// Allocate space for buffers
-	const GLsizei vertex_buffer_size = sizeof( vector ) * MAX_VERTEX_ARRAY_COUNT;
-	const GLsizei element_buffer_size = sizeof( GLushort ) * MAX_VERTEX_ARRAY_COUNT;
+	const GLsizei vertex_buffer_size = sizeof( vector ) * kMaxVertexArrayCount;
+	const GLsizei element_buffer_size = sizeof( GLushort ) * kMaxVertexArrayCount;
 	for ( int i = 0; i < kVboCount; i++ ) {
-		resources.vertex_buffer[i]	= render_glBufferCreate( GL_ARRAY_BUFFER, NULL, vertex_buffer_size );
-		resources.element_buffer[i]	= render_glBufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, element_buffer_size );
+		resources.vertex_buffer[i]	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, vertex_buffer_size );
+		resources.element_buffer[i]	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, element_buffer_size );
 	}
 
 	// Allocate draw buffer
@@ -571,7 +390,7 @@ int render_current_texture_unit = 0;
 // and sets the uniform to that
 void render_setUniform_texture( GLuint uniform, GLuint texture ) {
 	if ((int)uniform >= 0 ) {
-		vAssert( render_current_texture_unit < max_texture_units );
+		vAssert( render_current_texture_unit < graphicsSystem.maxTextureUnits );
 
 		// Activate a texture unit
 		glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
@@ -888,7 +707,7 @@ void render_draw( window* w, engine* e ) {
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 
-	if ( draw_bloom_filter ) {
+	if ( render_bloom_enabled ) {
 		// downscale pass
 		render_current_texture_unit = 0;
 		render_attachFrameBuffer( render_second_buffer ); 

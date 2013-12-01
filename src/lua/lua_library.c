@@ -764,8 +764,8 @@ int LUA_dynamicSky_blend( lua_State* l ) {
 
 int LUA_fx_toggleBloom( lua_State* l ) {
 	(void)l;
-	draw_bloom_filter = !draw_bloom_filter;
-	printf( "Toggling bloom: %s\n", draw_bloom_filter ? "on" : "off" );
+	render_bloom_enabled = !render_bloom_enabled;
+	printf( "Toggling bloom: %s\n", render_bloom_enabled ? "on" : "off" );
 	return 0;
 }
 

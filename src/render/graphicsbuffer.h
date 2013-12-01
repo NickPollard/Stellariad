@@ -2,16 +2,18 @@
 
 #include "render/vgl.h"
 
+/*
 struct graphicsBuffer_s {
 };
 
 typedef struct graphicsBuffer_s graphicsBufer;
+*/
 
-GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size );
-
+// Synchronously create a render buffer
+GLuint render_bufferCreate( GLenum target, const void* data, GLsizei size );
 // Asynchronosuly create a GPU buffer
 GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size );
-// Free it
+
 void render_freeBuffer( void* buffer );
 
 // Asynchronously copy data to a GPU  buffer

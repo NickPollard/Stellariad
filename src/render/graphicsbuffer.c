@@ -4,18 +4,6 @@
 //-----------------------
 #include "render.h"
 
-GLuint render_glBufferCreate( GLenum target, const void* data, GLsizei size ) {
-	GLuint buffer; // The OpenGL object handle we generate
-	glGenBuffers( 1, &buffer );				// Generate a buffer name - effectively just a declaration
-	glBindBuffer( target, buffer );			// Bind the buffer name to a target, creating the vertex buffer object
-	// Usage hint can be: GL_[VARYING]_[USE]
-	// Varying: STATIC / DYNAMIC / STREAM
-	// Use: DRAW / READ / COPY
-	// OpenGL ES only supports dynamic/static draw
-	glBufferData( target, size, data, /*Usage hint*/ GL_STATIC_DRAW );	// Allocate the buffer, optionally copying data
-	return buffer;
-}
-
 typedef struct bufferRequest_s {
 	GLenum		target;
 	const void*	data;
@@ -40,13 +28,27 @@ int				buffer_copy_request_count = 0;
 
 vmutex buffer_mutex = kMutexInitialiser;
 
-bufferRequest* getBufferRequest() {
+GLuint render_bufferCreate( GLenum target, const void* data, GLsizei size ) {
+	GLuint buffer;							// The OpenGL object handle we generate
+	glGenBuffers( 1, &buffer );				// Generate a buffer name - effectively just a declaration
+	glBindBuffer( target, buffer );			// Bind the buffer name to a target, creating the vertex buffer object
+	// Usage hint can be: GL_[VARYING]_[USE]
+	// Varying: STATIC / DYNAMIC / STREAM
+	// Use: DRAW / READ / COPY
+	// OpenGL ES only supports dynamic/static draw
+	static const int usageHint = GL_STATIC_DRAW;
+	glBufferData( target, size, data, usageHint );	// Allocate the buffer, optionally copying data
+	return buffer;
+}
+
+
+bufferRequest* newBufferRequest() {
 	vAssert( buffer_request_count < kMaxBufferRequests );
 	bufferRequest* r = &buffer_requests[buffer_request_count++];
 	return r;
 }
 
-bufferCopyRequest* getBufferCopyRequest() {
+bufferCopyRequest* newBufferCopyRequest() {
 	vAssert( buffer_copy_request_count < kMaxBufferCopyRequests );
 	bufferCopyRequest* r = &buffer_copy_requests[buffer_copy_request_count++];
 	return r;
@@ -54,10 +56,9 @@ bufferCopyRequest* getBufferCopyRequest() {
 
 // Asynchronously copy data to a VertexBufferObject
 void render_bufferCopy( GLenum target, GLuint buffer, const void* data, GLsizei size ) {
-	bufferCopyRequest* b = NULL;
 	vmutex_lock( &buffer_mutex );
 	{
-		b = getBufferCopyRequest();
+		bufferCopyRequest* b = newBufferCopyRequest();
 		vAssert( b );
 		b->buffer	= buffer;
 		b->target	= target;
@@ -73,7 +74,7 @@ GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size ) {
 	bufferRequest* b = NULL;
 	vmutex_lock( &buffer_mutex );
 	{
-		b = getBufferRequest();
+		b = newBufferRequest();
 		vAssert( b );
 		b->target	= target;
 		b->data		= data;
@@ -97,7 +98,7 @@ void render_bufferTick() {
 		// TODO: This could be a lock-free queue
 		for ( int i = 0; i < buffer_request_count; i++ ) {
 			bufferRequest* b = &buffer_requests[i];
-			*b->ptr = render_glBufferCreate( b->target, b->data, b->size );
+			*b->ptr = render_bufferCreate( b->target, b->data, b->size );
 			//printf( "Created buffer %x for request for %d bytes.\n", *b->ptr, b->size );
 		}
 		buffer_request_count = 0;

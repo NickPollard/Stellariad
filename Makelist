@@ -43,6 +43,9 @@ SRCS =	src/camera.c \
 		src/mem/bitpool.c \
 		src/render/debugdraw.c \
 		src/render/graphicsbuffer.c \
+		src/render/render_android.c \
+		src/render/render_linux.c \
+		src/render/renderwindow.c \
 		src/render/modelinstance.c \
 		src/render/render.c \
 		src/render/shader.c \
