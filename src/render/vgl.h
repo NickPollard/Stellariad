@@ -36,3 +36,4 @@ vglTexture vgl_buildTexture( const ubyte* img, int w, int h, int type, int forma
 
 // Bind a texture, activating it for use
 void vglBindTexture( vglTexture tex );
+

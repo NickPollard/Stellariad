@@ -37,6 +37,9 @@
 #define true 1
 #define false 0
 
+// Nullptr
+#define nullptr NULL
+
 // *** Unit Testing
 #ifdef ANDROID
 #define UNIT_TEST false

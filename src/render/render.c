@@ -32,6 +32,13 @@
 #include <render/render_android.h>
 #endif
 
+#ifdef RENDER_OPENGL 
+	#define kGlTextureUnits GL_MAX_TEXTURE_UNITS
+#endif
+#ifdef RENDER_OPENGL_ES
+	#define kGlTextureUnits GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+#endif
+
 // Rendering API declaration
 bool	render_initialised = false;
 bool	render_bloom_enabled = true;
@@ -45,37 +52,51 @@ frame_timer* 	gpu_fps_timer = NULL;
 #define kMaxVertexArrayCount 1024
 
 // *** Shader Pipeline
+	matrix modelview, camera_mtx, camera_inverse, camera_matrix;
+	matrix perspective;
+	vector viewspace_up;
+	vector directional_light_direction;
 
-matrix modelview, camera_mtx, camera_inverse, camera_matrix;
-matrix perspective;
-vector viewspace_up;
-vector directional_light_direction;
+// *** Global rendering resources
+	RenderResources resources;
 
-gl_resources resources;
-
-window window_main = { 1196, 720, 0, 0, 0, true };
+	window window_main = { 1196, 720, 0, 0, 0, true };
 
 // *** Properties of the GL implementation
-typedef struct GraphicsSystem_s {
-	GLint maxTextureUnits;
-} GraphicsSystem;
+	typedef struct GraphicsSystem_s {
+		GLint maxTextureUnits;
+	} GraphicsSystem;
 
-GraphicsSystem graphicsSystem = { 0 };
+	GraphicsSystem graphicsSystem = { 0 };
+
+// *** RenderPasses
+	renderPass renderPass_main;
+	renderPass renderPass_alpha;
+	renderPass renderPass_ui;
+	renderPass renderPass_debug;
+	renderPass renderPass_depth;
+
+	map* callbatch_map = NULL;
+	int callbatch_count = 0;
+
+// *** SceneParams
+	sceneParams sceneParams_main;
+
 void render_buildShaders() {
-	// Load Shaders								Vertex								Fragment
-	resources.shader_default	= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
-	resources.shader_reflective	= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
-	resources.shader_refl_normal= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
-	resources.shader_particle	= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
-	resources.shader_terrain	= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
-	resources.shader_skybox		= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
-	resources.shader_ui			= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
-	resources.shader_gaussian	= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
-	resources.shader_gaussian_vert	= shader_load( "dat/shaders/gaussian_vert.v.glsl",		"dat/shaders/gaussian_vert.f.glsl" );
-	resources.shader_filter		= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
-	resources.shader_debug		= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
-	resources.shader_debug_2d	= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
-	resources.shader_depth		= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
+	// Load Shaders					Vertex												Fragment
+	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
+	resources.shader_reflective		= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
+	resources.shader_refl_normal	= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
+	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
+	resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
+	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
+	resources.shader_ui				= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
+	resources.shader_gaussian		= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
+	resources.shader_gaussian_vert	= shader_load( "dat/shaders/gaussian_vert.v.glsl",	"dat/shaders/gaussian_vert.f.glsl" );
+	resources.shader_filter			= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
+	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
+	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
+	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
 
 #define GET_UNIFORM_LOCATION( var ) \
 	resources.uniforms.var = shader_findConstant( mhash( #var )); \
@@ -86,14 +107,10 @@ void render_buildShaders() {
 
 // TODO - hashmap
 shader* render_shaderByName( const char* name ) {
-	if (string_equal(name, "phong"))
-		return resources.shader_default;
-	else if (string_equal(name, "reflective"))
-		return resources.shader_reflective;
-	else if (string_equal(name, "refl_normal"))
-		return resources.shader_refl_normal;
-	else
-		return resources.shader_default;
+	if (string_equal(name, "phong")) return resources.shader_default;
+	else if (string_equal(name, "reflective")) return resources.shader_reflective;
+	else if (string_equal(name, "refl_normal")) return resources.shader_refl_normal;
+	else return resources.shader_default;
 }
 
 #define kMaxDrawCalls 2048
@@ -105,29 +122,10 @@ drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
 // This gets zeroed on each frame
 int			next_call_index[kCallBufferCount];
 
-map* callbatch_map = NULL;
-int callbatch_count = 0;
-
 struct renderPass_s {
-	drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
-	int			next_call_index[kCallBufferCount];
+	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
+	int			next_call_index[ kCallBufferCount ];
 };
-
-// Parameters for the whole render operation
-struct sceneParams_s {
-	vector	fog_color;
-	vector	sky_color;
-	vector	sun_color;
-};
-
-renderPass renderPass_main;
-renderPass renderPass_alpha;
-renderPass renderPass_ui;
-renderPass renderPass_debug;
-renderPass renderPass_depth;
-
-sceneParams sceneParams_main;
-
 void renderPass_clearBuffers( renderPass* pass ) {
 	memset( pass->next_call_index, 0, sizeof( int ) * kCallBufferCount );
 #if debug
@@ -141,23 +139,6 @@ void render_clearCallBuffer( ) {
 	renderPass_clearBuffers( &renderPass_alpha );
 	renderPass_clearBuffers( &renderPass_debug );
 	renderPass_clearBuffers( &renderPass_ui );
-}
-
-#define		kRenderDrawBufferSize 1 * 1024 * 1024
-uint8_t*	render_draw_buffer;
-uint8_t*	render_draw_buffer_free;
-
-// Temporary allocation that is only valid for a frame
-void* render_bufferAlloc( size_t size ) {
-	// TODO: Aligned!
-	vAssert( ( render_draw_buffer_free + size ) < ( render_draw_buffer + kRenderDrawBufferSize ));
-	void* p = render_draw_buffer_free;
-	render_draw_buffer_free += size;
-	return p;
-}
-
-void render_resetBufferBuffer() {
-	render_draw_buffer_free = render_draw_buffer;
 }
 
 void render_set3D( int w, int h ) {
@@ -179,36 +160,25 @@ void render_swapBuffers( window* w ) {
 	glFlush();
 }
 
-// Iterate through each model in the scene
-// Translate by their transform
-// Then draw all the submeshes
+// Iterate through each model in the scene, translate by their transform, then draw all the submeshes
 void render_scene(scene* s) {
-	for (int i = 0; i < s->model_count; i++) {
-		modelInstance_draw( scene_model( s, i ), s->cam );
-	}
 	sceneParams_main.fog_color = scene_fogColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sky_color = scene_skyColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sun_color = scene_sunColor( s, transform_getWorldPosition( s->cam->trans ));
+	for (int i = 0; i < s->model_count; i++) {
+		modelInstance_draw( scene_model( s, i ), s->cam );
+	}
 }
 
 void render_lighting( scene* s ) {
-	// Ambient Light
-
-	// Point Lights	
 	light_renderLights( s->light_count, s->lights );
 }
 
 // Clear information from last draw
 void render_clear() {
 	glClearColor( 0.f, 0.f, 0.f, 0.f );
-	//glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	glClear( GL_DEPTH_BUFFER_BIT );
 }
-
-GLuint render_frame_buffer;
-GLuint render_texture;
-GLuint render_depth_buffer;
-GLuint render_depth_texture;
 
 typedef struct frameBuffer_s {
 	GLuint frame_buffer;
@@ -217,30 +187,26 @@ typedef struct frameBuffer_s {
 	GLuint depth_buffer;
 	int width;
 	int height;
-} frameBuffer;
+} FrameBuffer;
 
-frameBuffer* render_first_buffer = NULL;
-frameBuffer* render_second_buffer = NULL;
-frameBuffer* render_third_buffer = NULL;
-frameBuffer* render_fourth_buffer = NULL;
+FrameBuffer* render_first_buffer	= nullptr;
+FrameBuffer* render_second_buffer	= nullptr;
+FrameBuffer* render_third_buffer	= nullptr;
+FrameBuffer* render_fourth_buffer	= nullptr;
 
-frameBuffer* render_initFrameBuffer( int width, int height ) {
-	frameBuffer* buffer = mem_alloc(sizeof( frameBuffer ));
+GLuint frameBuffer() {
+	GLuint buffer;
+	glGenFramebuffers( 1, &buffer );
+	glBindFramebuffer( GL_FRAMEBUFFER, buffer );
+	return buffer;
+}
+
+FrameBuffer* newFrameBuffer( int width, int height ) {
+	FrameBuffer* buffer = mem_alloc(sizeof( FrameBuffer ));
 	buffer->width = width;
 	buffer->height = height;
-
-	// Create Frame Buffer
-	glGenFramebuffers( 1, &buffer->frame_buffer );
-	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
-
-	// Create render texture
-	glGenTextures( 1, &buffer->texture );
-	glBindTexture( GL_TEXTURE_2D, buffer->texture );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE );
-
+	buffer->frame_buffer = frameBuffer();
+	buffer->texture = textureBilinearClamped();
 	glTexImage2D( GL_TEXTURE_2D,
 		   			0,			// No Mipmaps for now
 					GL_RGB,	// 3-channel, 8-bits per channel (32-bit stride)
@@ -249,23 +215,9 @@ frameBuffer* render_initFrameBuffer( int width, int height ) {
 					GL_RGB,		// TGA uses BGR order internally
 					GL_UNSIGNED_BYTE,	// 8-bits per channel
 					NULL );
+	textureUnbind();
 
-
-	glBindTexture( GL_TEXTURE_2D, 0 );
-
-#if 0
-	glGenRenderbuffers( 1, &render_depth_buffer );
-	glBindRenderbuffer( GL_RENDERBUFFER, render_depth_buffer );
-	glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height );
-	glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth_buffer );
-	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_texture, 0 );
-#else 
-	glGenTextures( 1, &buffer->depth_texture );
-	glBindTexture( GL_TEXTURE_2D, buffer->depth_texture );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE );
+	buffer->depth_texture = textureBilinearClamped();
 	glTexImage2D( GL_TEXTURE_2D,
 		   			0,						// No Mipmaps for now
 					GL_DEPTH_COMPONENT,
@@ -275,15 +227,11 @@ frameBuffer* render_initFrameBuffer( int width, int height ) {
 					GL_UNSIGNED_SHORT,		// 16-bits
 					NULL );
 
-	// Attach render texture to framebuffer
 	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer->texture, 0 );
 	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, buffer->depth_texture, 0 );
-#endif
-
 	vAssert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-	glBindTexture( GL_TEXTURE_2D, 0 );
+	textureUnbind();
 	return buffer;
 }
 
@@ -302,12 +250,7 @@ void render_init( void* app ) {
 	glFrontFace( GL_CW );
 	glEnable( GL_CULL_FACE );
 
-#ifdef RENDER_OPENGL
-	glGetIntegerv( GL_MAX_TEXTURE_UNITS, &graphicsSystem.maxTextureUnits );
-#endif
-#ifdef RENDER_OPENGL_ES
-	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &graphicsSystem.maxTextureUnits );
-#endif
+	glGetIntegerv( kGlTextureUnits, &graphicsSystem.maxTextureUnits );
 
 	texture_staticInit();
 	shader_init();
@@ -315,24 +258,20 @@ void render_init( void* app ) {
 	skybox_init();
 	
 	// Allocate space for buffers
-	const GLsizei vertex_buffer_size = sizeof( vector ) * kMaxVertexArrayCount;
-	const GLsizei element_buffer_size = sizeof( GLushort ) * kMaxVertexArrayCount;
 	for ( int i = 0; i < kVboCount; i++ ) {
-		resources.vertex_buffer[i]	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, vertex_buffer_size );
-		resources.element_buffer[i]	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, element_buffer_size );
+		resources.vertex_buffer[i]	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxVertexArrayCount);
+		resources.element_buffer[i]	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxVertexArrayCount);
 	}
 
-	// Allocate draw buffer
-	render_draw_buffer = mem_alloc( kRenderDrawBufferSize );
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
 	const int downscale = 8;
 	int w = window_main.width / downscale;
 	int h = window_main.height / downscale;
-	render_first_buffer = render_initFrameBuffer( window_main.width, window_main.height );
-	render_second_buffer = render_initFrameBuffer( w, h );
-	render_third_buffer = render_initFrameBuffer( w, h );
-	render_fourth_buffer = render_initFrameBuffer( w, h );
+	render_first_buffer = newFrameBuffer( window_main.width, window_main.height );
+	render_second_buffer = newFrameBuffer( w, h );
+	render_third_buffer = newFrameBuffer( w, h );
+	render_fourth_buffer = newFrameBuffer( w, h );
 
 #ifdef GRAPH_GPU_FPS
 #define kMaxGpuFPSFrames 256
@@ -412,7 +351,6 @@ void render_setUniform_vector( GLuint uniform, vector* v ) {
 // Shader version
 void render( scene* s ) {
 	render_clearCallBuffer();
-	render_resetBufferBuffer();
 	
 	matrix_setIdentity( modelview );
 
@@ -453,25 +391,22 @@ void render_sceneParams( sceneParams* params ) {
 
 int render_findDrawCallBuffer( shader* vshader ) {
 	uintptr_t key = (uintptr_t)vshader;
-	int* i_ptr = map_find( callbatch_map, key );
-	int i;
-	if ( !i_ptr ) {
+	int* found = map_find( callbatch_map, key );
+	int index;
+	if ( !found ) {
 		vAssert( callbatch_count < kCallBufferCount );
 		map_add( callbatch_map, key, &callbatch_count );
-		i = callbatch_count;
-		++callbatch_count;
-	} else {
-		i = *i_ptr;
-	}
+		index = callbatch_count++;
+	} else
+		index = *found;
 
-	return i;
+	return index;
 }
 
 drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
 	vAssert( pass );
 	vAssert( vshader );
 
-	// Lookup drawcall buffer from shader
 	int buffer = render_findDrawCallBuffer( vshader );
 	int call = pass->next_call_index[buffer]++;
 	vAssert( call < kMaxDrawCalls );
@@ -493,27 +428,19 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 }
 
 void render_printShader( shader* s ) {
-	if ( s == resources.shader_default )
-		printf( "shader: default\n" );
-	if ( s == resources.shader_particle )
-		printf( "shader: particle\n" );
-	if ( s == resources.shader_terrain )
-		printf( "shader: terrain\n" );
-	if ( s == resources.shader_skybox )
-		printf( "shader: skybox\n" );
-	if ( s == resources.shader_ui )
-		printf( "shader: ui\n" );
-	if ( s == resources.shader_filter )
-		printf( "shader: filter\n" );
+	if ( s == resources.shader_default )	printf( "shader: default\n" );
+	if ( s == resources.shader_particle )	printf( "shader: particle\n" );
+	if ( s == resources.shader_terrain )	printf( "shader: terrain\n" );
+	if ( s == resources.shader_skybox )		printf( "shader: skybox\n" );
+	if ( s == resources.shader_ui )			printf( "shader: ui\n" );
+	if ( s == resources.shader_filter )		printf( "shader: filter\n" );
 }
 
 GLuint current_VBO = -1;
 
 void render_drawCall_draw( drawCall* draw ) {
 	vAssert( draw->element_count > 0 );
-	// Bind Correct buffers
 	bool new_buffer = (draw->vertex_VBO != current_VBO);
-	//bool new_buffer = true;
 
 	if ( new_buffer ) {
 		current_VBO = draw->vertex_VBO;
@@ -525,10 +452,9 @@ void render_drawCall_draw( drawCall* draw ) {
 	if ( draw->vertex_VBO == resources.vertex_buffer[0] ) {
 		GLsizei vertex_buffer_size	= draw->element_count * sizeof( vertex );
 		GLsizei element_buffer_size	= draw->element_count * sizeof( GLushort );
-#if 1
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, draw->vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, draw->element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-#else
+		/*
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, NULL, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, NULL, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 
@@ -541,17 +467,11 @@ void render_drawCall_draw( drawCall* draw ) {
 		vAssert( buffer != NULL );
 		memcpy( buffer, draw->element_buffer, element_buffer_size );
 		glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER );
-#endif
+		*/
 	}
 
-	// Now Draw!
-	//if ( new_buffer ) {
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-	//}
+	VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
-	//if ( new_buffer ) {
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
-	//}
 }
 
 void render_drawTextureBatch( drawCall* draw ) {
@@ -619,7 +539,7 @@ void render_drawPass( window* w, renderPass* pass ) {
 	}
 }
 
-void render_attachFrameBuffer(frameBuffer* buffer) {
+void render_attachFrameBuffer(FrameBuffer* buffer) {
 	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
 	//render_clear();
 	glViewport(0, 0, buffer->width, buffer->height);
@@ -632,7 +552,7 @@ void render_unattachFrameBuffer() {
 GLuint* postProcess_vertex_VBO = 0;
 GLuint* postProcess_element_VBO = 0;
 
-void render_drawFrameBuffer( window* w, frameBuffer* buffer, shader* s, float alpha ) {
+void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
 	render_setUniform_texture( *resources.uniforms.tex,	buffer->texture );
 	vector screen_size = Vector( w->width, w->height, 0.f, 0.f );

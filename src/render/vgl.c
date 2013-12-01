@@ -35,3 +35,5 @@ vglTexture vgl_buildTexture( const ubyte* img, int w, int h, int type, int forma
 void vglBindTexture( vglTexture tex ) {
 	glBindTexture( GL_TEXTURE_2D, tex );
 }
+
+

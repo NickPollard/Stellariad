@@ -82,7 +82,7 @@ typedef struct gl_resources_s {
 	shader* shader_debug;
 	shader* shader_debug_2d;
 	shader* shader_depth;
-} gl_resources;
+} RenderResources;
 
 struct vertex_s {
 	vector	position;
@@ -103,7 +103,7 @@ struct window_s {
 	bool open;
 };
 
-extern gl_resources resources;
+extern RenderResources resources;
 extern matrix modelview;
 extern matrix camera_inverse;
 extern matrix camera_mtx;
@@ -192,6 +192,13 @@ typedef struct drawCall_s {
 	GLenum		depth_mask;
 	GLenum		elements_mode;
 } drawCall;
+
+// Parameters for the whole render scene
+struct sceneParams_s {
+	vector	fog_color;
+	vector	sky_color;
+	vector	sun_color;
+};
 
 drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
 void render_drawCall( drawCall* draw );

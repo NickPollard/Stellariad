@@ -380,3 +380,31 @@ void texture_staticInit() {
 
 	memset( requests, 0, sizeof( textureRequest ) * kMaxTextureRequests );
 }
+
+void textureBilinear() {
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+}
+
+void textureNearest() {
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+}
+
+void textureClamped() {
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE );
+}
+
+GLuint textureBilinearClamped() {
+	GLuint t;
+	glGenTextures( 1, &t );
+	glBindTexture( GL_TEXTURE_2D, t );
+	textureBilinear();
+	textureClamped();
+	return t;
+}
+
+void textureUnbind() {
+	glBindTexture( GL_TEXTURE_2D, 0 );
+}

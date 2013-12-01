@@ -11,6 +11,45 @@
 #include <render/render_android.h>
 #endif
 
+#ifdef RENDER_OPENGL_ES
+	#define kGlType EGL_OPENGL_ES2_BIT
+	#define kGlClientVersion	EGL_CONTEXT_CLIENT_VERSION, 2, // Ask for a GLES2 context	
+#endif
+#ifdef RENDER_OPENGL
+	#define kGlType EGL_OPENGL_BIT
+	#define kGlClientVersion
+#endif
+
+EGLConfig eglConfig( EGLDisplay display, const EGLint* attribs ) {
+	EGLConfig config;
+	EGLint numConfigs;
+    EGLBoolean r = eglChooseConfig( display, attribs, &config, 1, &numConfigs );
+	vAssert( r == EGL_TRUE );
+	return config;
+}
+
+void eglInit( EGLDisplay display ) {
+	EGLint minor = 0, major = 0;
+    EGLBoolean result = eglInitialize( display, &major, &minor );
+	vAssert( result == EGL_TRUE );
+}
+
+void eglActivateApi( EGLint api ) {
+	EGLBoolean r = eglBindAPI( api );
+	vAssert( r == EGL_TRUE );
+}
+
+int eglGetWindowWidth( window* w ) {
+	int width;
+    eglQuerySurface( w->display, w->surface, EGL_WIDTH, &width );
+	return width;
+}
+int eglGetWindowHeight( window* w ) {
+	int height;
+    eglQuerySurface( w->display, w->surface, EGL_HEIGHT, &height );
+	return height;
+}
+
 // Tear down the EGL context currently associated with the display.
 void render_destroyWindow( window* w ) {
     if ( w->display != EGL_NO_DISPLAY ) {
@@ -30,102 +69,49 @@ EGLNativeDisplayType defaultOSDisplay() {
 }
 
 void render_createWindow( void* app, window* w ) {
-    // initialize OpenGL ES and EGL
-
-    /*
-     * Here specify the attributes of the desired configuration.
+	(void)app;
+    /* Initialize OpenGL and EGL
      * Below, we select an EGLConfig with at least 8 bits per color
-     * component compatible with on-screen windows
-     */
-#ifdef RENDER_OPENGL_ES
+     * component compatible with on-screen windows */
     const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-            EGL_NONE
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+		EGL_DEPTH_SIZE, 8,
+		EGL_RENDERABLE_TYPE, kGlType,
+        EGL_NONE
     };
 
-	// Ask for a GLES2 context	
 	const EGLint context_attribs[] = {
-		EGL_CONTEXT_CLIENT_VERSION, 2, 
+		kGlClientVersion
 		EGL_NONE
 	};
-#endif // OPENGL_ES
-#ifdef RENDER_OPENGL
-	const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT, // We want OpenGL, not OpenGL_ES
-            EGL_NONE
-    };
-	// Don't need, as we're not using OpenGL_ES
-	const EGLint context_attribs[] = {
-		EGL_NONE
-	};
-#endif // RENDER_OPENGL
 
-    EGLint numConfigs;
-    EGLConfig config;
-    EGLSurface surface;
-    EGLContext context;
+    w->display = eglGetDisplay( defaultOSDisplay() );
+	eglInit( w->display );
 
-    EGLDisplay display = eglGetDisplay( defaultOSDisplay() );
-	EGLint minor = 0, major = 0;
-    EGLBoolean result = eglInitialize( display, &major, &minor );
-	vAssert( result == EGL_TRUE );
-
-    /* Here, the application chooses the configuration it desires. In this
-     * sample, we have a very simplified selection process, where we pick
-     * the first EGLConfig that matches our criteria */
-	printf( "EGL Choosing Config.\n" );
-    eglChooseConfig( display, attribs, &config, 1, &numConfigs );
-	vAssert( result == EGL_TRUE );
+   	EGLConfig config = eglConfig( w->display, attribs ); // We are just picking the first config that matches our requirements
 
 	// We need to create a window first, outside EGL
-#ifdef ANDROID
-    /* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
-     * guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
-     * As soon as we picked a EGLConfig, we can safely reconfigure the
-     * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
-    EGLint egl_visual_id;
-    eglGetConfigAttrib( display, config, EGL_NATIVE_VISUAL_ID, &egl_visual_id );
-    ANativeWindow_setBuffersGeometry( ((struct android_app*)app)->window, 0, 0, egl_visual_id );
-	EGLNativeWindowType native_win = ((struct android_app*)app)->window;
+	EGLNativeWindowType native_win = 
+		IF_LINUX( os_createWindow( w, "Skies of Antares" ); )
+		IF_ANDROID(	os_createWindow( w->display, config, app ); )
 
-#endif
-#ifdef LINUX_X
-	(void)app;
-	EGLNativeWindowType native_win = os_createWindow( w, "Skies of Antares" );
-#endif
-
-	printf( "EGL Creating Surface.\n" );
-    surface = eglCreateWindowSurface( display, config, native_win, NULL );
-	if ( surface == EGL_NO_SURFACE ) {
+    w->surface = eglCreateWindowSurface( w->display, config, native_win, NULL );
+	if ( w->surface == EGL_NO_SURFACE ) {
 		printf( "Unable to create EGL surface (eglError: %d)\n", eglGetError() );
 		vAssert( 0 );
 	}
-	result = eglBindAPI( RENDER_GL_API );
-	vAssert( result == EGL_TRUE );
+	eglActivateApi( kGlApi );
   
-	printf( "EGL Creating Context.\n" );
-    context = eglCreateContext(display, config, NULL, context_attribs );
+    w->context = eglCreateContext( w->display, config, NULL, context_attribs );
 
-    result = eglMakeCurrent(display, surface, surface, context);
+    EGLBoolean result = eglMakeCurrent( w->display, w->surface, w->surface, w->context);
 	vAssert( result == EGL_TRUE );
 
-	// Store our EGL params with out render window
-	w->display = display;
-	w->surface = surface;
-	w->context = context;
-
-    eglQuerySurface(display, surface, EGL_WIDTH, &w->width);
-    eglQuerySurface(display, surface, EGL_HEIGHT, &w->height);
+	w->width = eglGetWindowWidth( w );
+	w->height = eglGetWindowHeight( w );
 }
 
 

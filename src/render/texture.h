@@ -79,4 +79,8 @@ uint8_t* read_tga( const char* file, int* w, int* h );
 void* texture_allocate( size_t size );
 void texture_free( void* tex );
 
+// Create a new texture using bilinear filtering and clamp-to-edge
+GLuint textureBilinearClamped();
+void textureUnbind();
+
 #endif // __TEXTURE_H__
