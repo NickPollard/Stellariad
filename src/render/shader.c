@@ -195,7 +195,7 @@ GLint* shader_findConstant( int key ) {
 // Clear all constants so that they are unbound
 void shader_clearConstants() {
 #define CLEAR_SHADER_UNIFORM( var ) \
-	*resources.uniforms.var = SHADER_CONSTANT_UNBOUND_LOCATION;
+	*resources.uniforms.var = kShaderConstantNoLocation;
 	SHADER_UNIFORMS( CLEAR_SHADER_UNIFORM )
 }
 

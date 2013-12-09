@@ -317,7 +317,7 @@ void engine_render( engine* e ) {
 	if ( window_main.context != 0 )
 #endif // ANDROID
 	{
-		render( theScene );
+		render( &window_main, theScene );
 		engine_renderRenders( e );
 		skybox_render( NULL );
 

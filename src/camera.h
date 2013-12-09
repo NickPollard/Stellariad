@@ -1,5 +1,6 @@
 // camera.h
 #pragma once
+#include "maths/vector.h"
 
 struct camera_s {
 	transform* trans;
@@ -11,6 +12,7 @@ struct camera_s {
 	float fov; // in Radians
 //	float focalLength;
 //	float aperture;
+	vector frustum[6];
 };
 
 camera* camera_create();

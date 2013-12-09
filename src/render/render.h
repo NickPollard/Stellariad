@@ -152,7 +152,7 @@ void render_terminate();
 
 // Render the current scene
 // This is where the business happens
-void render( scene* s );
+void render( window* w, scene* s );
 
 void render_resetModelView( );
 void render_setUniform_matrix( GLuint uniform, matrix m );

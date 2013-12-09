@@ -136,9 +136,7 @@ void modelInstance_draw( modelInstance* instance, camera* cam ) {
 	modelInstance_calculateBoundingBox( instance );
 	//debugdraw_aabb( instance->bb );
 
-	vector frustum[6];
-	camera_calculateFrustum( cam, frustum );
-	if ( frustum_cull( &instance->bb, frustum ) )
+	if ( frustum_cull( &instance->bb, cam->frustum ) )
 		return;
 
 	render_resetModelView();

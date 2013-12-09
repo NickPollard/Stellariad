@@ -4,7 +4,6 @@
 #include "camera.h"
 //---------------------
 #include "maths/maths.h"
-#include "maths/vector.h"
 #include "transform.h"
 #include "mem/allocator.h"
 
