@@ -6,6 +6,7 @@
 #include "canyon.h"
 #include "canyon_zone.h"
 #include "collision.h"
+#include "noise.h"
 #include "worker.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
@@ -110,7 +111,7 @@ float canyon_uvMapped( float block_minimum, float f ) {
 }
 
 // ***
-#define kMaxTerrainBlockWidth 40
+#define kMaxTerrainBlockWidth 80
 #define kMaxTerrainBlockElements (kMaxTerrainBlockWidth * kMaxTerrainBlockWidth * 6)
 unsigned short terrain_element_buffer[kMaxTerrainBlockElements];
 
@@ -119,8 +120,61 @@ void initialiseDefaultElementBuffer( ) {
 		terrain_element_buffer[i] = i;
 }
 
+float noise_tex_a[64][64];
+float noise_tex_b[256][256];
+float noise_tex[1024][1024];
+
+//forward dec
+//float noise( int n );
+
+float noise_sample_a( float u_, float v_ ) {
+	const float u = fmod(fabsf(u_), 1.f) * 64.f;
+	const float v = fmod(fabsf(v_), 1.f) * 64.f;
+	const int ua = (int)floorf(u);
+	const int ub = (int)ceilf(u);
+	const int va = (int)floorf(v);
+	const int vb = (int)ceilf(v);
+	const float uf = fmod(u, 1.f);
+	const float vf = fmod(v, 1.f);
+	const float a = sinerp( noise_tex_a[ua][va], noise_tex_a[ua][vb], vf );
+	const float b = sinerp( noise_tex_a[ub][va], noise_tex_a[ub][vb], vf );
+	const float r =  sinerp( a, b, uf );
+	return r;
+}
+float noise_sample_b( float u_, float v_ ) {
+	const float u = fmod(fabsf(u_), 1.f) * 256.f;
+	const float v = fmod(fabsf(v_), 1.f) * 256.f;
+	const int ua = (int)floorf(u);
+	const int ub = (int)ceilf(u);
+	const int va = (int)floorf(v);
+	const int vb = (int)ceilf(v);
+	const float uf = fmod(u, 1.f);
+	const float vf = fmod(v, 1.f);
+	const float a = sinerp( noise_tex_b[ua][va], noise_tex_b[ua][vb], vf );
+	const float b = sinerp( noise_tex_b[ub][va], noise_tex_b[ub][vb], vf );
+	const float r =  sinerp( a, b, uf );
+	return r;
+}
+
+void noise_staticInit() {
+	for ( int i = 0; i < 64; ++i )
+		for ( int j = 0; j < 64; ++j )
+			noise_tex_a[i][j] = noise( i + j );
+	for ( int i = 0; i < 256; ++i )
+		for ( int j = 0; j < 256; ++j )
+			noise_tex_b[i][j] = noise( i + j );
+	for ( int i = 0; i < 1024; ++i )
+		for ( int j = 0; j < 1024; ++j ) {
+			noise_tex[i][j] = noise( i + j ) * 1.f/7.f +
+				2.f/7.f * noise_sample_b( (float)i / 4.f, (float)j / 4.f ) +
+				4.f/7.f * noise_sample_a( (float)i / 16.f, (float)j / 16.f );
+			//printf( "generated noise %.2f\n", noise_tex[i][j] );
+		}
+}
+
 void canyonTerrain_staticInit() {
 	initialiseDefaultElementBuffer();
+	noise_staticInit();
 }
 
 // ***
@@ -916,24 +970,87 @@ float terrain_mountainHeight( float x, float z, float u, float v ) {
 	return (1.0f + terrain_mountainFunc( x / scale_m_x ) * terrain_mountainFunc( z / scale_m_z )) * 0.5f * mountain_height;
 }
 
-float terrain_detailHeight( float u, float v ) {
-	return	0.5 * sinf( u ) * sinf( v ) +
-			sinf( u / 3.f ) * sinf( v / 3.f ) +
-			5 * sinf( u / 10.f ) * sinf( v / 10.f ) * sinf( u / 10.f ) * sinf( v / 10.f );
-	/*
-	return 3.f * ( sinf( u / 23.f ) * sinf( v / 23.f ) * sinf( u / 23.f ) * sinf( v / 23.f ) +
-			sinf( u / 17.f ) * sinf( v / 17.f ) +
-		   sinf( u / 13.f ) * sinf( v / 13.f ));
-		   */
+/*
+float noise( int n ) {
+	int last = 12345; // Thanks Braben!
+	int next = 45678;
+	const int count = n % 500;
+	for ( int i = 0; i < count; ++i ) {
+		next = next + last;
+		last = next - last;
+	}
+	float out = (float)(next % 10000);
+	return fclamp(out / 10000.f, 0.f, 1.f);
+}
+float noisef( float f ) {
+	const float a = fabsf( f ) * 1000.f;
+	const float floor = floorf( a );
+	const float ceil = ceilf( a );
+	return sinerp( noise((int)floor), noise((int)ceil), a - floor);
+}
+*/
 
+double noise_sample( double u_, double v_ ) {
+	const double u = fmod(fabs(u_), 1024.f);
+	const double v = fmod(fabs(v_), 1024.f);
+	const int ua = (int)floor(u);
+	const int ub = (int)ceil(u);
+	const int va = (int)floor(v);
+	const int vb = (int)ceil(v);
+	const double uf = fmod(u, 1.f);
+	const double vf = fmod(v, 1.f);
+	const double a = lerp( noise_tex[ua][va], noise_tex[ua][vb], vf );
+	const double b = lerp( noise_tex[ub][va], noise_tex[ub][vb], vf );
+	const double r =  lerp( a, b, uf );
+	//printf( "Noise for %.2f, %.2f = %.2f\n", u_, v_, r );
+	return r;
+}
+
+double octave( double amplitude, double scale, double u, double v ) {
+	//return amplitude * (noisef((u + v) * scale ));// + noisef( v * scale ));
+	/*
+	const float size = 1.f;
+	const float uu = fmodf(u * scale, size) * 10.f;
+	const float vv = fmodf(v * scale, size);
+	return amplitude * noisef((uu + vv) / 11.f); // + noisef( v * scale ));
+	*/
+	return amplitude * (2.0 * noise_sample( scale * u, scale * v ) - 1.0);
+}
+
+float shelf( float n, float shelf, float force ) {
+	float delta = fclamp( n - shelf, 0.f, force );
+ 	return n - delta;
+}
+
+float terrain_detailHeight( float u, float v ) {
+	(void)u;
+	(void)v;
+	/*
+	const float amplitude = 2.f;
+	const float scale = 0.001f;
+	return amplitude * (noisef( u * scale ) + noisef( v * scale ));
+	*/
+	/*
+	float n =	(float)octave( 20.0, 0.01, u, v ) +
+			(float)octave( 20.0, 0.017, u, v ) +
+			(float)octave( 40.0, 0.022, u, v ) +
+			(float)octave( 20.0, 0.00001f, u, v ) +
+			(float)octave( 5.0, 0.04, u, v ) +
+			(float)octave( 3.0, 0.125, u, v );
+	return shelf( shelf(n, -65.f, 10.f), -35.f, 10.f);
+	*/
+	return 0.f;
 }
 
 // The procedural function
 float canyonTerrain_sampleUV( float x, float z, float u, float v ) {
-	float mountains = terrain_mountainHeight( x, z, u, v );
-	float detail = terrain_detailHeight( u, v );
+	//float mountains = terrain_mountainHeight( x, z, u, v );
+	//float detail = terrain_detailHeight( u, v );
 	float canyon = terrain_canyonHeight( x, z, u, v );
-	return mountains + detail - canyon;
+	(void)canyon;
+	float scale = 0.04f;
+	float amplitude = 32.f;
+	return amplitude * perlin( u * scale, v * scale );
 }
 
 float canyonTerrain_sample( float x, float z ) {

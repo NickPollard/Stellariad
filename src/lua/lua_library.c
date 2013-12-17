@@ -848,7 +848,7 @@ int LUA_createCanyon(lua_State* l) {
 	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
 	startTick( e, c, canyon_tick );
 	
-	canyonTerrain* t = canyonTerrain_create( c, 14, 18, 40, 40, 640.f, 960.f );
+	canyonTerrain* t = canyonTerrain_create( c, 14, 18, 80, 80, 640.f, 960.f );
 	canyonTerrain_setLodIntervals( t, 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
 	engine_addRender( e, (void*)t, canyonTerrain_render );

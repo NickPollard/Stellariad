@@ -18,6 +18,20 @@ float fclamp( float a, float bottom, float top ) {
 	return fminf( fmaxf( a, bottom), top);
 }
 
+/*
+float fmod( float f, float m ) {
+	return f - (floorf( f / m ) * m);
+}
+*/
+
+// Return the fractional part of f
+double fract( double d ) {
+	return d - floor( d );
+}
+float fractf( float f ) {
+	return f - floorf( f );
+}
+
 // return *value* rounded to the nearest *round*
 float fround( float value, float round ) {
 	return floorf( (value / round) + 0.5f ) * round;
@@ -44,6 +58,11 @@ bool contains( int a, int min, int max ) {
 
 float lerp( float a, float b, float factor ) {
 	return a * (1.f - factor) + b * factor;
+}
+
+float sinerp( float a, float b, float factor ) {
+	const float f = sin( factor * 0.5f * PI );
+	return a * (1.f - f) + b * f;
 }
 
 float map_range( float point, float begin, float end ) {

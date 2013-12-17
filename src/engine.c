@@ -259,6 +259,7 @@ void engine_init(engine* e, int argc, char** argv) {
 
 	// *** Canyon
 	canyon_staticInit();
+	canyonTerrain_staticInit();
 	canyon_generateInitialPoints();
 
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {

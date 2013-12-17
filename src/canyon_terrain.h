@@ -68,6 +68,7 @@ extern texture* terrain_texture;
 extern texture* terrain_texture_cliff;
 
 // *** Functions 
+void canyonTerrain_staticInit();
 
 canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int u_samples, int v_samples, float u_radius, float v_radius );
 void canyonTerrain_setLodIntervals( canyonTerrain* t, int u, int v );
