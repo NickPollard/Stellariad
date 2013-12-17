@@ -13,6 +13,7 @@
 #include "lua.h"
 #include "maths/maths.h"
 #include "model.h"
+#include "noise.h"
 #include "particle.h"
 #include "ribbon.h"
 #include "scene.h"
@@ -243,6 +244,7 @@ void engine_init(engine* e, int argc, char** argv) {
 #endif // ANDROID
 
 	// *** Start up Core Systems
+	noise_staticInit();
 	particle_init();
 	ribbonEmitter_staticInit();
 	particle_staticInit();
