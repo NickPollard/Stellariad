@@ -1,11 +1,12 @@
 //render_android.c
 #include "common.h"
+#ifdef ANDROID
 #include "render_android.h"
 //-----------------------
-#ifdef ANDROID
 #include "render/render.h"
+#include "EGL/egl.h"
 
-EGLNativeWindowType os_createwindow( EGLDisplay* display, EGLConfig* config, AndroidApp* app );
+EGLNativeWindowType os_createWindow( EGLDisplay* display, EGLConfig* config, AndroidApp* app ) { 
     /* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
      * guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
      * As soon as we picked a EGLConfig, we can safely reconfigure the

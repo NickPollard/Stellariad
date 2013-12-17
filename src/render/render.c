@@ -304,11 +304,33 @@ void render_init( void* app ) {
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
 
+	/*
 	renderPass_depth = RenderPass( false, false, true );
 	renderPass_main = RenderPass( false, true, true );
 	renderPass_alpha = RenderPass( true, true, false );
 	renderPass_ui = RenderPass( true, true, false );
 	renderPass_debug = RenderPass( true, true, false );
+	*/
+
+	renderPass_depth.alphaBlend = false;
+	renderPass_depth.colorMask = false;
+	renderPass_depth.depthMask = true;
+
+	renderPass_main.alphaBlend = false;
+	renderPass_main.colorMask = true;
+	renderPass_main.depthMask = true;
+
+	renderPass_alpha.alphaBlend = true;
+	renderPass_alpha.colorMask = true;
+	renderPass_alpha.depthMask = false;
+
+	renderPass_ui.alphaBlend = true;
+	renderPass_ui.colorMask = true;
+	renderPass_ui.depthMask = false;
+
+	renderPass_debug.alphaBlend = true;
+	renderPass_debug.colorMask = true;
+	renderPass_debug.depthMask = false;
 }
 
 void render_terminate() { }

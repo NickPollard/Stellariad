@@ -1,9 +1,9 @@
 //render_linux.c
 #include "common.h"
+#ifdef LINUX_X
 #include "render_linux.h"
 //-----------------------
 #include "input/keyboard.h"
-#ifdef LINUX_X
 #include "render/render.h"
 
 EGLNativeWindowType os_createWindow( window* w, const char* title ) {

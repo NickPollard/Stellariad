@@ -7,4 +7,4 @@
 #define kGlApi EGL_OPENGL_ES_API
 typedef struct android_app AndroidApp;
 
-EGLNativeWindowType os_createwindow( EGLDisplay* display, EGLConfig* config, AndroidApp* app );
+EGLNativeWindowType os_createWindow( EGLDisplay* display, EGLConfig* config, AndroidApp* app );
