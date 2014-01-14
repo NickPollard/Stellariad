@@ -130,7 +130,8 @@ void engine_tick( engine* e ) {
 	++e->frame_counter;
 
 	PROFILE_BEGIN( PROFILE_ENGINE_TICK );
-	float dt = timer_getDelta( e->timer );
+	float real_dt = timer_getDelta( e->timer );
+	float dt = e->paused ? 0.f : real_dt;
 
 	float time = 0.f;
 	for ( int i = 0; i < 9; i++ ) {
@@ -228,6 +229,7 @@ engine* engine_create() {
 // Initialise the engine
 void engine_init(engine* e, int argc, char** argv) {
 	e->running = true;
+	e->paused = false;
 
 	timer_init(e->timer);
 

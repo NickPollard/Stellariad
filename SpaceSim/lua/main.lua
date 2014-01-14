@@ -941,12 +941,24 @@ function toggle_camera()
 end
 
 spawning_active = false
+paused = false
 
 -- Called once per frame to update the current Lua State
 function tick( dt )
 	if starting then
 		starting = false
 		start()
+	end
+
+	local togglePause = vkeyPressed( input, key.p )
+	if togglePause then
+		if paused then
+			paused = false
+			vunpause( engine )
+		else
+			paused = true
+			vpause( engine )
+		end
 	end
 
 	if player_active then
@@ -1153,15 +1165,13 @@ function update_despawns( transform )
 
 		for unit in array.iterator( interceptors ) do
 			-- TODO remove them properly
-			if vtransform_valid( unit.transform ) then
-				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( p_ )
-					if v < despawn_up_to then
-						ship_delete( unit )
-						unit = nil
-					end
-				end )
-			end
+			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
+				u,v = vcanyon_fromWorld( p_ )
+				if v < despawn_up_to then
+					ship_delete( unit )
+					unit = nil
+				end
+			end )
 		end
 
 		for unit in array.iterator( turrets ) do
@@ -1180,9 +1190,6 @@ function update_despawns( transform )
 end
 
 function update_doodad_despawns( transform ) 
-	if not vtransform_valid(transform) then
-		return
-	end
 	vtransform_getWorldPosition( transform ):foreach( function ( p )
 		local u,v = vcanyon_fromWorld( p )
 		local despawn_up_to = v - despawn_distance
@@ -1191,8 +1198,8 @@ function update_doodad_despawns( transform )
 			-- TODO remove them properly
 			if vtransform_valid(doodad.transform) then
 				vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
-					local u,v = vcanyon_fromWorld( p_ )
-					if v < despawn_up_to then
+					local u_,v_ = vcanyon_fromWorld( p_ )
+					if v_ < despawn_up_to then
 						doodad_delete( doodad )
 						doodad = nil
 					end

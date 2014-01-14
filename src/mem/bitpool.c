@@ -6,6 +6,7 @@
 #define kInvalidNextFree ((void*)-1)
 
 // Initialize the free list used to keep track of what space we can use in the bitpool
+// Each bitblock points to the next one as free; Last has kInvalidNextFree
 void bitpool_initFree( bitpool* b ) {
 	for ( size_t i = 0; i < b->block_count; ++i ) {
 		size_t address = b->block_size * i;
@@ -58,10 +59,13 @@ size_t bitpool_index( bitpool* b, void* data ) {
 }
 
 void bitpool_free( bitpool* b, void* data ) {
-	(void)b; (void)data;
-	//printf( "Deallocating from %d-byte bitpool.\n", (int)b->block_size );
-	size_t index = bitpool_index( b, data );
-	(void)index; // we are just checking that it's valid
+	size_t index = bitpool_index( b, data ); (void)index; // we are just checking that it's valid
+	// What is b->first_free here? Could be kInvalidNextFree - does that matter?
+	// So we make data point to b->first_free
+	// Then make b->first_free point to data
+	// ie. prepend
+	vAssert( b->first_free != 0x0 );
+	vAssert( data != 0x0 );
 	*(void**)data = b->first_free;
 	b->first_free = data;
 }

@@ -1035,6 +1035,18 @@ int LUA_rand( lua_State* l ) {
 	return 1;
 }
 
+int LUA_pause( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	e->paused = true;
+	return 0;
+}
+
+int LUA_unpause( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	e->paused = false;
+	return 0;
+}
+
 void lua_completeFuturePtr( lua_State* l, int future_ref, void* ptr ) {
 	// we want to call f:complete( ptr )	
 	// Get table(future, "complete")
@@ -1066,6 +1078,7 @@ void lua_keycodes( lua_State* l ) {
 	lua_setfieldi( l, "d", KEY_D );
 	lua_setfieldi( l, "q", KEY_Q );
 	lua_setfieldi( l, "c", KEY_C );
+	lua_setfieldi( l, "p", KEY_P );
 	lua_setfieldi( l, "up", KEY_UP );
 	lua_setfieldi( l, "down", KEY_DOWN );
 	lua_setfieldi( l, "left", KEY_LEFT );
@@ -1090,6 +1103,8 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_debugdraw_cross, "vdebugdraw_cross" );
 	lua_registerFunction( l, LUA_rand, "vrand" );
 	lua_registerFunction( l, LUA_rand_newSeq, "vrand_newSeq" );
+	lua_registerFunction( l, LUA_pause, "vpause" );
+	lua_registerFunction( l, LUA_unpause, "vunpause" );
 
 	// *** Vector
 	lua_registerFunction( l, LUA_vector, "Vector" );

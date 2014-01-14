@@ -63,6 +63,7 @@ struct engine_s {
 	frame_timer* timer;
 	int	frame_counter;
 	input* input;
+	bool paused;
 
 	// *** Lua
 	lua_State* lua;					//!< Engine wide persistant lua state

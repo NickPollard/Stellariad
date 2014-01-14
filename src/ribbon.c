@@ -73,35 +73,33 @@ void ribbonEmitter_tickTimes( ribbonEmitter* r, float dt ) {
 }
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
-	(void)dt; (void)eng; (void)emitter;
 	ribbonEmitter* r = emitter;
+	if ( !eng->paused ) {
+		// Emit a new ribbon vertex pair
+		int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
+		vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );
 
-	// Emit a new ribbon vertex pair
-	int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
-	vAssert( vertex_last < kMaxRibbonPairs && vertex_last >= 0 );
+		if ( r->definition->billboard ) {
+			r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
+			r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
+		}
+		else {
+			r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->definition->begin );
+			r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->definition->end );
+		}
+		r->vertex_ages[vertex_last] = 0.f;
+		r->next_tex_v += ( dt / r->definition->lifetime );
+		r->tex_v[vertex_last] = r->next_tex_v;
 
-	if ( r->definition->billboard ) {
-		r->vertex_array[vertex_last][0] = *transform_worldTranslation( r->trans );
-		r->vertex_array[vertex_last][1]	= *transform_worldTranslation( r->trans );
-		//r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &origin );
-		//r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &origin );
-	}
-	else {
-		r->vertex_array[vertex_last][0] = matrix_vecMul( r->trans->world, &r->definition->begin );
-		r->vertex_array[vertex_last][1]	= matrix_vecMul( r->trans->world, &r->definition->end );
-	}
-	r->vertex_ages[vertex_last] = 0.f;
-	r->next_tex_v += ( dt / r->definition->lifetime );
-	r->tex_v[vertex_last] = r->next_tex_v;
+		if ( r->pair_count < kMaxRibbonPairs ) {
+			++r->pair_count;
+		}
+		else {
+			++r->pair_first;
+		}
 
-	if ( r->pair_count < kMaxRibbonPairs ) {
-		++r->pair_count;
+		ribbonEmitter_tickTimes( r, dt );
 	}
-	else {
-		++r->pair_first;
-	}
-
-	ribbonEmitter_tickTimes( r, dt );
 }
 
 void ribbonEmitter_staticInit() {
