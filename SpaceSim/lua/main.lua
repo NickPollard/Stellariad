@@ -940,8 +940,9 @@ function toggle_camera()
 	end
 end
 
-spawning_active = false
-paused = false
+local spawning_active = false
+local paused = false
+local pauseFrame = nil
 
 -- Called once per frame to update the current Lua State
 function tick( dt )
@@ -954,10 +955,14 @@ function tick( dt )
 	if togglePause then
 		if paused then
 			paused = false
+			if pauseFrame then ui.hide_splash( pauseFrame ) end
 			vunpause( engine )
 		else
 			paused = true
 			vpause( engine )
+			if pauseFrame then ui.hide_splash( pauseFrame ) end
+			local alpha = 0.3	
+			pauseFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
 		end
 	end
 

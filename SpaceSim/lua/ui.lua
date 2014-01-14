@@ -4,6 +4,9 @@ future = require "future"
 
 function ui.show_splash( image, w, h )
 	local color = Vector( 1.0, 1.0, 1.0, 1.0 )
+	return ui.show_splash_withColor( image, w, h, color )
+end
+function ui.show_splash_withColor( image, w, h, color )
 	local centre_x = screen_width * 0.5
 	local centre_y = screen_height * 0.5
 	local splash = vuiPanel_create( engine, image, color, 
