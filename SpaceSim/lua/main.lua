@@ -19,7 +19,7 @@ C and only controlled remotely by Lua
 -- Debug settings
 	debug_spawning_disabled	= true
 	debug_doodads_disabled	= true
-	debug_player_immortal	= true
+	debug_player_immortal	= false
 	debug_player_autofly	= false
 	debug_player_immobile	= false
 
@@ -473,6 +473,8 @@ function setup_debug_controls()
 	end
 end
 
+local restartFrame = nil
+
 function player_ship_collisionHandler( ship, collider )
 	if not debug_player_immortal then
 		-- stop the ship
@@ -492,10 +494,26 @@ function player_ship_collisionHandler( ship, collider )
 
 		-- queue a restart
 		inTime( 2.0, function ()
-			vprint( "Restarting" )
-			vdestroyTransform( scene, ship.transform )
-			restart() 
-			gameplay_start()
+			--[[
+				After 2 seconds, we want to start listening for a button press
+				we also want to display a frametint until we hit that
+
+				something like:
+
+				Future f = new Promise()
+				f.onComplete():() -> restart()
+				onKeyPress( key.space ).restart()
+
+			--]]
+			local alpha = 0.3	
+			restartFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
+			onKeyPress( input, key.space ):onComplete( function ()
+				ui.hide_splash( restartFrame )
+				vprint( "Restarting" )
+				vdestroyTransform( scene, ship.transform )
+				restart() 
+				gameplay_start()
+			end )
 		end )
 	end
 end
@@ -1227,4 +1245,16 @@ end
 
 function interceptor_fire_homing( interceptor )
 	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), enemy_homing_missile )
+end
+
+local keyHandlers = { count = 0 }
+
+function onKeyPress( input, key )
+	local f = future:new()
+	--[[
+	local h = { input = input, key = key }
+	array.add( keyHandlers, h )
+	--]]
+	triggerWhen( function() return vkeyPressed( input, key ) end, function() f:complete( nil ) end )
+	return f
 end
