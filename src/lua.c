@@ -227,6 +227,13 @@ void lua_setupAndroidLoader( lua_State* l ) {
 }
 #endif // ANDROID
 
+void lua_setPackagePath( lua_State* l, const char* path ) {
+	lua_getglobal(l, "package");
+	lua_pushstring(l, path);
+	lua_setfield(l, -2, "path");
+	lua_pop(l, 1); // remove package table
+}
+
 // Create a Lua l and load it's initial contents from <filename>
 lua_State* vlua_create( engine* e, const char* filename ) {
 	lua_State* l = lua_open();
@@ -236,6 +243,7 @@ lua_State* vlua_create( engine* e, const char* filename ) {
 #ifdef ANDROID
 	lua_setupAndroidLoader( l );
 #endif // ANDROID
+	lua_setPackagePath( l, "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua" );
 
 	// We now use luaL_loadbuffer rather than luaL_loadfile as on Android we need
 	// to go through Libzip to get the data

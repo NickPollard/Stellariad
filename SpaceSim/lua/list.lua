@@ -54,22 +54,17 @@ function list:length( )
 end
 
 function list:remove( entry )
-	--return list:empty()
-	--return list:filter( function ( e ) return (e ~= entry) end )
 	return self:filter( function ( e ) return true end )
 end
 
 function list:filter( predicate )
 	return self:fold( list:empty(), 
 		function ( lst, item )
-			return lst
-			--[[
 			if predicate( item ) then
 				return list.cons( item, lst )
 			else
 				return lst
 			end
-				--]]
 		end )
 end
 

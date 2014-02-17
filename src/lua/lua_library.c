@@ -751,6 +751,44 @@ int LUA_canyon_fromWorld( lua_State* l ) {
 	lua_pushnumber( l, v );
 	return 2;
 }
+int LUA_canyonU_atWorld( lua_State* l ) {
+	vector* world_position = lua_toptr( l, 1 );
+#ifdef DEBUG_SANITY_CHECK_POINTERS
+	luaAssert( l, (uintptr_t)world_position > 0xffff );
+#endif // DEBUG_SANITY_CHECK_POINTERS
+	float u, v;
+	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
+	lua_pushnumber( l, u );
+	(void)v;
+	return 1;
+}
+int LUA_canyonV_atWorld( lua_State* l ) {
+	vector* world_position = lua_toptr( l, 1 );
+#ifdef DEBUG_SANITY_CHECK_POINTERS
+	luaAssert( l, (uintptr_t)world_position > 0xffff );
+#endif // DEBUG_SANITY_CHECK_POINTERS
+	float u, v;
+	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
+	lua_pushnumber( l, v );
+	(void)u;
+	return 1;
+}
+
+int LUA_canyonzone_fromV( lua_State* l ) {
+	float v = lua_tonumber( l, 1 );
+	int zone = canyon_zone( v );
+	lua_pushnumber( l, zone );
+	return 1;
+}
+
+int LUA_canyonzoneType_fromV( lua_State* l ) {
+	canyon* c = lua_toptr( l, 1 );
+	float v = lua_tonumber( l, 2 );
+	int zone = canyon_zoneType( c, v );
+	lua_pushnumber( l, zone );
+	return 1;
+}
+
 
 int LUA_dynamicSky_blend( lua_State* l ) {
 	float v = lua_tonumber( l, 1 );
@@ -852,7 +890,8 @@ int LUA_createCanyon(lua_State* l) {
 	canyonTerrain_setLodIntervals( t, 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
 	engine_addRender( e, (void*)t, canyonTerrain_render );
-	return 0;
+	lua_pushptr( l, c );
+	return 1;
 }
 
 int LUA_debugdraw_cross( lua_State* l ) {
@@ -1209,6 +1248,10 @@ void luaLibrary_import( lua_State* l ) {
 	// *** Game
 	lua_registerFunction( l, LUA_canyonPosition, "vcanyon_position" );
 	lua_registerFunction( l, LUA_canyon_fromWorld, "vcanyon_fromWorld" );
+	lua_registerFunction( l, LUA_canyonU_atWorld, "vcanyonU_atWorld" );
+	lua_registerFunction( l, LUA_canyonV_atWorld, "vcanyonV_atWorld" );
+	lua_registerFunction( l, LUA_canyonzone_fromV, "vcanyonzone_fromV" );
+	lua_registerFunction( l, LUA_canyonzoneType_fromV, "vcanyonzoneType_fromV" );
 	lua_registerFunction( l, LUA_dynamicSky_blend, "vdynamicSky_blend" );
 
 	// *** fx

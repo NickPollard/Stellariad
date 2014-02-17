@@ -32,6 +32,12 @@ int touch_indexOfUid( touch* touches, int count, int uid ) {
 void input_registerTouch( input* in, int uid, int x, int y, enum touchAction action ) {
 	// Find first available touch slot	
 	int i = touch_indexOfUid( &in->touch.touches[0], kMaxMultiTouch, kInvalidTouchUid );
+	if ( i == kInvalidIndex ) {
+		printf( "Cannot find an empty Touch\n" );
+		for ( int j = 0; i < kMaxMultiTouch; ++j ) {
+			printf( "Touch: %d, uid: %d.\n", j, in->touch.touches[j].uid );
+		}
+	}
 	vAssert( i != kInvalidIndex );
 
 	if ( action == kTouchDown ) {

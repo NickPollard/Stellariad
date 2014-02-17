@@ -430,10 +430,14 @@ void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, 
 			float u_pos, v_pos;
 			canyonTerrainBlock_positionsFromUV( b, u, v, &u_pos, &v_pos );
 
-			vert.uv = Vector( ( vert.position.coord.x * texture_scale ),
-				   	canyon_uvMapped( b->v_min * texture_scale, vert.position.coord.z * texture_scale ),
-				   	canyon_uvMapped( b->v_min * texture_scale, v_pos * texture_scale ),
-				   	vert.position.coord.y * texture_scale );
+			// TODO - why is this duplicated?
+			vert.uv = Vector( 
+						vert.position.coord.x * texture_scale,
+				   		vert.position.coord.y * texture_scale, 
+				   		vert.position.coord.z * texture_scale, 
+				   		//u_pos * texture_scale * 1.f, // TODO
+				   		canyon_uvMapped( b->v_min * texture_scale, v_pos * texture_scale )
+					  );
 			canyonTerrainBlock_fillTrianglesForVertex( b, verts, b->vertex_buffer, u, v, &vert );
 		}
 	}
@@ -661,10 +665,17 @@ void canyonTerrainBlock_calculateBuffers( canyonTerrainBlock* b ) {
 				vAssert( buffer_index < canyonTerrainBlock_renderVertCount( b ));
 				vAssert( buffer_index >= 0 );
 				b->vertex_buffer[buffer_index].position = verts[i];
-				b->vertex_buffer[buffer_index].uv = Vector( ( verts[i].coord.x * texture_scale ),
-					   										canyon_uvMapped( b->v_min * texture_scale, verts[i].coord.z * texture_scale ),
-														    canyon_uvMapped( b->v_min * texture_scale, v * texture_scale ),
-														   	verts[i].coord.y * texture_scale );
+				// TODO - why is this duplicated?
+			b->vertex_buffer[buffer_index].uv = Vector( 
+						verts[i].coord.x * texture_scale,
+				   		verts[i].coord.y * texture_scale, 
+				   		verts[i].coord.z * texture_scale,
+				   		canyon_uvMapped( b->v_min * texture_scale, v * texture_scale )
+					  );
+				//b->vertex_buffer[buffer_index].uv = Vector( ( verts[i].coord.x * texture_scale ),
+					   										//canyon_uvMapped( b->v_min * texture_scale, verts[i].coord.z * texture_scale ),
+														    //canyon_uvMapped( b->v_min * texture_scale, v * texture_scale ),
+														   	//verts[i].coord.y * texture_scale );
 				b->vertex_buffer[buffer_index].color = Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f );
 			}
 #endif // CANYON_TERRAIN_INDEXED
@@ -924,17 +935,31 @@ float shelf( float n, float shelf, float force ) {
 
 float terrain_detailHeight( float u, float v ) {
 	float scale = 1.f;
-	float amplitude = 32.f;
-	return amplitude * perlin( u * scale, v * scale );
+	float amplitude = 16.f;
+	return /*shelf( */amplitude * perlin( u * scale, v * scale ) +
+			amplitude * 1.5f * perlin( u * scale * 0.7f, v * scale * 0.7f ) + 
+				amplitude * 2.5f * perlin( u * scale * 0.13f, v * scale * 0.13f );/*, 
+					20.f, 15.f );
+					*/
+}
+
+float curvestep( float in, float step ) {
+	float m = fmodf( in, step ) / step - 0.5f;
+	float delta = tan( m * PI * 0.25f );
+	return (floorf(in / step) + delta) * step;
 }
 
 // The procedural function
 float canyonTerrain_sampleUV( float x, float z, float u, float v ) {
 	//float mountains = terrain_mountainHeight( x, z, u, v );
-	float detail = terrain_detailHeight( u, v );
+	float detail = terrain_detailHeight( u, v ) * 0.5f;
+	float scale = 0.435f;
+	float cliff = terrain_detailHeight( u * scale, v * scale );
+	(void)x;(void)z;
 	float canyon = terrain_canyonHeight( x, z, u, v );
 	(void)canyon;
-	return detail - canyon;
+	return detail - curvestep(cliff * 2.f, 50.f) - canyon;
+	//return - curvestep(cliff * 2.f, 50.f) - canyon - 50.f;
 }
 
 float canyonTerrain_sample( float x, float z ) {

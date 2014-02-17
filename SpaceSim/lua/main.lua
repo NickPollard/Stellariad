@@ -18,15 +18,16 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= true
-	debug_doodads_disabled	= true
-	debug_player_immortal	= false
-	debug_player_autofly	= false
+	debug_doodads_disabled	= false
+	debug_player_immortal	= true
+	debug_player_autofly	= true
 	debug_player_immobile	= false
 
 -- Load Modules
-	package.path = "./SpaceSim/lua/?.lua"
+	--package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
 	ai			= require "ai"
 	array		= require "array"
+	doodads		= require "doodads"
 	entities	= require "entities"
 	fx			= require "fx"
 	future		= require "future"
@@ -104,7 +105,7 @@ C and only controlled remotely by Lua
 	spawn_offset = 0.0
 	spawn_interval = 300.0
 	spawn_distance = 900.0
-	doodad_spawn_distance = 1500.0
+	doodad_spawn_distance = 900.0
 	despawn_distance = 100.0			-- how far behind to despawn units
 -- spawn tracking
 	entities_spawned = 0.0
@@ -657,9 +658,11 @@ function test()
 	--list.test()
 end
 
+local canyon = nil
+
 function start()
 	fx.preload()
-	vcanyon_create(engine, scene)
+	canyon = vcanyon_create(engine, scene)
 
 	test()
 
@@ -1105,7 +1108,13 @@ function entities_despawnAll()
 end
 
 function spawn_doodad( u, v, model )
-	local x, y, z = vcanyon_position( u, v )
+	local res = 1.0
+	local x, y0, z = vcanyon_position( u, v )
+	local _, y1, _ = vcanyon_position( u + res, v )
+	local _, y2, _ = vcanyon_position( u - res, v )
+	local _, y3, _ = vcanyon_position( u, v + res )
+	local _, y4, _ = vcanyon_position( u, v - res )
+	local y = math.min(y0, math.min( y1, math.min(y2, math.min(y3, y4))))
 	local position = Vector( x, y, z, 1.0 )
 	local doodad = gameobject_create( model )
 	vtransform_setWorldPosition( doodad.transform, position )
@@ -1134,14 +1143,23 @@ function spawn_bunker( u, v, model )
 	return doodad
 end
 
+function doodads_spawnTree( u, v )
+	local zone = vcanyonzoneType_fromV( canyon, v )
+	if zone == 0 then
+		spawn_doodad( u, v, "dat/model/tree_fir.s" )
+	else 
+		spawn_doodad( u, v, "dat/model/tree_fir_autumn.s" )
+	end
+end
+
 function doodads_spawnSkyscraper( u, v )
 	local r = vrand( doodads.random, 0.0, 1.0 )
 	if r < 0.2 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_blocks.s" )
+		spawn_doodad( u, v, "dat/model/skyscraper_blocks.s" )
 	elseif r < 0.4 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_slant.s" )
+		spawn_doodad( u, v, "dat/model/skyscraper_slant.s" )
 	elseif r < 0.6 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_towers.s" )
+		spawn_doodad( u, v, "dat/model/skyscraper_towers.s" )
 	end
 end
 
@@ -1151,12 +1169,12 @@ function doodads_spawnRange( near, far )
 	while library.contains( spawn_v, near, far ) do
 		local doodad_offset_u = 130.0
 		local d = nil
-		doodads_spawnSkyscraper( doodad_offset_u, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u, spawn_v )
-		doodads_spawnSkyscraper( doodad_offset_u + 30.0, spawn_v )
-		doodads_spawnSkyscraper( doodad_offset_u + 60.0, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u - 30.0, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u - 60.0, spawn_v )
+		doodads_spawnTree( doodad_offset_u, spawn_v )
+		doodads_spawnTree( -doodad_offset_u, spawn_v )
+		doodads_spawnTree( doodad_offset_u + 30.0, spawn_v )
+		doodads_spawnTree( doodad_offset_u + 60.0, spawn_v )
+		doodads_spawnTree( -doodad_offset_u - 30.0, spawn_v )
+		doodads_spawnTree( -doodad_offset_u - 60.0, spawn_v )
 		i = i + 1
 		spawn_v = i * doodads.interval
 	end
@@ -1219,15 +1237,13 @@ function update_doodad_despawns( transform )
 
 		for doodad in array.iterator( all_doodads ) do
 			-- TODO remove them properly
-			if vtransform_valid(doodad.transform) then
-				vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
-					local u_,v_ = vcanyon_fromWorld( p_ )
-					if v_ < despawn_up_to then
-						doodad_delete( doodad )
-						doodad = nil
-					end
-				end )
-			end
+			vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
+				local unused ,v_ = vcanyon_fromWorld( p_ )
+				if v_ < despawn_up_to then
+					doodad_delete( doodad )
+					--doodad = nil -- Don't think we need this
+				end
+			end )
 		end
 	end )
 end

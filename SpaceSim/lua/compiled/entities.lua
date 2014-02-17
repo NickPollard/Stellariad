@@ -7,9 +7,8 @@ entities.moveTo = function(x, y, z)
 end
 entities.strafeTo = function(t_x, t_y, t_z, f_x, f_y, f_z)
   return function(entity, dt)
-    local target = Vector(t_x, t_y, t_z, 1.0)
     return vtransform_getWorldPosition(entity.transform):foreach(function(p)
-      local speed = clamp(interceptor_min_speed, interceptor_speed, vvector_distance(target, p))
+      local speed = clamp(interceptor_min_speed, interceptor_speed, vvector_distance(Vector(t_x, t_y, t_z, 1.0), p))
       return vtransform_facingWorld(entity.transform, Vector(f_x, f_y, f_z, 1.0))
     end)
   end

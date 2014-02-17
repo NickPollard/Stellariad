@@ -356,11 +356,13 @@ float terrain_canyonHeight( float x, float z, float u, float v ) {
 	const float incline_scale = 0.0004f;
 	const float flat_radius = 20.f;
 	const float offset = max( 0.0, fabsf( u ) - canyon_base_radius ) - flat_radius;
-   	const float incline = offset * offset	* incline_scale;
+   	const float incline = offset * offset * incline_scale;
 	
 	// Turn the canyon-space U into a height
 	float mask = cos( fclamp( u / canyon_width, -PI/2.f, PI/2.f ));
+	(void)mask;
 	return (1.f - fclamp( powf( u / canyon_width, 4.f ), 0.f, 1.f )) * mask * canyon_height - incline;
+	//return -incline;
 }
 
 vector terrain_newCanyonPoint( vector current, vector previous ) {
