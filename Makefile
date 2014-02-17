@@ -11,6 +11,9 @@ include Makelist
 OBJS = $(SRCS:src/%.c=bin/release/%.o)
 OBJS_DBG = $(SRCS:src/%.c=bin/debug/%.o)
 OBJS_PROF = $(SRCS:src/%.c=bin/profile/%.o)
+MOON_SRCS = doodads.moon \
+			entities.moon
+MOON_LUA = $(MOON_SRCS:%.moon=SpaceSim/lua/compiled/%.lua)
 
 all : $(EXECUTABLE)_release
 
@@ -36,7 +39,7 @@ cleandebug :
 	@echo "--- Removing Debug Executable ---"
 	@-rm -vf $(EXECUTABLE)_debug;
 
-android : 
+android : $(MOON_LUA)
 	@echo "--- Building Native Code for Android NDK ---"
 	@ndk-build -C android NDK_DEBUG=1 APP_OPTIM=debug
 	@echo "--- Compiling Android Java and packaging APK ---"
@@ -68,19 +71,19 @@ cleanandroid_release :
 	@find /home/nick/Projects/Vitae/android/obj/local/armeabi/objs -name '*.o' -exec rm {} \;
 	@ant clean -f android/build.xml
 
-$(EXECUTABLE)_release : $(SRCS) $(OBJS)
+$(EXECUTABLE)_release : $(SRCS) $(OBJS) $(MOON_LUA)
 	@echo "- Linking $@"
 	@$(C) $(LFLAGS) -O2 -o $(EXECUTABLE)_release $(OBJS) $(LIBS)
 
 profile : $(EXECUTABLE)_profile
 
-$(EXECUTABLE)_profile : $(SRCS) $(OBJS_PROF)
+$(EXECUTABLE)_profile : $(SRCS) $(OBJS_PROF) $(MOON_LUA)
 	@echo "- Linking $@"
 	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_profile $(OBJS_PROF) $(LIBS)
 
 debug : $(EXECUTABLE)_debug
 
-$(EXECUTABLE)_debug : $(SRCS) $(OBJS_DBG)
+$(EXECUTABLE)_debug : $(SRCS) $(OBJS_DBG) $(MOON_LUA)
 	@echo "- Linking $@"
 	@$(C) -g $(LFLAGS) -o $(EXECUTABLE)_debug $(OBJS_DBG) $(LIBS)
 
@@ -101,3 +104,8 @@ bin/release/%.o : src/%.c
 	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
 	@echo "- Compiling $@"
 	@$(C) $(CFLAGS) -O2 -MD -c -o $@ $<
+
+SpaceSim/lua/compiled/%.lua : SpaceSim/moon/%.moon
+	@echo "compiling $< to $@"
+	@(cd SpaceSim/moon && moonc -t ../../SpaceSim/lua/compiled `echo "$<" | sed -e 's/SpaceSim\/moon\///'`)
+
