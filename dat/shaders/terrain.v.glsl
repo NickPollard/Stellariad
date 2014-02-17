@@ -17,6 +17,7 @@ varying vec4 cameraSpace_frag_normal;
 varying vec4 frag_normal;
 varying vec2 texcoord;
 varying vec2 cliff_texcoord;
+varying vec2 cliff_texcoord_b;
 varying vec4 vert_color;
 varying float fog;
 varying vec4 local_fog_color;
@@ -46,8 +47,9 @@ void main() {
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	frag_normal = normal;
-	texcoord = uv.xy;
-	cliff_texcoord = uv.zw;
+	texcoord = uv.xz;
+	cliff_texcoord = uv.zy;
+	cliff_texcoord_b = uv.xy;
 
 	vert_color = vec4( color.xyz, 1.0 );
 	

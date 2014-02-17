@@ -10,6 +10,7 @@ varying vec4 cameraSpace_frag_normal;
 varying vec4 frag_normal;
 varying vec2 texcoord;
 varying vec2 cliff_texcoord;
+varying vec2 cliff_texcoord_b;
 varying vec4 vert_color;
 varying float fog;
 varying vec4 local_fog_color;
@@ -87,13 +88,17 @@ void main() {
 		// Whilst shininess == 1.0, don't do any pow()
 		total_light_color += directional_light_specular * specular;
 	}
+
 	vec4 ground_color = texture2D( tex, texcoord );
-	vec4 cliff_color = texture2D( tex_b, cliff_texcoord );
-	vec4 tex_color = mix( ground_color, cliff_color, cliff );
+	vec4 cliff_color = mix( texture2D( tex_b, cliff_texcoord ),
+							texture2D( tex_b, cliff_texcoord_b ),
+							smoothstep(0.2, 0.8, (abs(frag_normal.z) / ( abs(frag_normal.x) + abs(frag_normal.z)))));
+	float darken = smoothstep(0.0, 1.0, clamp(0.6 + abs(cliff - 0.4), 0.0, 1.0));
+	vec4 tex_color = mix( ground_color, cliff_color, cliff ) * darken;
 
 	vec4 ground_color_2 = texture2D( tex_c, texcoord );
 	vec4 cliff_color_2 = texture2D( tex_d, cliff_texcoord );
-	vec4 tex_color_2 = mix( ground_color_2, cliff_color_2, cliff );
+	vec4 tex_color_2 = mix( ground_color_2, cliff_color_2, cliff ) * darken;
 
 	vec4 grey = vec4( 0.5, 0.5, 0.5, 1.0 );
 	vec4 black = vec4( 0.0, 0.0, 0.0, 1.0 );
@@ -105,7 +110,7 @@ void main() {
 	gl_FragColor.w = 1.0;
 
 #else
-	gl_FragColor = vec4( 1.0, 1.0, 0.5, 1.0 );
+	gl_FragColor = vec4( texcoord.x, texcoord.y, 0.0, 1.0 );
 #endif
 
 }
