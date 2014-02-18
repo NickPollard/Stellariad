@@ -530,7 +530,7 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 	render_sceneParams( &sceneParams_main );
 
-	drawCall* sorted = mem_alloc( sizeof(drawCall) * count );
+	drawCall* sorted = alloca( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
 	bool ui_shader = calls[0].vitae_shader == resources.shader_ui;
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
@@ -555,7 +555,7 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 			render_drawTextureBatch( &sorted[i] );
 		}
 	}
-	mem_free( sorted );
+	//mem_free( sorted );
 }
 
 // Draw each batch of drawcalls
@@ -697,6 +697,7 @@ void render_renderThreadTick( engine* e ) {
 #ifdef GRAPH_GPU_FPS
 	glFinish();
 	float delta = timer_getDelta(gpu_fps_timer);
+	printf( "GPU time (millis): %.4f\n", delta);
 	static int framecount = 0;
 	++framecount;
 	graphData_append( gpu_fpsdata, (float)framecount, delta );

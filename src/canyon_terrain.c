@@ -934,6 +934,8 @@ float shelf( float n, float shelf, float force ) {
 }
 
 float terrain_detailHeight( float u, float v ) {
+	(void)u;(void)v;
+	return 0.f;
 	float scale = 1.f;
 	float amplitude = 16.f;
 	return /*shelf( */amplitude * perlin( u * scale, v * scale ) +
@@ -951,15 +953,16 @@ float curvestep( float in, float step ) {
 
 // The procedural function
 float canyonTerrain_sampleUV( float x, float z, float u, float v ) {
-	//float mountains = terrain_mountainHeight( x, z, u, v );
+	(void)x;(void)z;(void)u;(void)v;
+	//float canyon = terrain_canyonHeight( x, z, u, v );
+	//return canyon;
 	float detail = terrain_detailHeight( u, v ) * 0.5f;
 	float scale = 0.435f;
 	float cliff = terrain_detailHeight( u * scale, v * scale );
 	(void)x;(void)z;
 	float canyon = terrain_canyonHeight( x, z, u, v );
-	(void)canyon;
+	(void)canyon;(void)cliff;
 	return detail - curvestep(cliff * 2.f, 50.f) - canyon;
-	//return - curvestep(cliff * 2.f, 50.f) - canyon - 50.f;
 }
 
 float canyonTerrain_sample( float x, float z ) {

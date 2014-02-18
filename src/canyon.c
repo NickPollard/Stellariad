@@ -37,7 +37,9 @@ const float canyon_height = 40.f;
 vector terrain_newCanyonPoint( vector current, vector previous );
 
 window_buffer canyon_streaming_buffer;
+window_buffer point_normal_buffer;
 vector	canyon_points[kMaxCanyonPoints];
+vector	canyon_point_normals[kMaxCanyonPoints];
 
 randSeq canyon_random_seed;
 long int initial_seed = 0x0;
@@ -56,6 +58,7 @@ void canyon_seedRandom( long int seed ) {
 
 void canyon_staticInit() {
 	canyonBuffer_init( &canyon_streaming_buffer, kMaxCanyonPoints, &canyon_points );
+	canyonBuffer_init( &point_normal_buffer, kMaxCanyonPoints, &canyon_point_normals );
 	canyon_seedRandom( initial_seed );
 }
 
@@ -94,8 +97,21 @@ static inline vector canyon_point( window_buffer* buffer, size_t stream_index ) 
 	return canyonBuffer_value( buffer, mapped_index );
 }
 
+static inline vector cached_point_normal( window_buffer* buffer, size_t stream_index ) {
+	size_t mapped_index = windowBuffer_mappedPosition( buffer, stream_index );
+	return canyonBuffer_value( buffer, mapped_index );
+}
+
+vector segment_normal( window_buffer* b, int i ) {
+	vector next = canyon_point( b, i + 1 );
+	vector previous = canyon_point( b, i );
+	vector segment = normalized( vector_sub( next, previous ));
+	vector normal = Vector( -segment.coord.z, 0.f, segment.coord.x, 0.f );
+	return normal;
+}
+
 // Generate points to fill up empty space in the buffer
-void canyonBuffer_generatePoints( window_buffer* buffer ) {
+void canyonBuffer_generatePoints( window_buffer* buffer, window_buffer* normal_buffer ) {
 	vector before = canyonBuffer_value( buffer, windowBuffer_index( buffer, buffer->tail - 1 ));
 	vector current = canyonBuffer_value( buffer, windowBuffer_index( buffer, buffer->tail ));
 	size_t next_stream_position = windowBuffer_streamPosition( buffer, buffer->tail ) + 1;
@@ -104,40 +120,54 @@ void canyonBuffer_generatePoints( window_buffer* buffer ) {
 		//printf( "Next stream: " dPTRf ", end stream: " dPTRf ".\n", next_stream_position, end_position );
 		size_t i = windowBuffer_mappedPosition( buffer, next_stream_position );
 		vector next = terrain_newCanyonPoint( current, before );
+
+		vector segment = vector_sub( current, before );
+		vector normal_previous = normalized(Vector( -segment.coord.z, 0.f, segment.coord.x, 0.f ));
+		vector segment_ = vector_sub( next, current );
+		vector normal_next = normalized(Vector( -segment_.coord.z, 0.f, segment_.coord.x, 0.f ));
+		vector normal = normalized( vector_add( normal_previous, normal_next ));
+		canyonBuffer_setValue( normal_buffer, i, normal );
+		
 		before = current;
 		current = next;
 		canyonBuffer_setValue( buffer, i, next );
+
 		++next_stream_position;
 	}
 	buffer->tail = ( buffer->head + buffer->window_size - 1 ) % buffer->window_size;
 }
 
 // Seek the canyon window_buffer forward so that its stream_position is now SEEK_POSITION
-void canyonBuffer_seekForward( window_buffer* buffer, size_t seek_position ) {
+void canyonBuffer_seekForward( window_buffer* buffer, window_buffer* normal_buffer, size_t seek_position ) {
 	vAssert( seek_position >= buffer->stream_position );
+	vAssert( buffer->stream_position == normal_buffer->stream_position );
 	size_t stream_end_position = windowBuffer_endPosition( buffer );
 	while ( stream_end_position < seek_position ) {
 		// The seek target is not in the window so we flush everything and need to generate
 		// enough points to reach the seek_target before doing final canyonBuffer_generatePoints
 		size_t new_head = windowBuffer_index( buffer, buffer->tail - 2 );
 		buffer->stream_position = windowBuffer_streamPosition( buffer, new_head );
+		normal_buffer->stream_position = windowBuffer_streamPosition( normal_buffer, new_head );
 		buffer->head = new_head;
-		canyonBuffer_generatePoints( buffer );
+		normal_buffer->head = new_head;
+		canyonBuffer_generatePoints( buffer, normal_buffer );
 		stream_end_position = windowBuffer_endPosition( buffer );
 	}
 
 	// The seek target is already in the window
 	buffer->head = windowBuffer_mappedPosition( buffer, seek_position );
 	buffer->stream_position = seek_position;
+	normal_buffer->head = windowBuffer_mappedPosition( normal_buffer, seek_position );
+	normal_buffer->stream_position = seek_position;
 
 	// Update all data
-	canyonBuffer_generatePoints( buffer );
+	canyonBuffer_generatePoints( buffer, normal_buffer );
 }
 
 // Seek the canyon window_buffer so that its stream_position is now SEEK_POSITION - can seek forwards or backwards
-void canyonBuffer_seek( window_buffer* buffer, size_t seek_position ) {
+void canyonBuffer_seek( window_buffer* buffer, window_buffer* normal_buffer, size_t seek_position ) {
 	if ( seek_position >= buffer->stream_position ) {
-		canyonBuffer_seekForward( buffer, seek_position );
+		canyonBuffer_seekForward( buffer, normal_buffer, seek_position );
 	}
 	else {
 		// go back to the beginning and seek forward from there
@@ -145,7 +175,7 @@ void canyonBuffer_seek( window_buffer* buffer, size_t seek_position ) {
 		buffer->tail = 0;
 		buffer->stream_position = 0;
 		canyon_generateInitialPoints();
-		canyonBuffer_seekForward( buffer, seek_position );
+		canyonBuffer_seekForward( buffer, normal_buffer, seek_position );
 	}
 }
 
@@ -278,40 +308,18 @@ int terrainCanyon_segmentAtDistance( float v ) {
 	return (float)floorf(v / kCanyonSegmentLength);
 }
 
-vector segment_normal( window_buffer* b, int i ) {
-	vector next = canyon_point( b, i + 1 );
-	vector previous = canyon_point( b, i );
-	vector segment = normalized( vector_sub( next, previous ));
-	vector normal = Vector( -segment.coord.z, 0.f, segment.coord.x, 0.f );
-	//vAssert( isNormalized( &normal ));
-	return normal;
-}
-
 // Convert canyon-space U and V coords into world space X and Z
 void terrain_worldSpaceFromCanyon( float u, float v, float* x, float* z ) {
-	int i = terrainCanyon_segmentAtDistance( v );
-	if ( i < 0 ) {
-		i = 0;
-		//segment_position = 0.f;
-	}
+	int i = max(0, terrainCanyon_segmentAtDistance( v ));
 	float segment_position = ( v - (float)i * kCanyonSegmentLength ) / kCanyonSegmentLength; 
 	
 	// For this segment
 	vector canyon_next = canyon_point( &canyon_streaming_buffer, i + 1 );
 	vector canyon_previous = canyon_point( &canyon_streaming_buffer, i );
 
-	//vAssert( segment_position >= 0.f );
-	vAssert( segment_position <= 1.f );
-
 	vector canyon_position = vector_lerp( &canyon_previous, &canyon_next, segment_position );
 
-	vector normal = segment_normal( &canyon_streaming_buffer, i );
-
-	/*
-	vector segment = normalized( vector_sub( canyon_next, canyon_previous ));
-	vector normal = Vector( -segment.coord.z, 0.f, segment.coord.x, 0.f );
-	vAssert( isNormalized( &normal ));
-	*/
+	//vector normal = cached_segment_normal( &canyon_streaming_buffer, i );
 
 	/*
 	   We use a warped grid system, where near the canyon the U-axis lines run perpendicular to the canyon
@@ -320,17 +328,23 @@ void terrain_worldSpaceFromCanyon( float u, float v, float* x, float* z ) {
 	   We actually lerp the perpendicular U-axis lines to blend from the previous and next segements
 	   to prevent overlapping.
 	   */
-	vector normal_next = segment_normal( &canyon_streaming_buffer, i + 1);
+	/*
+	vector normal_next = cached_segment_normal( &canyon_streaming_buffer, i + 1);
 	vector normal_previous;
 	if ( i == 0 )
 		normal_previous = normal;
 	else
-		normal_previous = segment_normal( &canyon_streaming_buffer, i - 1);
+		normal_previous = cached_segment_normal( &canyon_streaming_buffer, i - 1);
+		*/
 
 	// Begin and end vectors for tweening the normal
-	vector normal_begin = normalized( vector_add( normal_previous, normal ));
-	vector normal_end = normalized( vector_add( normal_next, normal ));
-	//vector sampled_normal = vector_lerp( &normal_begin, &normal_end, segment_position );
+	//vector normal_begin = normalized( vector_add( normal_previous, normal ));
+	//vector normal_end = normalized( vector_add( normal_next, normal ));
+	vector normal_begin = cached_point_normal( &point_normal_buffer, i + 0); // Incremented again because point normals trail behind now
+	vector normal_end = cached_point_normal( &point_normal_buffer, i + 1 );
+
+	//vector_printf( "begin: ", &normal_begin );
+	//vector_printf( "end: ", &normal_end );
 
 	const float max_perpendicular_u = 100.f;
 	vector target_begin = vector_add( canyon_previous, vector_scaled( normal_begin, max_perpendicular_u ));
@@ -338,11 +352,11 @@ void terrain_worldSpaceFromCanyon( float u, float v, float* x, float* z ) {
 	vector target = vector_lerp( &target_begin, &target_end, segment_position );
 	vector sampled_normal = normalized( vector_sub( target, canyon_position ));
 
+	// What the fuck am I doing here? Ah - it's because after so far out (max_perp) we switch back to U-as-X axis)
 	float perpendicular_u = fclamp( u, -max_perpendicular_u, max_perpendicular_u );
-	float flat_u = u - perpendicular_u;
 
 	vector u_offset = vector_scaled( sampled_normal, perpendicular_u );
-	vector flat_u_offset = vector_scaled( x_axis, -flat_u );
+	vector flat_u_offset = Vector( perpendicular_u - u, 0.f, 0.f, 0.f );
 	vector position = vector_add( canyon_position, vector_add( u_offset, flat_u_offset ));
 	*x = position.coord.x;
 	*z = position.coord.z;
@@ -395,9 +409,11 @@ void canyon_generateInitialPoints() {
 	int initial_straight_segments = 2;
 	for ( int i = 1; i < initial_straight_segments + 1; ++i ) {
 		canyon_points[i] = Vector( 0.f, 0.f, i * kCanyonSegmentLength, 1.f );
+		canyon_point_normals[i] = Vector( -1.f, 0.f, 0.f, 1.f );
 	}
 	canyon_streaming_buffer.tail = initial_straight_segments;
-	canyonBuffer_generatePoints( &canyon_streaming_buffer );	
+	point_normal_buffer.tail = initial_straight_segments;
+	canyonBuffer_generatePoints( &canyon_streaming_buffer, &point_normal_buffer );	
 }
 
 
@@ -405,7 +421,7 @@ void canyon_seekForWorldPosition( vector position ) {
 	float u, v;
 	terrain_canyonSpaceFromWorld( position.coord.x, position.coord.z, &u, &v );
 	size_t seek_position = max( 0, terrainCanyon_segmentAtDistance( v ) - kTrailingCanyonSegments );
-	canyonBuffer_seek( &canyon_streaming_buffer, seek_position );
+	canyonBuffer_seek( &canyon_streaming_buffer, &point_normal_buffer, seek_position );
 }
 
 vector  terrainSegment_toScreen( window* w, vector world ) {

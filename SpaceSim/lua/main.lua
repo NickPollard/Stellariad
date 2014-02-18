@@ -18,7 +18,7 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= true
-	debug_doodads_disabled	= false
+	debug_doodads_disabled	= true
 	debug_player_immortal	= true
 	debug_player_autofly	= true
 	debug_player_immobile	= false
@@ -60,15 +60,14 @@ C and only controlled remotely by Lua
 	missiles		= { count = 0 }
 	turrets			= { count = 0 }
 	interceptors	= { count = 0 }
-	all_doodads		= { count = 0 }
 
 -- Settings
 	player_ship_model = "dat/model/ship_warthog.s"
-	--player_ship_model = "dat/model/cube.s"
+
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
-	homing_missile_turn_angle_per_second = pi / 2
+	homing_missile_turn_rps = pi / 2
 	-- Flight
 	if debug_player_immobile then
 		player_ship_initial_speed	= 0.0
@@ -97,22 +96,15 @@ C and only controlled remotely by Lua
 	turret_cooldown			= 0.5		-- (seconds)
 	homing_missile_cooldown = 3.0		-- (seconds)
 
--- Doodads
-	doodads = {}
-	doodads.interval = 30.0
-
 -- spawn properties
 	spawn_offset = 0.0
 	spawn_interval = 300.0
 	spawn_distance = 900.0
-	doodad_spawn_distance = 900.0
 	despawn_distance = 100.0			-- how far behind to despawn units
 -- spawn tracking
 	entities_spawned = 0.0
-	doodads_spawned = 0.0
 
 	tickers = list:empty() 
-
 
 -- Create a spacesim Game object
 -- A gameobject has a visual representation (model), a physical entity for velocity and momentum (physic)
@@ -179,8 +171,6 @@ function gameobject_delete( g )
 		g.body = nil
 	end
 end
-
-projectile_model = "dat/model/missile.s"
 
 function player_fire( ship )
 	if ship.cooldown <= 0.0 then
@@ -345,7 +335,7 @@ function homing_missile_tick( target )
 			vtransform_getWorldPosition( target ):foreach( function ( t )
 				local current = vquaternion_fromTransform( missile.transform )
 				local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
-				local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_angle_per_second * dt )
+				local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_rps * dt )
 				vphysic_setVelocity( missile.physic, vquaternion_rotation( dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 )))
 				vtransform_setRotation( missile.transform, dir )
 			end )
@@ -403,7 +393,6 @@ starting = true
 function init()
 	vprint( "init" )
 	spawn.init()
-	doodads.random = vrand_newSeq()
 
 	starting = true
 	--color = Vector( 1.0, 1.0, 1.0, 1.0 )
@@ -427,11 +416,6 @@ function ship_delete( ship )
 	array.remove( interceptors, ship )
 	gameobject_delete( ship )
 	ship.behaviour = ai.dead
-end
-
-function doodad_delete( doodad )
-	array.remove( all_doodads, doodad )
-	gameobject_delete( doodad )
 end
 
 function setup_controls()
@@ -528,7 +512,6 @@ function gameplay_start()
 			spawning_active = true
 		end
 		entities_spawned = 0.0
-		--doodads_spawned = 0.0
 	end )
 end
 
@@ -601,7 +584,7 @@ function touchpad:new()
 end
 
 function touchpad:onTouch( func )
-	self.onTouchHandlers = list.cons( func, self.onTouchHandlers )
+	self.onTouchHandlers = list:cons( func, self.onTouchHandlers )
 end
 
 function touchpad:tick( dt )
@@ -1002,8 +985,8 @@ function tick( dt )
 	end
 
 	if not debug_doodads_disabled then
-		update_doodads( player_ship.transform )
-		update_doodad_despawns( player_ship.transform )
+		doodads.update( player_ship.transform )
+		doodads.updateDespawns( player_ship.transform )
 	end
 
 	tick_array( turrets, dt )
@@ -1016,11 +999,11 @@ function tick( dt )
 end
 
 function addTicker( ticker )
-	tickers = list.cons( ticker, tickers )
+	tickers = tickers:prepend(ticker)
 end
 
 function removeTicker( ticker )
-	tickers = tickers:remove( ticker )
+	--tickers = tickers:remove( ticker )
 end
 
 -- Called on termination to clean up after itself
@@ -1035,10 +1018,6 @@ function delay( time, command )
 		print( string.format( "Delay timer: %d", time ))
 		delay( time-1, command )
 	end
-end
-
-function doodad_spawn_index( pos )
-	return math.floor( ( pos - spawn_offset ) / doodads.interval )
 end
 
 function spawn_index( pos )
@@ -1107,88 +1086,6 @@ function entities_despawnAll()
 	end
 end
 
-function spawn_doodad( u, v, model )
-	local res = 1.0
-	local x, y0, z = vcanyon_position( u, v )
-	local _, y1, _ = vcanyon_position( u + res, v )
-	local _, y2, _ = vcanyon_position( u - res, v )
-	local _, y3, _ = vcanyon_position( u, v + res )
-	local _, y4, _ = vcanyon_position( u, v - res )
-	local y = math.min(y0, math.min( y1, math.min(y2, math.min(y3, y4))))
-	local position = Vector( x, y, z, 1.0 )
-	local doodad = gameobject_create( model )
-	vtransform_setWorldPosition( doodad.transform, position )
-	array.add( all_doodads, doodad )
-end
-
-function spawn_bunker( u, v, model )
-	-- Try varying the v
-	local highest = { x = 0, y = -10000, z = 0 }
-	local radius = 100.0
-	local step = radius / 5.0
-	local i = v - radius
-	while i < v + radius do
-		local x,y,z = vcanyon_position( u , i )
-		if y > highest.y then
-			highest.x = x
-			highest.y = y
-			highest.z = z
-		end
-		i = i + step
-	end
-	local x,y,z = vcanyon_position( u , v )
-	local position = Vector( x, y, z, 1.0 )
-	local doodad = gameobject_create( model )
-	vtransform_setWorldPosition( doodad.transform, position )
-	return doodad
-end
-
-function doodads_spawnTree( u, v )
-	local zone = vcanyonzoneType_fromV( canyon, v )
-	if zone == 0 then
-		spawn_doodad( u, v, "dat/model/tree_fir.s" )
-	else 
-		spawn_doodad( u, v, "dat/model/tree_fir_autumn.s" )
-	end
-end
-
-function doodads_spawnSkyscraper( u, v )
-	local r = vrand( doodads.random, 0.0, 1.0 )
-	if r < 0.2 then
-		spawn_doodad( u, v, "dat/model/skyscraper_blocks.s" )
-	elseif r < 0.4 then
-		spawn_doodad( u, v, "dat/model/skyscraper_slant.s" )
-	elseif r < 0.6 then
-		spawn_doodad( u, v, "dat/model/skyscraper_towers.s" )
-	end
-end
-
-function doodads_spawnRange( near, far )
-	local i = doodad_spawn_index( near ) + 1
-	local spawn_v = i * doodads.interval
-	while library.contains( spawn_v, near, far ) do
-		local doodad_offset_u = 130.0
-		local d = nil
-		doodads_spawnTree( doodad_offset_u, spawn_v )
-		doodads_spawnTree( -doodad_offset_u, spawn_v )
-		doodads_spawnTree( doodad_offset_u + 30.0, spawn_v )
-		doodads_spawnTree( doodad_offset_u + 60.0, spawn_v )
-		doodads_spawnTree( -doodad_offset_u - 30.0, spawn_v )
-		doodads_spawnTree( -doodad_offset_u - 60.0, spawn_v )
-		i = i + 1
-		spawn_v = i * doodads.interval
-	end
-end
-
-function update_doodads( transform )
-	vtransform_getWorldPosition( transform ):foreach( function( p ) 
-		local u,v = vcanyon_fromWorld( p )
-		local spawn_up_to = v + doodad_spawn_distance
-		doodads_spawnRange( doodads_spawned, spawn_up_to )
-		doodads_spawned = spawn_up_to
-	end )
-end
-
 -- Spawn all entities that need to be spawned this frame
 function update_spawns( transform )
 	vtransform_getWorldPosition( transform ):foreach( function( p )
@@ -1230,24 +1127,6 @@ function update_despawns( transform )
 	end )
 end
 
-function update_doodad_despawns( transform ) 
-	vtransform_getWorldPosition( transform ):foreach( function ( p )
-		local u,v = vcanyon_fromWorld( p )
-		local despawn_up_to = v - despawn_distance
-
-		for doodad in array.iterator( all_doodads ) do
-			-- TODO remove them properly
-			vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
-				local unused ,v_ = vcanyon_fromWorld( p_ )
-				if v_ < despawn_up_to then
-					doodad_delete( doodad )
-					--doodad = nil -- Don't think we need this
-				end
-			end )
-		end
-	end )
-end
-
 function interceptor_fire( interceptor )
 	-- Right
 	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
@@ -1267,10 +1146,6 @@ local keyHandlers = { count = 0 }
 
 function onKeyPress( input, key )
 	local f = future:new()
-	--[[
-	local h = { input = input, key = key }
-	array.add( keyHandlers, h )
-	--]]
 	triggerWhen( function() return vkeyPressed( input, key ) end, function() f:complete( nil ) end )
 	return f
 end

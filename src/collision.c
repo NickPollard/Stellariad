@@ -38,7 +38,7 @@ void shape_delete( shape* s );
 
 static inline vector heightField_vertex( heightField* h, int x, int z ) { 
 	int index = x + z * h->x_samples;
-	vAssert( index >= 0 && index < h->vert_count );
+	//vAssert( index >= 0 && index < h->vert_count );
 	return h->verts[index];
 }
 
@@ -649,19 +649,26 @@ bool polygon2d_contains( vector a, vector b, vector c, vector d, vector point ) 
 	return true;
 }
 
+void enlargeAABB( aabb2d* aabb, vector v ) {
+	aabb->x_max = fmaxf( aabb->x_max, v.coord.x );
+	aabb->x_min = fminf( aabb->x_min, v.coord.x );
+	aabb->z_max = fmaxf( aabb->z_max, v.coord.z );
+	aabb->z_min = fminf( aabb->z_min, v.coord.z );
+}
+
 void heightField_calculateAABB( heightField* h ) {
 	h->aabb.x_max = -FLT_MAX;
 	h->aabb.x_min = FLT_MAX;
 	h->aabb.z_max = -FLT_MAX;
 	h->aabb.z_min = FLT_MAX;
+	// Only need o do outer edges - the max must be one of them
+	for ( int j = 0; j < h->z_samples; j++ ) {
+		enlargeAABB( &h->aabb, heightField_vertex( h, 0, j ));
+		enlargeAABB( &h->aabb, heightField_vertex( h, h->x_samples - 1, j ));
+	}
 	for ( int i = 0; i < h->x_samples; i++ ) {
-		for ( int j = 0; j < h->z_samples; j++ ) {
-			vector v = heightField_vertex( h, i, j );
-			h->aabb.x_max = fmaxf( h->aabb.x_max, v.coord.x );
-			h->aabb.x_min = fminf( h->aabb.x_min, v.coord.x );
-			h->aabb.z_max = fmaxf( h->aabb.z_max, v.coord.z );
-			h->aabb.z_min = fminf( h->aabb.z_min, v.coord.z );
-		}
+		enlargeAABB( &h->aabb, heightField_vertex( h, i, 0 ));
+		enlargeAABB( &h->aabb, heightField_vertex( h, i, h->z_samples - 1 ));
 	}
 }
 

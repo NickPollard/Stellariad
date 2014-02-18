@@ -1,0 +1,4 @@
+MOON_SRCS = entities.moon \
+			doodads.moon \
+			list.moon \
+			timers.moon

@@ -11,8 +11,7 @@ include Makelist
 OBJS = $(SRCS:src/%.c=bin/release/%.o)
 OBJS_DBG = $(SRCS:src/%.c=bin/debug/%.o)
 OBJS_PROF = $(SRCS:src/%.c=bin/profile/%.o)
-MOON_SRCS = doodads.moon \
-			entities.moon
+include Makemoon
 MOON_LUA = $(MOON_SRCS:%.moon=SpaceSim/lua/compiled/%.lua)
 
 all : $(EXECUTABLE)_release

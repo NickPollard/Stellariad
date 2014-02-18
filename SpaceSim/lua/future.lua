@@ -21,7 +21,7 @@ function future:onComplete( func )
 	if self.value then
 		func( self.value )
 	else
-		self.onCompleteHandlers = list.cons( func, self.onCompleteHandlers )
+		self.onCompleteHandlers = list:cons( func, self.onCompleteHandlers )
 	end
 end
 
