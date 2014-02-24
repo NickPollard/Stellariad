@@ -11,6 +11,7 @@ typedef pthread_cond_t	vcondition;
 enum conditions {
 	start_render,
 	finished_render,
+	work_exists,
 	kMaxConditions
 };
 
@@ -45,4 +46,5 @@ void vmutex_unlock( vmutex* mutex );
 //
 
 void vthread_signalCondition( int i );
+void vthread_broadcastCondition( int i );
 void vthread_waitCondition( int i );

@@ -4,34 +4,24 @@
 #include "maths/vector.h"
 
 // The maximum canyon points loaded in the buffer at one time
-#define kMaxCanyonPoints 96
+#define MaxCanyonPoints 96
 // How long (in world space units) each canyon segment is
-#define kCanyonSegmentLength 40.f
+#define CanyonSegmentLength 40.f
 // How many segments behind the current position to keep in the buffer
-#define kTrailingCanyonSegments 30
-
-typedef struct window_buffer_s {
-	// This is the index of the window buffer that corresponds to the first element in the window
-	size_t head;
-	// This is the index of the window buffer that corresponds to the last element in the window
-	// (most of the time this will be (head + size - 1) % size
-	size_t tail;
-	// This is the index of the underlying stream that corresponds to the first element in the window
-	// (That is, elements[head])
-	size_t stream_position;
-	// The actual buffer
-	void* elements;
-	// How many elements there are
-	size_t window_size;
-} window_buffer;
+#define TrailingCanyonSegments 30
 
 struct canyon_s { 
-	int			zone_count;
 	canyonZone	zones[kNumZones];
+	int			zone_count;
 	int			current_zone;
-
 	vector		zone_sample_point;
 	scene*		scene;
+	window_buffer* canyon_streaming_buffer;
+};
+
+struct canyonData_s {
+	vector point;
+	vector normal;
 };
 
 extern const float canyon_base_radius;
@@ -39,16 +29,20 @@ extern const float canyon_width;
 extern const float canyon_height;
 
 // Canyon functions
-void terrain_debugDraw( window* w );
-void canyon_generateInitialPoints();
-float terrain_canyonHeight( float x, float z, float u, float v );
-void canyon_staticInit();
-void canyon_seekForWorldPosition( vector position );
-// For colouring
-void terrain_canyonSpaceFromWorld( float x, float z, float* u, float* v );
-
-// Convert canyon-space U and V coords into world space X and Z
-void terrain_worldSpaceFromCanyon( float u, float v, float* x, float* z );
+canyon* canyon_create( scene* s, const char* file );
 void canyon_tick( void* canyon_data, float dt, engine* eng );
-canyon* canyon_create();
+void canyon_generateInitialPoints( canyon* c );
+void canyon_staticInit();
+void canyon_seekForWorldPosition( canyon* c, vector position );
+// Convert world-space X and Z coords into canyon space U and V
+void canyonSpaceFromWorld( canyon* c, float x, float z, float* u, float* v );
+// Convert canyon-space U and V coords into world space X and Z
+void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float* z );
 
+void canyonBuffer_generatePoints( canyon* c, size_t from, size_t to );
+void canyonBuffer_seek( canyon* c, size_t seek_position );
+
+// *** DEBUG
+void terrain_debugDraw( canyon* c, window* w );
+
+void canyon_test();

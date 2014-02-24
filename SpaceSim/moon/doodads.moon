@@ -31,7 +31,7 @@ shouldDespawn = ( upto ) ->
 -- TODO - this should be using some better kind of structure - spacial partitioning of some kind
 doodads.updateDespawns = ( t ) ->
 	trans_worldPos( t )\foreach( (p) ->
-		upto = (vcanyonV_atWorld p) - despawn_distance
+		upto = (vcanyonV_atWorld(canyon,p)) - despawn_distance
 		all_doodads = all_doodads\filter( (d) ->
 			if shouldDespawn(upto)(d) then
 				doodads.delete(d)
@@ -111,7 +111,7 @@ doodads.spawned = 0.0
 
 doodads.update = ( transform ) ->
 	trans_worldPos( transform )\foreach( ( p ) ->
-		spawn_upto = (vcanyonV_atWorld p) + doodads.spawn_distance
+		spawn_upto = (vcanyonV_atWorld(canyon,p)) + doodads.spawn_distance
 		doodads.spawnRange( doodads.spawned, spawn_upto )
 		doodads.spawned = spawn_upto)
 

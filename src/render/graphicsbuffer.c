@@ -89,7 +89,7 @@ GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size ) {
 	return b->ptr;
 }
 
-void render_freeBuffer( void* buffer ) { mem_free( buffer ); }
+void render_freeBuffer( void* buffer ) { if ( buffer ) mem_free( buffer ); }
 
 // Load any waiting buffer requests
 void render_bufferTick() {

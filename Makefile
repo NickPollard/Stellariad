@@ -84,7 +84,7 @@ debug : $(EXECUTABLE)_debug
 
 $(EXECUTABLE)_debug : $(SRCS) $(OBJS_DBG) $(MOON_LUA)
 	@echo "- Linking $@"
-	@$(C) -g $(LFLAGS) -o $(EXECUTABLE)_debug $(OBJS_DBG) $(LIBS)
+	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_debug $(OBJS_DBG) $(LIBS)
 
 bin/debug/%.o : src/%.c
 #	Calculate the directory required and create it
@@ -108,3 +108,6 @@ SpaceSim/lua/compiled/%.lua : SpaceSim/moon/%.moon
 	@echo "compiling $< to $@"
 	@(cd SpaceSim/moon && moonc -t ../../SpaceSim/lua/compiled `echo "$<" | sed -e 's/SpaceSim\/moon\///'`)
 
+tags :
+	@echo building tags file: vitae.tags
+	@./tags.sh

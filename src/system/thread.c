@@ -5,6 +5,8 @@
 //-------------------------
 #include <sched.h> // for sched_yield
 
+//#define DEBUG_THREAD_CONDITIONS
+
 vcondition	conditions[kMaxConditions];
 vmutex		condition_mutices[kMaxConditions];
 bool		condition_values[kMaxConditions];
@@ -56,6 +58,19 @@ void vthread_signalCondition( int i ) {
 	vmutex_lock( condition_mutex );
 	condition_values[i] = true;
 	pthread_cond_signal( condition );
+	vmutex_unlock( condition_mutex );
+}
+
+void vthread_broadcastCondition( int i ) {
+#ifdef DEBUG_THREAD_CONDITIONS
+	printf( "THREAD: Setting condition %d.\n", i );
+#endif
+	vmutex*		condition_mutex	= &condition_mutices[i];
+	vcondition*	condition		= &conditions[i];
+
+	vmutex_lock( condition_mutex );
+	condition_values[i] = true;
+	pthread_cond_broadcast( condition );
 	vmutex_unlock( condition_mutex );
 }
 

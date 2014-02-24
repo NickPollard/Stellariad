@@ -726,13 +726,16 @@ int LUA_ribbon_create( lua_State* l ) {
 	return 1;
 }
 
+canyon* theCanyon; // TODO
+
 // Get the world X,Y,Z position of a point a given DISTANCE down the canyon
 int LUA_canyonPosition( lua_State* l ) {
-	float u = lua_tonumber( l, 1 );
-	float v = lua_tonumber( l, 2 );
+	canyon* c = lua_toptr( l, 1 );
+	float u = lua_tonumber( l, 2 );
+	float v = lua_tonumber( l, 3 );
 	float x, y, z;
-	terrain_worldSpaceFromCanyon( u, v, &x, &z );
-	y = canyonTerrain_sample( x, z );
+	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
+	y = canyonTerrain_sampleUV( u, v );
 	lua_pushnumber( l, x );
 	lua_pushnumber( l, y );
 	lua_pushnumber( l, z );
@@ -741,34 +744,37 @@ int LUA_canyonPosition( lua_State* l ) {
 
 // Get the Canyon U,V position of a point from a given world position
 int LUA_canyon_fromWorld( lua_State* l ) {
-	vector* world_position = lua_toptr( l, 1 );
+	canyon* c = lua_toptr( l, 1 );
+	vector* world_position = lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
 	float u, v;
-	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
+	canyonSpaceFromWorld( c, world_position->coord.x, world_position->coord.z, &u, &v );
 	lua_pushnumber( l, u );
 	lua_pushnumber( l, v );
 	return 2;
 }
 int LUA_canyonU_atWorld( lua_State* l ) {
-	vector* world_position = lua_toptr( l, 1 );
+	canyon* c = lua_toptr( l, 1 );
+	vector* world_position = lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
 	float u, v;
-	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
+	canyonSpaceFromWorld( c, world_position->coord.x, world_position->coord.z, &u, &v );
 	lua_pushnumber( l, u );
 	(void)v;
 	return 1;
 }
 int LUA_canyonV_atWorld( lua_State* l ) {
-	vector* world_position = lua_toptr( l, 1 );
+	canyon* c = lua_toptr( l, 1 );
+	vector* world_position = lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
 	float u, v;
-	terrain_canyonSpaceFromWorld( world_position->coord.x, world_position->coord.z, &u, &v );
+	canyonSpaceFromWorld( c, world_position->coord.x, world_position->coord.z, &u, &v );
 	lua_pushnumber( l, v );
 	(void)u;
 	return 1;
@@ -884,9 +890,12 @@ int LUA_createCanyon(lua_State* l) {
 	engine* e = lua_toptr( l, 1 );
 	scene* s = lua_toptr( l, 2 );
 	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
+	canyon_generateInitialPoints( c );
+	canyonBuffer_seek( c, 0 );
+	theCanyon = c;
 	startTick( e, c, canyon_tick );
 	
-	canyonTerrain* t = canyonTerrain_create( c, 14, 18, 80, 80, 640.f, 960.f );
+	canyonTerrain* t = canyonTerrain_create( c, 14, 18, 32, 32, 640.f, 960.f );
 	canyonTerrain_setLodIntervals( t, 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
 	engine_addRender( e, (void*)t, canyonTerrain_render );

@@ -264,7 +264,6 @@ void engine_init(engine* e, int argc, char** argv) {
 	// *** Canyon
 	canyon_staticInit();
 	canyonTerrain_staticInit();
-	canyon_generateInitialPoints();
 
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
 		vthread_create( worker_threadFunc, NULL );
@@ -272,6 +271,7 @@ void engine_init(engine* e, int argc, char** argv) {
 
 	// TEST
 	test_engine_init( e );
+	//canyon_test();
 }
 
 // Initialises the application

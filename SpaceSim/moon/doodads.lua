@@ -20,7 +20,7 @@ shouldDespawn = function(upto)
 end
 doodads.updateDespawns = function(t)
   return trans_worldPos(t):foreach(function(p)
-    local upto = (vcanyonV_atWorld(canyon, p)) - despawn_distance
+    local upto = (vcanyonV_atWorld(c, p)) - despawn_distance
     all_doodads = all_doodads:filter(function(d)
       if shouldDespawn(upto)(d) then
         doodads.delete(d)
@@ -121,7 +121,7 @@ end
 doodads.spawned = 0.0
 doodads.update = function(transform)
   return trans_worldPos(transform):foreach(function(p)
-    local spawn_upto = (vcanyonV_atWorld(canyon, p)) + doodads.spawn_distance
+    local spawn_upto = (vcanyonV_atWorld(p)) + doodads.spawn_distance
     doodads.spawnRange(doodads.spawned, spawn_upto)
     doodads.spawned = spawn_upto
   end)

@@ -3,6 +3,11 @@
 #include "frustum.h"
 #include "render/render.h"
 
+#define CANYON_TERRAIN_INDEXED 1
+#define TERRAIN_USE_WORKER_THREAD 1
+
+//#define TERRAIN_FORCE_NO_LOD
+
 typedef struct canyonTerrainBlock_s {
 	int u_samples;
 	int v_samples;
@@ -75,5 +80,9 @@ void canyonTerrain_setLodIntervals( canyonTerrain* t, int u, int v );
 void canyonTerrain_render( void* data, scene* s );
 void canyonTerrain_tick( void* data, float dt, engine* eng );
 
-float canyonTerrain_sample( float u, float v );
-float canyonTerrain_sampleUV( float x, float z, float u, float v );
+float canyonTerrain_sample( canyon* c, float u, float v );
+float canyonTerrain_sampleUV( float u, float v );
+
+int lodRatio( canyonTerrainBlock* b );
+int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b );
+int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v );

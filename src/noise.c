@@ -11,9 +11,13 @@ static const int NoiseResolution = 64;
 float perlin_raw( float u, float v );
 
 void noise_staticInit() {
+#if 0
 	for ( int x = 0; x < NoiseResolution; ++x )
 		for ( int y = 0; y < NoiseResolution; ++y )
 			noiseTexture[x][y] = perlin_raw(((float)x), ((float)y));
+#else 
+	memset( noiseTexture, 0, 64 * 64 * sizeof( float ));	
+#endif
 }
 
 double msin( double d ) {

@@ -113,7 +113,7 @@ void canyonZone_skyFogBlend( canyonZone* a, canyonZone* b, float blend, vector* 
 void canyonZone_tick( canyon* c, float dt ) {
 	(void)dt;
 	float u, v;
-	terrain_canyonSpaceFromWorld( zone_sample_point.coord.x, zone_sample_point.coord.z, &u, &v );
+	canyonSpaceFromWorld( c, zone_sample_point.coord.x, zone_sample_point.coord.z, &u, &v );
 	int zone = canyon_zone( v );
 	if ( zone != c->current_zone ) {
 		c->current_zone = zone;

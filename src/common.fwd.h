@@ -4,6 +4,7 @@
 struct body_s;
 struct camera_s;
 struct canyon_s;
+struct canyonData_s;
 struct canyonTerrain_s;
 struct canyonZone_s;
 struct debugtextframe_s;
@@ -27,12 +28,14 @@ struct texture_s;
 struct transform_s;
 struct vertex_s;
 struct window_s;
+struct window_buffer_s;
 struct xwindow_s;
 union vector_u;
 
 typedef struct body_s body;
 typedef struct camera_s camera;
 typedef struct canyon_s canyon;
+typedef struct canyonData_s canyonData;
 typedef struct canyonTerrain_s canyonTerrain;
 typedef struct canyonZone_s canyonZone;
 typedef struct debugtextframe_s debugtextframe;
@@ -56,6 +59,7 @@ typedef struct texture_s texture;
 typedef struct transform_s transform;
 typedef struct vertex_s vertex;
 typedef struct window_s window;
+typedef struct window_buffer_s window_buffer;
 typedef struct xwindow_s xwindow;
 
 typedef union vector_u vector;

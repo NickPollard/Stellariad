@@ -21,12 +21,16 @@ SRCS =	src/camera.c \
 		src/ribbon.c \
 		src/scene.c \
 		src/skybox.c \
+		src/terrain.c \
+		src/terrain_collision.c \
+		src/terrain_render.c \
 		src/test.c \
 		src/ticker.c \
 		src/vtime.c \
 		src/transform.c \
 		src/worker.c \
 		src/base/ringqueue.c \
+		src/base/window_buffer.c \
 		src/camera/chasecam.c \
 		src/camera/flycam.c \
 		src/camera/velcam.c \

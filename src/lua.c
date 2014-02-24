@@ -192,13 +192,29 @@ void lua_registerFunction( lua_State* l, lua_CFunction func, const char* name ) 
 #ifdef ANDROID
 int LUA_androidOpen( lua_State* l ) {
 	char filename[kMaxPath];
+	char filename_compiled[kMaxPath];
 	const char* modulename = lua_tostring( l, 1 );
+	const char* paths[2];
 	sprintf( filename, "%s%s.lua", game_lua_path, modulename );
-	printf( "Android loading Lua file \"%s\"\n", filename );
-	int length = -1;
-	const char* buffer = vfile_contents( filename, &length );
-	if ( luaL_loadbuffer( l, buffer, length, filename )) {
+	sprintf( filename_compiled, "%scompiled/%s.lua", game_lua_path, modulename );
+	int i = 0;
+	paths[0] = filename;
+	paths[1] = filename_compiled;
+	bool found = false;
+	while ( !found ) {
+		printf( "Android loading Lua file \"%s\"\n", paths[i] );
+		if ( vfile_exists( paths[i] )) {
+			int length = -1;
+			const char* buffer = vfile_contents( paths[i], &length );
+			if ( !luaL_loadbuffer( l, buffer, length, paths[i] )) {
+				found = true;
+			}
+		}
+		++i;
+	}
+	if (!found) {
 		printf("Error: Failed loading lua from file %s!\n", filename );
+		printf("Error: Failed loading lua from file %s!\n", filename_compiled );
 		vAssert( 0 );
 	}
 

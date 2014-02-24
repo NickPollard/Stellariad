@@ -102,6 +102,20 @@ struct zip_file* vfile_openApk( const char* path, const char* mode ) {
 	return file;
 }
 
+bool vfile_existsApk( const char* path ) {
+	char asset_path[kVfileMaxPathLength];
+	vfile_assetPath( asset_path, path );
+	struct zip_file* file = zip_fopen( apk_archive, asset_path, 0x0 /* Flags */ );
+	return (file != NULL);
+}
+
+bool vfile_exists( const char* path ) {
+#ifdef ANDROID
+	return vfile_existsApk( path );
+#endif
+	vAssert( 0 ); // NYI
+}
+
 // Load the entire contents of a file into a heap-allocated buffer of the same length
 // returns a pointer to that buffer
 // It its the caller's responsibility to free the buffer

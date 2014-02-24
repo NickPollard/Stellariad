@@ -20,7 +20,9 @@ void worker_addTask( worker_task t ) {
 	vmutex_lock( &worker_task_mutex );
 	{
 		vAssert( worker_task_count < kMaxWorkerTasks );
+		//printf("Adding worker task\n");
 		worker_tasks[worker_task_count++] = t;
+		vthread_broadcastCondition( work_exists );
 	}
 	vmutex_unlock( &worker_task_mutex );
 }
@@ -36,6 +38,7 @@ worker_task worker_nextTask() {
 				worker_tasks[i] = worker_tasks[i + 1];
 			}
 			--worker_task_count;
+			//printf("Done worker task\n");
 		}
 	}
 	vmutex_unlock( &worker_task_mutex );
@@ -48,7 +51,9 @@ void worker_addImmediateTask( worker_task t ) {
 	vmutex_lock( &worker_task_mutex );
 	{
 		vAssert( worker_immediate_task_count < kMaxWorkerTasks );
+		//printf("Adding immediate worker task\n");
 		worker_immediate_tasks[worker_immediate_task_count++] = t;
+		vthread_broadcastCondition( work_exists );
 	}
 	vmutex_unlock( &worker_task_mutex );
 }
@@ -63,6 +68,7 @@ worker_task worker_nextImmediateTask() {
 				worker_immediate_tasks[i] = worker_immediate_tasks[i + 1];
 			}
 			--worker_immediate_task_count;
+			//printf("Done immediate worker task\n");
 		}
 	}
 	vmutex_unlock( &worker_task_mutex );
@@ -91,6 +97,16 @@ void* worker_threadFunc( void* args ) {
 		}
 
 		//usleep( 5 );
-		vthread_yield();
+		//vthread_yield();
+		bool workWaiting = false;
+		vmutex_lock( &worker_task_mutex );
+		{
+			workWaiting = (worker_immediate_task_count == 0 && worker_task_count == 0 );
+		}
+		vmutex_unlock( &worker_task_mutex );
+		if ( workWaiting ) {
+			vthread_waitCondition( work_exists );
+		}
+		//usleep( 5 );
 	}
 }

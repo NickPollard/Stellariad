@@ -821,9 +821,9 @@ function playership_tick( ship, dt )
 	local input_pitch = 0.0
 	if debug_player_autofly then
 		vtransform_getWorldPosition( ship.transform ):foreach( function ( p )
-			local current_u, current_v = vcanyon_fromWorld( p )
+			local current_u, current_v = vcanyon_fromWorld( canyon, p )
 			local target_v = current_v + 50
-			local x, y, z = vcanyon_position( 0, target_v )
+			local x, y, z = vcanyon_position( canyon, 0, target_v )
 			local target_pos = Vector( x, y, z, 1.0 )
 			local m = vmatrix_facing( target_pos, p )
 			local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
@@ -1060,7 +1060,7 @@ function turret_collisionHandler( target, collider )
 end
 
 function spawn_atCanyon( u, v, model )
-	local x, y, z = vcanyon_position( u, v )
+	local x, y, z = vcanyon_position( canyon, u, v )
 	local position = Vector( x, y, z, 1.0 )
 	local obj = gameobject_create( model )
 	vtransform_setWorldPosition( obj.transform, position )
@@ -1089,7 +1089,7 @@ end
 -- Spawn all entities that need to be spawned this frame
 function update_spawns( transform )
 	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( p )
+		local u,v = vcanyon_fromWorld( canyon, p )
 		local spawn_until = v + spawn_distance
 		entities_spawnRange( entities_spawned, spawn_until )
 		entities_spawned = spawn_until;
@@ -1098,13 +1098,13 @@ end
 
 function update_despawns( transform ) 
 	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( p )
+		local u,v = vcanyon_fromWorld( canyon, p )
 		local despawn_up_to = v - despawn_distance
 
 		for unit in array.iterator( interceptors ) do
 			-- TODO remove them properly
 			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-				u,v = vcanyon_fromWorld( p_ )
+				u,v = vcanyon_fromWorld( canyon, p_ )
 				if v < despawn_up_to then
 					ship_delete( unit )
 					unit = nil
@@ -1116,7 +1116,7 @@ function update_despawns( transform )
 			-- TODO remove them properly
 			if unit.transform then
 				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( p_ )
+					u,v = vcanyon_fromWorld( canyon, p_ )
 					if v < despawn_up_to then
 						ship_delete( unit )
 						unit = nil

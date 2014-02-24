@@ -28,3 +28,6 @@ android/local.properties
 
 #log
 log.txt
+
+#ctags
+vitae.tags

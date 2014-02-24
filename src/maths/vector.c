@@ -37,15 +37,21 @@ void Set(vector* v, float x, float y, float z, float w) {
 }
 
 // Vector Addition
-void Add(vector* dst, const vector* srcA, const vector* srcB) {
-	for (int i = 0; i < 4; i++)
-		dst->val[i] = srcA->val[i] + srcB->val[i];
+void Add(vector* restrict out, const vector* restrict a, const vector* restrict b) {
+	out->coord.x = a->coord.x + b->coord.x;
+	out->coord.y = a->coord.y + b->coord.y;
+	out->coord.z = a->coord.z + b->coord.z;
+	out->coord.w = a->coord.w + b->coord.w;
 }
 
 // Vector &subtraction
-void Sub(vector* dst, const vector* srcA, const vector* srcB) {
-	for (int i = 0; i < 4; i++)
-		dst->val[i] = srcA->val[i] - srcB->val[i];
+void Sub(vector* restrict out, const vector* restrict a, const vector* restrict b) {
+	//for (int i = 0; i < 4; i++)
+		//dst->val[i] = srcA->val[i] - srcB->val[i];
+	out->coord.x = a->coord.x - b->coord.x;
+	out->coord.y = a->coord.y - b->coord.y;
+	out->coord.z = a->coord.z - b->coord.z;
+	out->coord.w = a->coord.w - b->coord.w;
 }
 
 // Vector dot product
@@ -58,7 +64,7 @@ float Dot4( const vector* A, const vector* B ) {
 }
 
 // Vector cross product
-void Cross(vector* dst, const vector* srcA, const vector* srcB) {
+void Cross(vector* restrict dst, const vector* restrict srcA, const vector* restrict srcB) {
 	vAssert( dst != srcA );
 	vAssert( dst != srcB );
 	dst->coord.x = (srcA->coord.y * srcB->coord.z) - (srcA->coord.z * srcB->coord.y);
