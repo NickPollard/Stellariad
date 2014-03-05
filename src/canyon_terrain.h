@@ -84,5 +84,12 @@ float canyonTerrain_sample( canyon* c, float u, float v );
 float canyonTerrain_sampleUV( float u, float v );
 
 int lodRatio( canyonTerrainBlock* b );
+int indexFromUV( canyonTerrainBlock* b, int u, int v );
+int vertCount( canyonTerrainBlock* b );
 int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b );
 int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v );
+
+// To move to terrain_generate
+void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts );
+void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals );
+void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );

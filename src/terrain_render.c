@@ -3,8 +3,11 @@
 #include "terrain_render.h"
 //-----------------------
 #include "canyon.h"
+#include "camera.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
+#include "render/graphicsbuffer.h"
+#include "render/texture.h"
 
 bool canyonTerrainBlock_triangleInvalid( canyonTerrainBlock* b, int u_index, int v_index, int u_offset, int v_offset ) {
 	u_offset = u_offset / 2 + u_offset % 2;
@@ -141,4 +144,57 @@ void* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
 	void* buffer = t->element_buffers[t->element_buffer_count++];
 	return buffer;
 }
+// Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
+// If we've already allocated a buffer at some point, just re-use it
+void canyonTerrainBlock_initVBO( canyonTerrainBlock* b ) {
+	int vert_count = canyonTerrainBlock_renderVertCount( b );
+	b->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			b->vertex_buffer,	sizeof( vertex )	* vert_count );
+	b->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	b->element_buffer,	sizeof( GLushort ) 	* b->element_count );
+}
+
+bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
+	// If we have new render buffers, free the old ones and switch to the new
+	if (( b->vertex_VBO_alt && *b->vertex_VBO_alt ) && ( b->element_VBO_alt && *b->element_VBO_alt )) {
+		render_freeBuffer( b->vertex_VBO );
+		render_freeBuffer( b->element_VBO );
+
+		b->vertex_VBO = b->vertex_VBO_alt;
+		b->element_VBO = b->element_VBO_alt;
+		b->element_count_render = b->element_count;
+		b->vertex_VBO_alt = NULL;
+		b->element_VBO_alt = NULL;
+	}
+
+	vector frustum[6];
+	camera_calculateFrustum( s->cam, frustum );
+	if ( frustum_cull( &b->bb, frustum ) )
+		return false;
+
+	int zone = b->canyon->current_zone;
+	int first = ( zone + zone % 2 ) % b->canyon->zone_count;
+	int second = ( zone + 1 - (zone % 2)) % b->canyon->zone_count;
+	if ( b->vertex_VBO && *b->vertex_VBO && terrain_texture && terrain_texture_cliff ) {
+		drawCall* draw = drawCall_create( &renderPass_main, resources.shader_terrain, b->element_count_render, b->element_buffer, b->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
+		draw->texture_b = b->canyon->zones[first].texture_cliff->gl_tex;
+		draw->texture_c = b->canyon->zones[second].texture_ground->gl_tex;
+		draw->texture_d = b->canyon->zones[second].texture_cliff->gl_tex;
+		draw->vertex_VBO = *b->vertex_VBO;
+		draw->element_VBO = *b->element_VBO;
+	}
+	return true;
+}
+
+
+void canyonTerrain_render( void* data, scene* s ) {
+	(void)s;
+	canyonTerrain* t = data;
+	render_resetModelView();
+	matrix_mulInPlace( modelview, modelview, t->trans->world );
+
+	int count = 0;
+	for ( int i = 0; i < t->total_block_count; ++i ) {
+		count += canyonTerrainBlock_render( t->blocks[i], s );
+	}
+}
+
 #endif // CANYON_TERRAIN_INDEX
