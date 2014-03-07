@@ -6,4 +6,4 @@ void canyonTerrain_initVertexBuffers( canyonTerrain* t );
 void* canyonTerrain_nextVertexBuffer( canyonTerrain* t );
 void canyonTerrain_initElementBuffers( canyonTerrain* t );
 void* canyonTerrain_nextElementBuffer( canyonTerrain* t );
-void canyonTerrainBlock_initVBO( canyonTerrainBlock* b );
+void terrainBlock_initVBO( canyonTerrainBlock* b );

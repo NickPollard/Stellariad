@@ -93,3 +93,4 @@ int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v );
 void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts );
 void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals );
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
+void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v );

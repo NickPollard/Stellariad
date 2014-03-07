@@ -146,7 +146,7 @@ void* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
 }
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
-void canyonTerrainBlock_initVBO( canyonTerrainBlock* b ) {
+void terrainBlock_initVBO( canyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
 	b->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			b->vertex_buffer,	sizeof( vertex )	* vert_count );
 	b->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	b->element_buffer,	sizeof( GLushort ) 	* b->element_count );

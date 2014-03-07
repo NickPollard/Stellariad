@@ -89,6 +89,8 @@
 							assert( (a) ); \
 						}
 
+#define NYI vAssert(0);
+
 // Higher Order macros
 
 #define for_each( array, size, func, ... )  \
@@ -97,6 +99,8 @@
 	}
 
 
+
+#define stackArray( type, size )	alloca( sizeof( type ) * size );
 
 // types
 //typedef unsigned int uint;
