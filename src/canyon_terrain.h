@@ -17,6 +17,10 @@ typedef struct canyonTerrainBlock_s {
 	float v_min;
 	float v_max;
 
+	// Ints for uv-coord in terrain grid units
+	int uMin;
+	int vMin;
+
 	int element_count;
 	int element_count_render; // The one currently used to render with; for smooth LoD switching
 	unsigned short* element_buffer;
@@ -53,8 +57,8 @@ struct canyonTerrain_s {
 	int total_block_count;
 	canyonTerrainBlock** blocks;
 	
-	int u_samples_per_block;
-	int v_samples_per_block;
+	int uSamplesPerBlock;
+	int vSamplesPerBlock;
 
 	int lod_interval_u;
 	int lod_interval_v;
@@ -94,3 +98,4 @@ void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector*
 void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals );
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
 void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v );
+void canyonTerrainBlock_positionsFromUV_( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v );

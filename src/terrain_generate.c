@@ -41,7 +41,12 @@ vector normalForUV( vertPositions* p, int u, int v ) {
 
 vector terrainPoint( canyon* c, canyonTerrainBlock* b, int u_index, int v_index ) {
 	float u, v;
-	canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
+	canyonTerrainBlock_positionsFromUV_( b, u_index, v_index, &u, &v );
+	printf("\n");
+	//printf("indices: %d %d.\n", u_index, v_index );
+	//printf( "new: u: %4.2f, v: %4.2f\n", u, v );
+	//canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
+	//printf( "old: u: %4.2f, v: %4.2f\n", u, v );
 	float x, z;
 	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 	return Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );

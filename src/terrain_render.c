@@ -84,10 +84,10 @@ void canyonTerrainBlock_fillTrianglesForVertex( canyonTerrainBlock* b, vector* p
 
 void* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
 #if CANYON_TERRAIN_INDEXED
-	int max_vert_count = ( t->u_samples_per_block + 1 ) * ( t->v_samples_per_block + 1 );
+	int max_vert_count = ( t->uSamplesPerBlock + 1 ) * ( t->vSamplesPerBlock + 1 );
 	return mem_alloc( sizeof( vertex ) * max_vert_count );
 #else
-	int max_element_count = t->u_samples_per_block * t->v_samples_per_block * 6;
+	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
 	return mem_alloc( sizeof( vertex ) * max_element_count );
 #endif // CANYON_TERRAIN_INDEX
 }
@@ -118,7 +118,7 @@ void* canyonTerrain_nextVertexBuffer( canyonTerrain* t ) {
 
 #if CANYON_TERRAIN_INDEXED
 void* canyonTerrain_allocElementBuffer( canyonTerrain* t ) {
-	int max_element_count = t->u_samples_per_block * t->v_samples_per_block * 6;
+	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
 	return mem_alloc( sizeof( unsigned short ) * max_element_count );
 }
 void canyonTerrain_initElementBuffers( canyonTerrain* t ) {

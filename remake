@@ -1,7 +1,7 @@
 #!/bin/zsh
 while /bin/true
 do
-echo "Ready >>"
+echo "\nReady >>\n"
 inotifywait -rqq -e close_write src SpaceSim
 make debug 2>&1 | sed -e 's/[a-zA-Z_]*\/[a-zA-Z_]*\.\(c\|h\|o\)/\x1b[31m&\x1b[0m/' | grep -v "Nothing to be done for"
 done
