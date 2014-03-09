@@ -4,14 +4,6 @@
 //-----------------------
 #include "canyon.h"
 
-typedef struct vertPositions_s {
-	int uMin;
-	int uCount;
-	int vMin;
-	int vCount;
-	vector* positions; // (uCount * vCount) in size
-} vertPositions;
-
 /*
 vector normalForUV( vertPositions* p, int u, int v ) {
 	NYI;
@@ -40,14 +32,8 @@ vector normalForUV( vertPositions* p, int u, int v ) {
 */
 
 vector terrainPoint( canyon* c, canyonTerrainBlock* b, int u_index, int v_index ) {
-	float u, v;
-	canyonTerrainBlock_positionsFromUV_( b, u_index, v_index, &u, &v );
-	printf("\n");
-	//printf("indices: %d %d.\n", u_index, v_index );
-	//printf( "new: u: %4.2f, v: %4.2f\n", u, v );
-	//canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
-	//printf( "old: u: %4.2f, v: %4.2f\n", u, v );
-	float x, z;
+	float u, v, x, z;
+	canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
 	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 	return Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
 }
@@ -68,29 +54,39 @@ vector pointForUV( vertPositions* p, int u, int v ) {
 		return p->positions[u_ + v_ * p->uCount];
 	} else { // re-calculate
 		printf( "recalcing point.\n" );
+		//vAssert( 0 );
 		return Vector(0.f, 0.f, 0.f, 1.f);
 	}
 }
 
-vertPositions* generatePositions( canyon* c, canyonTerrainBlock* b) {
+/*
+   Called Sychronously by the main terrain thread; Builds a vertPositions to be passed
+   to a child worker to actually construct the terrain.
+   This should normally just pull from cache - if blocks aren't there, build them
+   */
+vertPositions* generatePositions( canyonTerrainBlock* b) {
 	vertPositions* vertSources = mem_alloc( sizeof( vertPositions ));
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
 	vertSources->uCount = b->u_samples + 2;
 	vertSources->vCount = b->v_samples + 2;
 	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
-	canyonTerrainBlock_generateVerts( c, b, vertSources->positions );
+	canyonTerrainBlock_generateVerts( b->canyon, b, vertSources->positions );
 	return vertSources;
 }
+
+void vertPositions_delete( vertPositions* vs ) {
+	mem_free( vs->positions );
+	mem_free( vs );
+}
+
 // Hopefully this should just be hitting the cache we were given
-void generatePoints( canyon* c, canyonTerrainBlock* b, vector* verts ) {
-	vertPositions* vertSources = generatePositions(c, b);
+void generatePoints( canyonTerrainBlock* b, vertPositions* vertSources, vector* verts ) {
 	for ( int v = -1; v < b->v_samples +1; ++v ) {
 		for ( int u = -1; u < b->u_samples +1; ++u ) {
 			verts[indexFromUV(b, u, v)] = pointForUV(vertSources,u,v);
 		}
 	}
-	mem_free(vertSources);
 }
 
 /*
@@ -132,18 +128,15 @@ void lodVectors( canyonTerrainBlock* b, vector* vectors) {
 
 // When given an array of vert positions, use them to build a renderable terrainBlock
 // (This will be sent from the canyon that has already calculated positions)
-void terrainBlock_build( canyon* c, canyonTerrainBlock* b, vector* vs ) {
-	(void)vs;
+void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	vector* verts = stackArray( vector, vertCount( b ));
 	vector* normals = stackArray( vector, vertCount( b ));
 
 	// These could be parallelised ???
-	generatePoints(c, b, verts);
-	//generateNormals();
-
-	//canyonTerrainBlock_generateVerts( c, b, verts );
+	generatePoints( b, vertSources, verts );
 	lodVectors( b, verts );
 
+	//generateNormals();
 	canyonTerrainBlock_calculateNormals( b, vertCount( b ), verts, normals );
 	lodVectors( b, normals );
 

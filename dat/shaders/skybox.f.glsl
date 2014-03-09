@@ -23,6 +23,12 @@ float sun_fog( vec4 local_sun_dir, vec4 fragment_position ) {
 	return clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 );
 }
 
+float sun( vec4 local_sun_dir, vec4 fragment_position ) {
+	float g = max(0.1, smoothstep( 0.50, 1.0, abs(normalize(local_sun_dir).z)));
+	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 ));
+	return pow(f, 4.0);
+}
+
 void main() {
 	// light-invariant calculations
 	vec4 material_diffuse = texture2D( tex, texcoord );
@@ -42,7 +48,9 @@ void main() {
 	float fog_sun_factor = sun_fog( camera_space_sun_direction, frag_position );
 	//float fog_sun_factor = 0.0;
 
-	vec4 local_fog_color = fog_color + (sun_color * fog_sun_factor);
+	vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);
+	float fog_actual_sun = sun( camera_space_sun_direction, frag_position );
+	vec4 local_fog_color = fog_color + (sun_color * fog_sun_factor) + (sunwhite * fog_actual_sun);
 	
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
 	//gl_FragColor = texture2D( tex, texcoord );
