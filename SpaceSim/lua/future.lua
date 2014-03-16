@@ -4,7 +4,6 @@ local future = {}
 	list = require "list"
 
 function apply( func )
-	vprint( "apply" )
 	func()
 end
 

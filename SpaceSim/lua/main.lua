@@ -593,7 +593,6 @@ function touchpad:tick( dt )
 		touched = vkeyPressed( input, key.space )
 	end
 	if touched then
-		vprint( "touched" )
 		self.onTouchHandlers:foreach( apply )
 	end
 end

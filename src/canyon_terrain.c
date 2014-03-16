@@ -325,67 +325,6 @@ void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, 
 
 int lodRatio( canyonTerrainBlock* b ) { return b->u_samples / ( b->terrain->uSamplesPerBlock / 4 ); }
 
-// Generate Normals
-void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals ) {
-	(void)vert_count;
-	int lod_ratio = lodRatio( block );
-
-	for ( int v = 0; v < block->v_samples; ++v ) {
-		for ( int u = 0; u < block->u_samples; ++u ) {
-			int index;
-			if ( v == block->v_samples - 1 )
-				index = indexFromUV( block, u, v - lod_ratio );
-			else
-				index = indexFromUV( block, u, v - 1 );
-			vector left		= verts[index];
-
-			if ( v == 0 )
-				index = indexFromUV( block, u, v + lod_ratio );
-			else
-				index = indexFromUV( block, u, v + 1 );
-			vector right	= verts[index];
-
-			if ( u == block->u_samples - 1 )
-				index = indexFromUV( block, u - lod_ratio, v );
-			else
-				index = indexFromUV( block, u - 1, v );
-			vector top		= verts[index];
-
-			if ( u == 0 )
-				index = indexFromUV( block, u + lod_ratio, v );
-			else
-				index = indexFromUV( block, u + 1, v );
-			vector bottom	= verts[index];
-			
-			int i = indexFromUV( block, u, v );
-
-			vector a, b, c, x, y;
-			// Calculate vertical vector
-			// Take cross product to calculate normals
-			Sub( &a, &bottom, &top );
-			Cross( &x, &a, &y_axis );
-			Cross( &b, &x, &a );
-
-			// Calculate horizontal vector
-			// Take cross product to calculate normals
-			Sub( &a, &right, &left );
-			Cross( &y, &a, &y_axis );
-			Cross( &c, &y, &a );
-
-			Normalize( &b, &b );
-			Normalize( &c, &c );
-
-			// Average normals
-			vector total;
-			Add( &total, &b, &c );
-			total.coord.w = 0.f;
-			Normalize( &total, &total );
-			vAssert( i < vert_count );
-			normals[i] = total;
-		}
-	}
-}
-
 void initNormals( vector* normals, int count )		{ for ( int i = 0; i < count; ++i ) normals[i] = y_axis; }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {

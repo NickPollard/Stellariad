@@ -10,6 +10,7 @@
 #include "system/thread.h"
 
 IMPLEMENT_LIST(cacheBlock);
+IMPLEMENT_LIST(cacheGrid);
 
 vmutex terrainMutex = kMutexInitialiser;
 
@@ -20,7 +21,7 @@ terrainCache* terrainCache_create() {
 }
 
 // Find the element in the list and return it, orElse none
-cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin ) {
+cacheBlock* terrainCached_( terrainCache* cache, int uMin, int vMin ) {
 	cacheBlock* block = NULL;
 	vmutex_lock( &terrainMutex ); {
 		cacheBlocklist* b = cache->blocks;
@@ -35,9 +36,58 @@ cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin ) {
 	return block;
 }
 
+int gridIndex( int i, int grid ) { return (i - grid) / CacheBlockSize; }
+
+// Find the grid in the list, else NULL
+cacheGrid* cachedGrid( terrainCache* cache, int uMin, int vMin ) {
+	const int uGrid = minPeriod(uMin, GridCapacity);
+	const int vGrid = minPeriod(vMin, GridCapacity);
+	//printf( "Looking for grid %d %d.\n", uGrid, vGrid );
+	// find the grid that would contain it; If there, find the block
+	cacheGrid* grid = NULL;
+	for( cacheGridlist* g = cache->grids; g && g->head; g = g->tail ) {
+		if ( g->head->uMin == uGrid && g->head->vMin == vGrid ) {
+			grid = g->head;
+			break;
+		}
+	}
+	return grid;
+}
+
+// Find the grid in the list, return it from that, else NULL
+cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin ) {
+	cacheGrid* g = cachedGrid( cache, uMin, vMin );
+	cacheBlock* b = g ? g->blocks[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] : NULL;
+	vAssert( (uintptr_t)b != 0xdeadbeef00000000 );
+	return b;
+}
+
+cacheGrid* cacheGrid_create( int u, int v ) {
+	//printf( "Creating grid for %d %d.\n", u, v );
+	cacheGrid* g = mem_alloc( sizeof( cacheGrid ));
+	memset( g->blocks, 0, sizeof( cacheBlock* ) * GridSize * GridSize );
+	g->uMin = u;
+	g->vMin = v;
+	return g;
+}
+
+cacheGrid* terrainCacheAddGrid( terrainCache* t, cacheGrid* g ) {
+	t->grids = cacheGridlist_cons( g, t->grids );
+	printf( "%d grids!\n", cacheGridlist_length( t->grids ));
+	return g;
+}
+
 cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 	vmutex_lock( &terrainMutex ); {
 		t->blocks = cacheBlocklist_cons(b, t->blocks);
+		const int uMin = b->uMin;
+		const int vMin = b->vMin;
+		cacheGrid* g = cachedGrid( t, uMin, vMin );
+		if (!g) {
+			printf( "Creating grid %d %d (for block %d %d)\n", minPeriod(uMin, GridCapacity), minPeriod(vMin, GridCapacity), uMin, vMin ) ;
+			g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
+		}
+		g->blocks[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] = b;
 	} vmutex_unlock( &terrainMutex );
 	return b;
 }

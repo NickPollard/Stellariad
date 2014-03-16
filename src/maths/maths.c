@@ -70,12 +70,11 @@ float map_range( float point, float begin, float end ) {
 }
 
 bool isPowerOf2( unsigned int n ) {
-	/*
-	printf( "n: %x.\n", n );
-	printf( "n-1: %x.\n", n-1 );
-	printf( "n & (n-1): %x.\n", n & ~(n-1) );
-	*/
 	return (n & (n - 1)) == 0;
+}
+
+int minPeriod( int i, int period ) {
+	return i - (i >= 0 ? i % period : (i % period)+period);
 }
 
 #if UNIT_TEST

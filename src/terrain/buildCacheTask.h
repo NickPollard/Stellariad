@@ -4,6 +4,7 @@
 
 #define CacheBlockSize 64
 #define GridSize 16
+#define GridCapacity (CacheBlockSize * GridSize)
 
 // *** Types
 
@@ -25,7 +26,7 @@ typedef struct cacheGrid_s {
 DEF_LIST(cacheGrid)
 
 struct terrainCache_s {
-	//cacheGridlist* grids;	
+	cacheGridlist* grids;	
 	cacheBlocklist* blocks;	
 };
 

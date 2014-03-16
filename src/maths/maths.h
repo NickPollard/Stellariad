@@ -28,6 +28,7 @@ float sinerp( float a, float b, float factor );
 float map_range( float point, float begin, float end );
 
 bool isPowerOf2( unsigned int n );
+int minPeriod( int i, int period );
 
 // *** Test
 #ifdef UNIT_TEST
