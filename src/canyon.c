@@ -9,6 +9,7 @@
 #include "maths/vector.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
+#include "terrain/buildCacheTask.h"
 
 // *** New Terrain Canyon
 
@@ -325,6 +326,7 @@ canyon* canyon_create( scene* s, const char* file ) {
 	c->scene = s;
 	canyonZone_load( c, file );
 	c->canyon_streaming_buffer = window_bufferCreate( sizeof( canyonData ), MaxCanyonPoints );
+	c->terrainCache = terrainCache_create();
 	canyon_generateInitialPoints( c );
 	canyonBuffer_seek( c, 0 );
 	return c;

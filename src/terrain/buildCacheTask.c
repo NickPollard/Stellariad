@@ -13,12 +13,18 @@ IMPLEMENT_LIST(cacheBlock);
 
 vmutex terrainMutex = kMutexInitialiser;
 
+terrainCache* terrainCache_create() {
+	terrainCache* t = mem_alloc(sizeof(terrainCache));
+	t->blocks = cacheBlocklist_create();
+	return t;
+}
+
 // Find the element in the list and return it, orElse none
-cacheBlock* cached( terrainCache* cache, int uMin, int vMin ) {
+cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin ) {
 	cacheBlock* block = NULL;
 	vmutex_lock( &terrainMutex ); {
 		cacheBlocklist* b = cache->blocks;
-		while ( b ) {
+		while ( b && b->head ) {
 			if ( b->head->uMin == uMin && b->head->vMin == vMin ) {
 				block = b->head;
 				break;
@@ -29,21 +35,26 @@ cacheBlock* cached( terrainCache* cache, int uMin, int vMin ) {
 	return block;
 }
 
-void cacheAdd( terrainCache* t, cacheBlock* b ) {
-	(void)t;(void)b;
+cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 	vmutex_lock( &terrainMutex ); {
+		t->blocks = cacheBlocklist_cons(b, t->blocks);
 	} vmutex_unlock( &terrainMutex );
+	return b;
 }
 
-cacheBlock* generateCacheBlock( canyon* c, int uMin, int vMin ) {
+cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
+	//printf( "Generating block %d %d (lod %d).\n", uMin, vMin, requiredLOD );
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock ));
 	b->uMin = uMin;
 	b->vMin = vMin;
-	for ( int v = 0; v < CacheBlockSize; ++v ) {
-		for ( int u = 0; u < CacheBlockSize; ++u ) {
-			float x, z;
-			terrain_worldSpaceFromCanyon( c, u + uMin, v + vMin, &x, &z );
-			b->positions[u][v] = Vector( x, canyonTerrain_sampleUV( u + uMin, v + vMin ), z, 1.f );
+	b->lod = requiredLOD;
+	int lod = max( 1, 2 * requiredLOD );
+	for ( int vOffset = 0; vOffset < CacheBlockSize; vOffset+=lod ) {
+		for ( int uOffset = 0; uOffset < CacheBlockSize; uOffset+=lod ) {
+			float u, v, x, z;
+			terrain_positionsFromUV( t, uMin + uOffset, vMin + vOffset, &u, &v );
+			terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
+			b->positions[uOffset][vOffset] = Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
 		}
 	}
 	return b;
@@ -55,8 +66,8 @@ void* buildCache( void* args ) {
 	terrainCache* t = c->terrainCache;
 	int u = (intptr_t)_1(_2(args));
 	int v = (intptr_t)_2(_2(args));
-	if (cached( t, u, v ) == NULL)
-		cacheAdd( t, generateCacheBlock( c, u, v ));
+	if (terrainCached( t, u, v ) == NULL)
+		terrainCacheAdd( t, terrainCacheBlock( c, NULL, u, v, 1 )); // TODO
 
 	mem_free( _2(args) ); // Free nested Pair
 	mem_free( args );

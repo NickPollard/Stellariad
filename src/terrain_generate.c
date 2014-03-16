@@ -3,6 +3,7 @@
 #include "terrain_generate.h"
 //-----------------------
 #include "canyon.h"
+#include "terrain/buildCacheTask.h"
 
 /*
 vector normalForUV( vertPositions* p, int u, int v ) {
@@ -31,17 +32,60 @@ vector normalForUV( vertPositions* p, int u, int v ) {
 }
 */
 
-vector terrainPoint( canyon* c, canyonTerrainBlock* b, int u_index, int v_index ) {
+vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) {
 	float u, v, x, z;
-	canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
+	float r = 4 / lodRatio(b);
+	terrain_positionsFromUV( b->terrain, r*uIndex + b->uMin, r*vIndex + b->vMin, &u, &v );
+	//printf( "uv: %.4f %.4f, u_v_ %.4f %.4f.\n", u, v, u_, v_ );
 	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 	return Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
+}
+
+vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) {
+	(void)b;
+	float r = 4 / lodRatio(b); // TODO - URGH!
+	int uReal = b->uMin + r*uIndex;
+	int vReal = b->vMin + r*vIndex;
+
+	int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
+	int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
+	int uMin = uReal - uOffset;
+	int vMin = vReal - vOffset;
+	//int a = uMin % CacheBlockSize == 0;
+	//int aa = vMin % CacheBlockSize == 0;
+	//vAssert( a && aa );
+	//int uMin = uReal > 0 ? uReal - (uReal % CacheBlockSize) : (CacheBlockSize - (uReal % CacheBlockSize)) % CacheBlockSize;
+	//int vMin = vReal > 0 ? vReal - (vReal % CacheBlockSize) : (CacheBlockSize - (vReal % CacheBlockSize)) % CacheBlockSize;
+	cacheBlock* cache = terrainCached(c->terrainCache, uMin, vMin);
+	//int uOffset = uReal - uMin;
+	//int vOffset = vReal - vMin;
+	//printf( "terrainPointCached: %d %d, min: %d %d, offset %d %d.\n", uIndex, vIndex, uMin, vMin, uOffset, vOffset );
+	int requiredLOD = b->lod_level;
+	if (!cache || cache->lod > requiredLOD)
+		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, requiredLOD ));
+	vAssert( uOffset < CacheBlockSize );
+	vAssert( vOffset < CacheBlockSize );
+	vector p_cached = cache->positions[uOffset][vOffset];
+	//vector p = terrainPoint( c, b, uIndex, vIndex );
+	//(void)p;
+	/*
+	vector_printf( "normal: ", &p );
+	vector_printf( "cached: ", &p_cached );
+	vAssert( f_eq( p.coord.x, p_cached.coord.x ) );
+	vAssert( f_eq( p.coord.y, p_cached.coord.y ) );
+	vAssert( f_eq( p.coord.z, p_cached.coord.z ) );
+	*/
+	return p_cached;
 }
 
 void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts ) {
 	for ( int v = -1; v < b->v_samples + 1; ++v ) {
 		for ( int u = -1; u < b->u_samples + 1; ++u ) {
+#if 0
 			verts[indexFromUV(b, u, v)] = terrainPoint( c, b, u, v );
+#else
+			verts[indexFromUV(b, u, v)] = terrainPointCached( c, b, u, v );
+#endif
 		}
 	}
 }

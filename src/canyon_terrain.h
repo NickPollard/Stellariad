@@ -66,11 +66,11 @@ struct canyonTerrain_s {
 	int				bounds[2][2];
 	vector			sample_point;
 
-	canyon*			canyon;
+	canyon*				canyon;
 	unsigned short**	vertex_buffers;
-	int				vertex_buffer_count;
+	int					vertex_buffer_count;
 	unsigned short**	element_buffers;
-	int				element_buffer_count;
+	int					element_buffer_count;
 };
 
 extern texture* terrain_texture;
@@ -98,3 +98,4 @@ void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector*
 void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals );
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
 void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v );
+void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );

@@ -10,7 +10,7 @@
 
 #define kGuardValue 0xdeadbeef
 
-#define static_heap_size (360 * 1024 * 1024) // In MegaBytes
+#define static_heap_size (480 * 1024 * 1024) // In MegaBytes
 heapAllocator* static_heap = NULL;
 vmutex allocator_mutex = kMutexInitialiser;
 #define kMaxAlignmentSpace 8

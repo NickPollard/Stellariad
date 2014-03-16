@@ -51,6 +51,15 @@ int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_sa
 
 int canyonTerrainBlock_triangleCount( canyonTerrainBlock* b ) { return ( b->u_samples - 1 ) * ( b->v_samples - 1 ) * 2; }
 
+void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v ) {
+	float uPerBlock = (2 * t->u_radius) / (float)t->u_block_count;
+	float uScale = uPerBlock / (float)(t->uSamplesPerBlock);
+	float vPerBlock = (2 * t->v_radius) / (float)t->v_block_count;
+	float vScale = vPerBlock / (float)(t->vSamplesPerBlock);
+	*u = (float)u_index * uScale;
+	*v = (float)v_index * vScale;
+}
+
 void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v ) {
 	int lod_ratio = lodRatio( b );
 	if ( u_index == -1 ) u_index = -lod_ratio;
@@ -399,9 +408,9 @@ void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b ) {
 
 void canyonTerrainBlock_requestGenerate( canyonTerrainBlock* b ) {
 #if TERRAIN_USE_WORKER_THREAD
-	canyonTerrain_queueWorkerTaskGenerateBlock( b->canyon, b );
+	canyonTerrain_queueWorkerTaskGenerateBlock( b );
 #else
-	canyonTerrainBlock_generate( b );
+	canyonTerrainBlock_generate( NULL, b ); // TODO
 #endif // TERRAIN_USE_WORKER_THREAD
 }
 

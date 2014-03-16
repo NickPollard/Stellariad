@@ -35,5 +35,14 @@ typedef struct list_s {
 			mem_free( l );										\
 			l = tail;											\
 		};														\
+	}															\
+	int type##list_length( type##list* lst ) {					\
+		type##list* l = lst;									\
+		int length = 1;											\
+		while (l->tail) {										\
+			++length;											\
+			l = l->tail;										\
+		}														\
+		return length;											\
 	}
 
