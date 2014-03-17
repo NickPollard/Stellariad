@@ -4,6 +4,7 @@
 //---------------------
 #include "canyon.h"
 #include "canyon_terrain.h"
+#include "terrain_generate.h"
 #include "worker.h"
 #include "base/pair.h"
 #include "mem/allocator.h"
@@ -131,3 +132,21 @@ void buildCache_queueWorkerTask( canyon* c, int u, int v ) {
 	build.args = Pair( c, Pair( (void*)(intptr_t)u, (void*)(intptr_t)v ));
 	worker_addTask( build );
 }
+
+//////////////
+
+void* worker_generateVertices( void* args ) {
+	canyonTerrainBlock* b = args;
+	canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
+	vertPositions* vertSources = generatePositions( b );
+	canyonTerrain_queueWorkerTaskGenerateBlock( b, vertSources );
+	return NULL;
+}
+
+void worker_queueGenerateVertices( canyonTerrainBlock* b ) {
+	worker_task generateTask;
+	generateTask.func = worker_generateVertices;
+	generateTask.args = b;
+	worker_addTask( generateTask );
+}
+

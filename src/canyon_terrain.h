@@ -8,7 +8,7 @@
 
 //#define TERRAIN_FORCE_NO_LOD
 
-typedef struct canyonTerrainBlock_s {
+struct canyonTerrainBlock_s {
 	int u_samples;
 	int v_samples;
 
@@ -45,7 +45,7 @@ typedef struct canyonTerrainBlock_s {
 	int	coord[2];
 	canyonTerrain* terrain;
 
-} canyonTerrainBlock;
+};
 
 struct canyonTerrain_s {
 	transform* trans;
@@ -99,3 +99,7 @@ void canyonTerrainBlock_calculateNormals( canyonTerrainBlock* block, int vert_co
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
 void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v );
 void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );
+
+// TODO
+void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b, vertPositions* vertSources );
+void canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, int coord[2] );

@@ -1,13 +1,13 @@
 // terrain_generate.h
 #include "canyon_terrain.h"
 
-typedef struct vertPositions_s {
+struct vertPositions_s {
 	int uMin;
 	int uCount;
 	int vMin;
 	int vCount;
 	vector* positions; // (uCount * vCount) in size
-} vertPositions;
+};
 
 void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources );
 vector lodV( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio );

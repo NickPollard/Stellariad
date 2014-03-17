@@ -43,4 +43,6 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b );
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD );
 
 // *** Worker Task
-//void buildCache_queueWorkerTask( canyon* c, int u, int v );
+void buildCache_queueWorkerTask( canyon* c, int u, int v );
+
+void worker_queueGenerateVertices( canyonTerrainBlock* b );

@@ -15,6 +15,7 @@
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/texture.h"
+#include "terrain/buildCacheTask.h"
 
 const float texture_scale = 0.0325f;
 const float texture_repeat = 10.f;
@@ -24,6 +25,8 @@ texture* terrain_texture_cliff = NULL;
 
 texture* terrain_texture_2 = NULL;
 texture* terrain_texture_cliff_2 = NULL;
+
+void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t );
 
 // *** Utility functions
 
@@ -229,10 +232,14 @@ void canyonTerrain_createBlocks( canyon* c, canyonTerrain* t ) {
 			b->coord[0] = t->bounds[0][0] + u;
 			b->coord[1] = t->bounds[0][1] + v;
 			t->blocks[i]->canyon = t->canyon;
-			canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
+			//canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
+			//worker_queueGenerateVertices( b );
+			//canyonTerrainBlock_requestGenerate( vs, b );
+			/*
 			vertPositions* vs = generatePositions( b ); 
 			canyonTerrainBlock_generate( vs, b );
 			vertPositions_delete( vs ); // They were just for us
+			*/
 		}
 	}
 }
@@ -258,6 +265,7 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	canyonTerrain_initVertexBuffers( t );
 	if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
 	canyonTerrain_createBlocks( c, t );
+	canyonTerrain_updateBlocks( c, t );
 
 	t->trans = transform_create();
 	return t;
@@ -336,6 +344,14 @@ void* canyonTerrain_workerGenerateBlock( void* args ) {
 }
 
 // Set up a task for the worker thread to generate the terrain block
+void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b, vertPositions* vertSources ) {
+	worker_task terrain_block_task;
+	terrain_block_task.func = canyonTerrain_workerGenerateBlock;
+	terrain_block_task.args = Pair( vertSources, b );
+	worker_addTask( terrain_block_task );
+}
+
+/*
 void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b ) {
 	worker_task terrain_block_task;
 	terrain_block_task.func = canyonTerrain_workerGenerateBlock;
@@ -344,10 +360,11 @@ void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b ) {
 	terrain_block_task.args = Pair( vertSources, b );
 	worker_addTask( terrain_block_task );
 }
+*/
 
 void canyonTerrainBlock_requestGenerate( canyonTerrainBlock* b ) {
 #if TERRAIN_USE_WORKER_THREAD
-	canyonTerrain_queueWorkerTaskGenerateBlock( b );
+	worker_queueGenerateVertices( b );
 #else
 	canyonTerrainBlock_generate( NULL, b ); // TODO
 #endif // TERRAIN_USE_WORKER_THREAD
