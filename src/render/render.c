@@ -266,8 +266,10 @@ void render_init( void* app ) {
 	render_createWindow( app, &window_main );
 
 	printf("RENDERING: Initialising OpenGL rendering settings.\n");
+#if 0
 	const char* extension_string = (const char*)glGetString( GL_EXTENSIONS );
 	printf( "Extensions supported: %s\n", extension_string );
+#endif
 	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );	// Standard Alpha Blending

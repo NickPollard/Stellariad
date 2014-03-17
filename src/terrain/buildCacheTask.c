@@ -138,6 +138,7 @@ void buildCache_queueWorkerTask( canyon* c, int u, int v ) {
 void* worker_generateVertices( void* args ) {
 	canyonTerrainBlock* b = args;
 	canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
+	printf( "WORKER: generating verticies for block %d %d.\n", b->uMin, b->vMin );
 	vertPositions* vertSources = generatePositions( b );
 	canyonTerrain_queueWorkerTaskGenerateBlock( b, vertSources );
 	return NULL;
@@ -149,4 +150,3 @@ void worker_queueGenerateVertices( canyonTerrainBlock* b ) {
 	generateTask.args = b;
 	worker_addTask( generateTask );
 }
-

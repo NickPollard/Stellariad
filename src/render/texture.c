@@ -191,7 +191,7 @@ texture* texture_loadWithProperties( const char* filename, textureProperties* pr
 		return t;
 	}
 	else {
-		printf( "Loading Texture \"%s\".\n", filename );
+		//printf( "Loading Texture \"%s\".\n", filename );
 		t = texture_nextEmpty();
 		texture_init( t, filename );
 		textureCache_add( t, filename );
@@ -273,7 +273,7 @@ uint8_t* read_tga( const char* file, int* w, int* h ) {
 }
 
 GLuint texture_loadTGA( const char* filename ) {
-	printf( "TEXTURE: Loading TGA \"%s\"\n" , filename );
+	//printf( "TEXTURE: Loading TGA \"%s\"\n" , filename );
 	GLuint tex;
 	int w, h;
 	void* img = read_tga( filename, &w, &h );
