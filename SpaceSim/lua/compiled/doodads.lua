@@ -10,26 +10,28 @@ trans_worldPos = function(t)
   return vtransform_getWorldPosition(t)
 end
 local shouldDespawn
-shouldDespawn = function(upto)
+shouldDespawn = function(canyon, upto)
   return function(doodad)
     return vtransform_getWorldPosition(doodad.transform):map(function(p)
-      local unused, v = vcanyon_fromWorld(p)
+      local unused, v = vcanyon_fromWorld(canyon, p)
       return v < upto
     end):getOrElse(true)
   end
 end
-doodads.updateDespawns = function(t)
-  return trans_worldPos(t):foreach(function(p)
-    local upto = (vcanyonV_atWorld(canyon, p)) - despawn_distance
-    all_doodads = all_doodads:filter(function(d)
-      if shouldDespawn(upto)(d) then
-        doodads.delete(d)
-        return false
-      else
-        return true
-      end
+doodads.updateDespawns = function(canyon, t)
+  if canyon ~= nil then
+    return trans_worldPos(t):foreach(function(p)
+      local upto = (vcanyonV_atWorld(canyon, p)) - despawn_distance
+      all_doodads = all_doodads:filter(function(d)
+        if shouldDespawn(canyon, upto)(d) then
+          doodads.delete(d)
+          return false
+        else
+          return true
+        end
+      end)
     end)
-  end)
+  end
 end
 doodads.spawnIndex = function(pos)
   return math.floor((pos - spawn_offset) / doodads.interval)
@@ -53,13 +55,13 @@ doodads.delete = function(g)
     g.transform = nil
   end
 end
-doodads.spawnDoodad = function(u, v, model)
-  local x, y, z = vcanyon_position(u, v)
+doodads.spawnDoodad = function(canyon, u, v, model)
+  local x, y, z = vcanyon_position(canyon, u, v)
   local doodad = doodads.create(model)
   vtransform_setWorldPosition(doodad.transform, Vector(x, y, z, 1.0))
   all_doodads = list:cons(doodad, all_doodads)
 end
-doodads.spawnBunker = function(u, v, model)
+doodads.spawnBunker = function(canyon, u, v, model)
   local highest = {
     x = 0,
     y = -10000,
@@ -69,7 +71,7 @@ doodads.spawnBunker = function(u, v, model)
   local step = radius / 5.0
   local i = v - radius
   while i < v + radius do
-    local x, y, z = vcanyon_position(u, i)
+    local x, y, z = vcanyon_position(canyon, u, i)
     if y > hightext.y then
       highest.x = x
       highest.y = y
@@ -77,16 +79,13 @@ doodads.spawnBunker = function(u, v, model)
     end
     i = i + step
   end
-  local x, y, z = vcanyon_position(u, v)
+  local x, y, z = vcanyon_position(canyon, u, v)
   local position = Vector(x, y, z, 1.0)
   local doodad = doodads.create(model)
   vtransform_setWorldPosition(doodad.transform, position)
   return doodad
 end
-doodads.spawnTree = function(u, v)
-  return doodads.spawnDoodad(u, v, "dat/model/tree_fir.s")
-end
-doodads.spawnSkyscraper = function(u, v)
+doodads.spawnSkyscraper = function(canyon, u, v)
   local r = vrand(doodads.random, 0.0, 1.0)
   local doodad
   local _exp_0 = r
@@ -100,30 +99,33 @@ doodads.spawnSkyscraper = function(u, v)
     doodad = option:none()
   end
   return doodad:foreach(function(d)
-    return doodads.spawnDoodad(u, v, d)
+    return doodads.spawnDoodad(canyon, u, v, d)
   end)
 end
-doodads.spawnRange = function(near, far)
+doodads.spawnRange = function(canyon, near, far)
   local nxt = doodads.spawnIndex(near) + 1
   local v = nxt * doodads.interval
   local u_offset = 130.0
+  local model = "dat/model/tree_fir.s"
   while library.contains(v, near, far) do
-    doodads.spawnTree(u_offset, v)
-    doodads.spawnTree(u_offset + 30.0, v)
-    doodads.spawnTree(u_offset + 60.0, v)
-    doodads.spawnTree(-u_offset, v)
-    doodads.spawnTree(-u_offset - 30.0, v)
-    doodads.spawnTree(-u_offset - 60.0, v)
+    doodads.spawnDoodad(canyon, u_offset, v, model)
+    doodads.spawnDoodad(canyon, u_offset + 30.0, v, model)
+    doodads.spawnDoodad(canyon, u_offset + 60.0, v, model)
+    doodads.spawnDoodad(canyon, -u_offset, v, model)
+    doodads.spawnDoodad(canyon, -u_offset - 30.0, v, model)
+    doodads.spawnDoodad(canyon, -u_offset - 60.0, v, model)
     nxt = nxt + 1
     v = nxt * doodads.interval
   end
 end
 doodads.spawned = 0.0
-doodads.update = function(transform)
-  return trans_worldPos(transform):foreach(function(p)
-    local spawn_upto = (vcanyonV_atWorld(canyon, p)) + doodads.spawn_distance
-    doodads.spawnRange(doodads.spawned, spawn_upto)
-    doodads.spawned = spawn_upto
-  end)
+doodads.update = function(canyon, transform)
+  if canyon ~= nil then
+    return trans_worldPos(transform):foreach(function(p)
+      local spawn_upto = (vcanyonV_atWorld(canyon, p)) + doodads.spawn_distance
+      doodads.spawnRange(canyon, doodads.spawned, spawn_upto)
+      doodads.spawned = spawn_upto
+    end)
+  end
 end
 return doodads

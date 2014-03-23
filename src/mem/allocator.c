@@ -10,7 +10,7 @@
 
 #define kGuardValue 0xdeadbeef
 
-#define static_heap_size (360 * 1024 * 1024) // In MegaBytes
+#define static_heap_size (400 * 1024 * 1024) // In MegaBytes
 heapAllocator* static_heap = NULL;
 vmutex allocator_mutex = kMutexInitialiser;
 #define kMaxAlignmentSpace 8
@@ -247,6 +247,8 @@ block* heap_findBlock( heapAllocator* heap, void* mem_addr ) {
 
 // Release a block from the heapAllocator
 void heap_deallocate( heapAllocator* heap, void* data ) {
+	if ( data == NULL )
+		return;
 	vmutex_lock( &allocator_mutex );
 	// Check if it's in a bitpool
 	bitpool* bit_pool = heap_findBitpoolForData( heap, data );

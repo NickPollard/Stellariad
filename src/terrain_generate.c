@@ -3,7 +3,7 @@
 #include "terrain_generate.h"
 //-----------------------
 #include "canyon.h"
-#include "terrain/buildCacheTask.h"
+#include "terrain/cache.h"
 
 /*
 vector normalForUV( vertPositions* p, int u, int v ) {
@@ -49,10 +49,12 @@ vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIn
 	const int uMin = uReal - uOffset;
 	const int vMin = vReal - vOffset;
 
-	cacheBlock* cache = terrainCached(c->terrainCache, uMin, vMin);
+	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
 	if (!cache || cache->lod > b->lod_level)
 		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
-	return cache->positions[uOffset][vOffset];
+	vector p = cache->positions[uOffset][vOffset];
+	cacheBlockFree( cache );
+	return p;
 }
 
 void generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts ) {

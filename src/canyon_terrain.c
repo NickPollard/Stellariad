@@ -15,6 +15,7 @@
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/texture.h"
+#include "terrain/cache.h"
 #include "terrain/buildCacheTask.h"
 
 const float texture_scale = 0.0325f;
@@ -223,8 +224,6 @@ void canyonTerrain_createBlocks( canyon* c, canyonTerrain* t ) {
 
 	canyonTerrain_calculateBounds( c, t->bounds, t, &t->sample_point );
 
-	// TODO - don't do this synchronously?
-	// Calculate block extents
 	for ( int v = 0; v < t->v_block_count; v++ ) {
 		for ( int u = 0; u < t->u_block_count; u++ ) {
 			int i = canyonTerrain_blockIndexFromUV( t, u, v );
@@ -233,14 +232,6 @@ void canyonTerrain_createBlocks( canyon* c, canyonTerrain* t ) {
 			b->coord[0] = t->bounds[0][0] + u;
 			b->coord[1] = t->bounds[0][1] + v;
 			t->blocks[i]->canyon = t->canyon;
-			//canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
-			//worker_queueGenerateVertices( b );
-			//canyonTerrainBlock_requestGenerate( b );
-			/*
-			vertPositions* vs = generatePositions( b ); 
-			canyonTerrainBlock_generate( vs, b );
-			vertPositions_delete( vs ); // They were just for us
-			*/
 		}
 	}
 }
@@ -339,7 +330,6 @@ void initNormals( vector* normals, int count )		{ for ( int i = 0; i < count; ++
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
 	canyonTerrainBlock* b = _2(args);
-	//printf( "WORKER: building block %d %d.\n", b->uMin, b->vMin );
 	if ( b->pending )
 		canyonTerrainBlock_generate( _1(args), b );
 	mem_free( args );
@@ -413,6 +403,10 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t ) {
 	int bounds[2][2];
 	int intersection[2][2];
 	canyonTerrain_calculateBounds( c, bounds, t, &t->sample_point );
+	// Trim the cache
+	const int vTrim = ((float)bounds[0][1] - 0.5f) * ((2 * t->v_radius) / (float)t->v_block_count);
+	terrainCache_trim( c->terrainCache, vTrim );
+
 	//printf( "Updating blocks for bounds (%d,%d) -> (%d,%d)\n", bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]);
 
 	if (!t->firstUpdate && boundsEqual( bounds, t->bounds ))

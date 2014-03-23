@@ -66,5 +66,6 @@ SRCS =	src/camera.c \
 		src/system/string.c \
 		src/system/thread.c \
 		src/terrain/buildCacheTask.c \
+		src/terrain/cache.c \
 		src/ui/panel.c \
 		src/external/murmur.c

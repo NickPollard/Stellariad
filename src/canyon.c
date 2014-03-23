@@ -9,7 +9,7 @@
 #include "maths/vector.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
-#include "terrain/buildCacheTask.h"
+#include "terrain/cache.h"
 
 // *** New Terrain Canyon
 
