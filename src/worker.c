@@ -1,7 +1,4 @@
 // worker.c
-/*
-	Vitae Worker thread
-   */
 #include "common.h"
 #include "worker.h"
 //-----------------------
@@ -80,21 +77,25 @@ void* worker_threadFunc( void* args ) {
 	(void)args;
 	while ( true ) {
 		if ( worker_immediate_task_count > 0 ) {
-			//printf( "Worker performing immediate task.\n" );
-			//printf( "Task count: %d\n", worker_immediate_task_count );
 			// Grab the first task
 			worker_task task = worker_nextImmediateTask();
 			if ( task.func )
 				task.func( task.args );
 		}
 		else if ( worker_task_count > 0 ) {
-			//printf( "Worker performing task.\n" );
-			//printf( "Task count: %d\n", worker_task_count );
 			// Grab the first task
 			worker_task task = worker_nextTask();
 			if ( task.func )
 				task.func( task.args );
 		}
+		/*
+		else if ( actors ) {
+			// find the next actor from this system with pending tasks
+			// do it
+			actor* a = NULL;
+			actorReceive( a );
+		}
+		*/
 
 		//usleep( 5 );
 		//vthread_yield();

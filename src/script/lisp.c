@@ -219,7 +219,7 @@ int _isLineComment( const char* token ) {
 
 void* value_create( size_t size ) {
 	mem_pushStack( kLispValueAllocString );
-	void* mem = heap_allocate( lisp_heap, size );
+	void* mem = heap_allocate( lisp_heap, size, NULL );
 	mem_popStack();
 	return mem;
 	}
@@ -643,7 +643,7 @@ term* eval( term* expr, void* _context ) {
 	}
 
 context* context_create( context* parent ) {
-	context* c = passthrough_allocate( context_heap, sizeof( context ));
+	context* c = passthrough_allocate( context_heap, sizeof( context ), NULL );
 	//int max = 128, stride = sizeof( term* );
 	//c->lookup = map_create( max, stride );
 	c->lookup = NULL;
@@ -939,7 +939,7 @@ term* lisp_func_add( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float )  );
+	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a + b;
 	term* ret = term_create( typeFloat, result );
@@ -957,7 +957,7 @@ term* lisp_func_sub( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float )  );
+	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a - b;
 	term* ret = term_create( typeFloat, result );
@@ -975,7 +975,7 @@ term* lisp_func_mul( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float )  );
+	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a * b;
 	term* ret = term_create( typeFloat, result );
@@ -993,7 +993,7 @@ term* lisp_func_div( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float )  );
+	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a / b;
 	term* ret = term_create( typeFloat, result );
@@ -1025,7 +1025,7 @@ term* lisp_func_length( context* c, term* raw_args ) {
 	int len = list_length( head( args ));
 
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float )  );
+	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = (float)len;
 

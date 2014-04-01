@@ -359,7 +359,7 @@ GLuint texture_loadBitmap( int w, int h, int stride, uint8_t* bitmap, GLuint wra
 }
 
 void* texture_allocate( size_t size ) {
-	void* mem = heap_allocate( texture_heap, size );
+	void* mem = heap_allocate( texture_heap, size, NULL );
 	//printf( "TEXTURE: Allocating " dPTRf " bytes as 0x" xPTRf "\n", size, (uintptr_t)mem );
 	return mem;
 }

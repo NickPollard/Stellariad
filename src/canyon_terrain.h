@@ -1,12 +1,10 @@
 // canyon_terrain.h
 #pragma once
 #include "frustum.h"
+#include "actor/actor.h"
 #include "render/render.h"
 
 #define CANYON_TERRAIN_INDEXED 1
-#define TERRAIN_USE_WORKER_THREAD 1
-
-//#define TERRAIN_FORCE_NO_LOD
 
 struct canyonTerrainBlock_s {
 	int u_samples;
@@ -45,10 +43,12 @@ struct canyonTerrainBlock_s {
 	int	coord[2];
 	canyonTerrain* terrain;
 
+	ActorRef actor;
 };
 
 struct canyonTerrain_s {
 	transform* trans;
+	actorSystem* system;
 
 	float	u_radius;
 	float	v_radius;
@@ -103,5 +103,5 @@ void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int
 void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );
 
 // TODO
-void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b, vertPositions* vertSources );
+void* canyonTerrain_workerGenerateBlock( void* args );
 void canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, int coord[2] );

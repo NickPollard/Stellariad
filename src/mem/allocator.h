@@ -15,6 +15,13 @@
 #define mem_popStack( )
 #endif // MEM_STACK_TRACE
 
+#define TRACK_ALLOCATIONS
+
+#ifdef TRACK_ALLOCATIONS
+#define mem_alloc( size ) mem_alloc_( size, __func__, __FILE__, __LINE__ ) 
+#define MemSourceLength 48
+#endif
+
 #define kMaxBitpools 8
 
 typedef struct block_s block;
@@ -48,6 +55,9 @@ struct block_s {
 #ifdef MEM_STACK_TRACE
 	const char* stack;
 #endif
+#ifdef TRACK_ALLOCATIONS
+	char source[MemSourceLength];
+#endif
 #ifdef MEM_GUARD_BLOCK
 	unsigned int	guard;	// Guard block for Canary purposes
 #endif
@@ -61,7 +71,11 @@ typedef struct passthroughAllocator_s {
 
 // Default allocate from the static heap
 // Passes straight through to heap_allocate()
+#ifdef TRACK_ALLOCATIONS
+void* mem_alloc_(size_t bytes, const char* func, const char* file, int line );
+#else
 void* mem_alloc(size_t bytes);
+#endif
 
 // Default deallocate from the static heap
 // Passes straight through to heap_deallocate()
@@ -72,8 +86,8 @@ void mem_init(int argc, char** argv);
 
 // Allocates *size* bytes from the given heapAllocator *heap*
 // Will crash if out of memory
-void* heap_allocate( heapAllocator* heap, int size );
-void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment );
+void* heap_allocate( heapAllocator* heap, int size, const char* source );
+void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment, const char* source );
 
 // Find a block of at least *min_size* bytes
 // First version will naively use first found block meeting the criteria
@@ -112,7 +126,7 @@ passthroughAllocator* passthrough_create( heapAllocator* heap );
 
 // Allocate SIZE memory through the passthroughAllocator P
 // (The allocation is actually in p->heap)
-void* passthrough_allocate( passthroughAllocator* p, size_t size );
+void* passthrough_allocate( passthroughAllocator* p, size_t size, const char* source );
 
 // Deallocate allocation MEM from passthroughAllocator P
 // (The allocation is actually in p->heap)

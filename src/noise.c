@@ -21,12 +21,12 @@ double msin( double d ) {
 }
 
 float noise( float f ) {
-	const double d = f;
-	return fractf((float)sin(d * 43276.1432));
+	return fractf(sin(f * 43276.1432));
+	//const double d = f;
+	//return fractf((float)sin(d * 43276.1432));
 }
 
 float noise2D( float u, float v ) {
-	(void)v;
 	return noise( u + 1000.f * v );
 }
 
@@ -39,21 +39,37 @@ float noiseLookup( float u, float v ) {
 	const int iv = (int)v;
 	//const int uu = iu + NoiseResolution * 16;
 //	const int vv = iv + NoiseResolution * 16;
-	const int uu = (iu + (abs(iu) / NoiseResolution + 1) * NoiseResolution);
-	const int vv = (iv + (abs(iv) / NoiseResolution + 1) * NoiseResolution);
+	//const int uu = (iu + (abs(iu) / NoiseResolution + 1) * NoiseResolution);
+	//const int vv = (iv + (abs(iv) / NoiseResolution + 1) * NoiseResolution);
+	const int uu = abs(iu % NoiseResolution);
+	const int vv = abs(iv % NoiseResolution);
+	return noiseTexture[uu % NoiseResolution][vv % NoiseResolution];
+}
+
+float noiseLookupInt( int uu, int vv ) {
 	return noiseTexture[uu % NoiseResolution][vv % NoiseResolution];
 }
 
 float perlin( float u, float v ) {
 	const float iu = floorf( u );
 	const float iv = floorf( v );
-	const float fu = fractf( u );
-	const float fv = fractf( v );
+	const float fu = u - iu;
+	const float fv = v - iv;
 	
-	const float a = noiseLookup(iu, iv);
-	const float b = noiseLookup(iu + 1.f, iv);
-	const float c = noiseLookup(iu, iv + 1.f);
-	const float d = noiseLookup(iu + 1.f, iv + 1.f);
+	// TODO - try lift out int/float transition from noiseLookup
+	//const float a = noiseLookup(iu, iv);
+	//const float b = noiseLookup(iu + 1.f, iv);
+	//const float c = noiseLookup(iu, iv + 1.f);
+	//const float d = noiseLookup(iu + 1.f, iv + 1.f);
+
+	const int iuu = abs((int)iu % NoiseResolution );
+	const int ivv = abs((int)iv % NoiseResolution );
+	const int iuu_ = abs(((int)iu + 1) % NoiseResolution );
+	const int ivv_ = abs(((int)iv + 1) % NoiseResolution );
+	const float a = noiseTexture[ iuu  ][ ivv  ];
+	const float b = noiseTexture[ iuu_ ][ ivv  ];
+	const float c = noiseTexture[ iuu  ][ ivv_ ];
+	const float d = noiseTexture[ iuu_ ][ ivv_ ];
 
 	return sinerp( sinerp( a, b, fu ),
 					sinerp( c, d, fu ),

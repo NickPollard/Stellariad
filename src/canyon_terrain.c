@@ -10,6 +10,7 @@
 #include "terrain_generate.h"
 #include "terrain_render.h"
 #include "worker.h"
+#include "actor/actor.h"
 #include "base/pair.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
@@ -28,7 +29,6 @@ texture* terrain_texture_2 = NULL;
 texture* terrain_texture_cliff_2 = NULL;
 
 void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t );
-void canyonTerrainBlock_requestGenerate( canyonTerrainBlock* b );
 
 // *** Utility functions
 
@@ -128,6 +128,7 @@ canyonTerrainBlock* canyonTerrainBlock_create( canyonTerrain* t ) {
 	b->u_samples = t->uSamplesPerBlock;
 	b->v_samples = t->vSamplesPerBlock;
 	b->terrain = t;
+	b->actor = spawnActor( t->system );
 	return b;
 }
 
@@ -149,19 +150,11 @@ int canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, int coord[2] ) 
 }
 
 void canyonTerrainBlock_calculateSamplesForLoD( canyon* c, canyonTerrainBlock* b, canyonTerrain* t, int coord[2] ) {
-	(void)coord;
-#ifdef TERRAIN_FORCE_NO_LOD
-	int level = 0;
-#else
-	int level = canyonTerrain_lodLevelForBlock( c, t, coord );
-#endif
-	vAssert( level < 3 );
-	// Set samples based on U offset
-	// We add one so that we always get a centre point
-	int f = max( 1, 2 * level );
-	b->u_samples = t->uSamplesPerBlock / f + 1;
-	b->v_samples = t->vSamplesPerBlock / f + 1;
-	b->lod_level = level;
+	b->lod_level = canyonTerrain_lodLevelForBlock( c, t, coord );
+	// Set samples based on U offset, We add one so that we always get a centre point
+	int ratio = max( 1, 2 * b->lod_level );
+	b->u_samples = t->uSamplesPerBlock / ratio + 1;
+	b->v_samples = t->vSamplesPerBlock / ratio + 1;
 }
 
 void canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, int coord[2] ) {
@@ -205,7 +198,6 @@ void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 }
 
 void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
-	canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
 	canyonTerrainBlock_createBuffers( b );
 
 	terrainBlock_build( b, vs );
@@ -254,6 +246,7 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	t->v_radius = v_radius;
 	t->firstUpdate = true;
 	canyonTerrain_setLodIntervals( t, 3, 2 );
+	t->system = actorSystemCreate();
 
 	canyonTerrain_initVertexBuffers( t );
 	if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
@@ -330,38 +323,12 @@ void initNormals( vector* normals, int count )		{ for ( int i = 0; i < count; ++
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
 	canyonTerrainBlock* b = _2(args);
+	vertPositions* verts = _1(args);
 	if ( b->pending )
-		canyonTerrainBlock_generate( _1(args), b );
+		canyonTerrainBlock_generate( verts, b );
+	vertPositions_delete( verts );
 	mem_free( args );
 	return NULL;
-}
-
-// Set up a task for the worker thread to generate the terrain block
-void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b, vertPositions* vertSources ) {
-	worker_task terrain_block_task;
-	terrain_block_task.func = canyonTerrain_workerGenerateBlock;
-	terrain_block_task.args = Pair( vertSources, b );
-	worker_addTask( terrain_block_task );
-}
-
-/*
-void canyonTerrain_queueWorkerTaskGenerateBlock( canyonTerrainBlock* b ) {
-	worker_task terrain_block_task;
-	terrain_block_task.func = canyonTerrain_workerGenerateBlock;
-	canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
-	vertPositions* vertSources = generatePositions( b );
-	terrain_block_task.args = Pair( vertSources, b );
-	worker_addTask( terrain_block_task );
-}
-*/
-
-void canyonTerrainBlock_requestGenerate( canyonTerrainBlock* b ) {
-	//printf( "Requesting generate block %d %d.\n", b->uMin, b->vMin );
-#if TERRAIN_USE_WORKER_THREAD
-	worker_queueGenerateVertices( b );
-#else
-	canyonTerrainBlock_generate( NULL, b ); // TODO
-#endif // TERRAIN_USE_WORKER_THREAD
 }
 
 bool boundsEqual( int a[2][2], int b[2][2] ) {
@@ -370,9 +337,14 @@ bool boundsEqual( int a[2][2], int b[2][2] ) {
 }
 
 void updatePendingBlocks( canyonTerrain* t ) {
+	printf( "Updating pending!\n" );
 	for ( int i = 0; i < t->total_block_count; ++i )
-		if ( t->blocks[i]->pending ) 
-			canyonTerrainBlock_requestGenerate( t->blocks[i] );
+		if ( t->blocks[i]->pending ) {
+			printf( "Updating block %d\n", i );
+			//worker_queueGenerateVertices( t->blocks[i] );
+			vAssert( t->blocks[i]->actor );
+			actorMsg( t->blocks[i]->actor, generateVertices( t->blocks[i] ));
+		}
 }
 
 void markUpdatedBlocks( canyonTerrain* t, int bounds[2][2], canyonTerrainBlock** newBlocks ) {
@@ -385,7 +357,6 @@ void markUpdatedBlocks( canyonTerrain* t, int bounds[2][2], canyonTerrainBlock**
 		coord[1] = bounds[0][1] + ( i / t->u_block_count );
 		canyonTerrainBlock* b = newBlocks[i];
 		// if not in old bounds, or if we need to change lod level
-		//if ( !boundsContains( intersection, coord ) || ( !b->pending && ( b->lod_level != canyonTerrain_lodLevelForBlock( t->canyon, t, coord )))) {
 		if ( t->firstUpdate || !boundsContains( intersection, coord ) || ( !b->pending && ( b->lod_level != canyonTerrain_lodLevelForBlock( t->canyon, t, coord )))) {
 			memcpy( b->coord, coord, sizeof( int ) * 2 );
 			b->pending = true; // mark it as new, buffers will be filled in later

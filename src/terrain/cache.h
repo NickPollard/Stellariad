@@ -1,4 +1,5 @@
 // cache.h
+#pragma once
 #include "maths/vector.h"
 #include "base/list.h"
 

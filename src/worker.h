@@ -1,12 +1,10 @@
 // worker.h
 #pragma once
 
-typedef void* (*taskFunc)( void* );
-
-typedef struct worker_task_s {
+struct worker_task_s {
 	taskFunc func;
 	void* args;
-} worker_task;
+};
 
 extern int worker_task_count;
 

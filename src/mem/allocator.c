@@ -21,9 +21,18 @@ void block_recordAlloc( block* b, const char* stack );
 
 // Default allocate from the static heap
 // Passes straight through to heap_allocate()
-void* mem_alloc( size_t bytes ) {
-	return heap_allocate( static_heap, bytes );
+#ifdef TRACK_ALLOCATIONS
+void* mem_alloc_( size_t bytes, const char* func, const char* file, int line ) {
+	char buffer[MemSourceLength];
+	snprintf( buffer, MemSourceLength, "%s(%s:%d)", func, file, line );
+	buffer[MemSourceLength - 1] = '\0';
+	return heap_allocate( static_heap, bytes, buffer );
 }
+#else
+void* mem_alloc( size_t bytes ) {
+	return heap_allocate( static_heap, bytes, NULL );
+}
+#endif
 
 // Default deallocate from the static heap
 // Passes straight through to heap_deallocate()
@@ -42,7 +51,7 @@ void mem_init(int argc, char** argv) {
 
 void heap_addBitpool( heapAllocator* h, size_t size, size_t count ) {
 	size_t arena_size = size * count;
-	void* arena = heap_allocate( h, arena_size );
+	void* arena = heap_allocate( h, arena_size, NULL );
 	h->bitpools[h->bitpool_count++] = bitpool_create( size, count, arena );
 }
 
@@ -71,18 +80,19 @@ bitpool* heap_findBitpoolForData( heapAllocator* h, void* data ) {
 
 // Allocates *size* bytes from the given heapAllocator *heap*
 // Will crash if out of memory
-void* heap_allocate( heapAllocator* heap, int size ) {
+void* heap_allocate( heapAllocator* heap, int size, const char* source ) {
 #ifdef MEM_FORCE_ALIGNED
-	return heap_allocate_aligned( heap, size, 4 );
+	return heap_allocate_aligned( heap, size, 4, source );
 #else
-	return heap_allocate_aligned( heap, size, 0 );
+	return heap_allocate_aligned( heap, size, 0, source );
 #endif
 }
 
 // Allocates *size* bytes from the given heapAllocator *heap*
 // Will crash if out of memory
 // NEEDS TO BE THREADSAFE
-void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment ) {
+void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment, const char* source ) {
+	(void)source;
 	vmutex_lock( &allocator_mutex );
 #ifdef MEM_DEBUG_VERBOSE
 	printf( "HeapAllocator request for " dPTRf " bytes, " dPTRf " byte aligned.\n", size, alignment );
@@ -101,7 +111,7 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment 
 	block* b = heap_findEmptyBlock( heap, size );
 
 	if ( !b ) {
-		//heap_dumpBlocks( heap );
+		heap_dumpBlocks( heap );
 		printError( "HeapAllocator out of memory on request for " dPTRf " bytes. Total size: " dPTRf " bytes, Used size: " dPTRf " bytes\n", size, heap->total_size, heap->total_allocated );
 		assert( 0 );
 	}
@@ -175,6 +185,13 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment 
 	vAssert( !b->next || b->next->prev == b );
 	vAssert( !b->prev || b->prev->next == b );
 
+#ifdef TRACK_ALLOCATIONS
+	if (source)
+		strncpy( b->source, source, MemSourceLength);
+	else
+		b->source[0] = '\0';
+#endif
+
 	return b->data;
 }
 
@@ -186,7 +203,14 @@ void block_recordAlloc( block* b, const char* stack ) {
 
 void heap_dumpBlocks( heapAllocator* heap ) {
 	block* b = heap->first;
+	FILE* memlog = fopen( "memlog", "w" );
 	while ( b ) {
+#ifdef TRACK_ALLOCATIONS
+		if ( !b->free )
+			fprintf( memlog, "Block: ptr 0x" xPTRf ", data: 0x" xPTRf ", size " dPTRf ", free " dPTRf "\t\tSource: %s\n", (uintptr_t)b, (uintptr_t)b->data, b->size, b->free, b->source );
+		else
+			fprintf( memlog, "Block: ptr 0x" xPTRf ", data: 0x" xPTRf ", size " dPTRf ", free " dPTRf "\n", (uintptr_t)b, (uintptr_t)b->data, b->size, b->free );
+#else
 #ifdef MEM_STACK_TRACE
 		if ( b->stack && !b->free )
 			printf( "Block: ptr 0x" xPTRf ", data: 0x" xPTRf ", size " dPTRf ", free " dPTRf "\t\tStack: %s\n", (uintptr_t)b, (uintptr_t)b->data, b->size, b->free, b->stack );
@@ -195,8 +219,10 @@ void heap_dumpBlocks( heapAllocator* heap ) {
 #else // MEM_STACK_TRACE
 		printf( "Block: ptr 0x" xPTRf ", data: 0x" xPTRf ", size " dPTRf ", free " dPTRf "\n", (uintptr_t)b, (uintptr_t)b->data, b->size, b->free );
 #endif // MEM_STACK_TRACE
+#endif
 		b = b->next;
 	}
+	fclose( memlog );
 }
 
 void heap_dumpUsedBlocks( heapAllocator* heap ) {
@@ -398,11 +424,11 @@ void test_allocator() {
 	test( heap, "Allocator created successfully.", "Allocator not created." );
 	test( heap->total_size == 4096, "Created Allocator of 4096 byte heap.", "Allocator has incorrect size (should be 4096)." );
 
-	void* a = heap_allocate( heap, 2048 );
+	void* a = heap_allocate( heap, 2048, NULL );
 	memset( a, 0, 2048 );
 	test( true, "Allocated 2048 bytes succesfully.", NULL );
 
-	void* b = heap_allocate( heap, 1024 );
+	void* b = heap_allocate( heap, 1024, NULL );
 	memset( b, 0, 1024 );
 	test( true, "Allocated 2048 + 1024 bytes succesfully.", NULL );
 
@@ -412,11 +438,11 @@ void test_allocator() {
 	heap_deallocate( heap, b );
 	test( true, "Deallocated 1024 bytes succesfully.", NULL );
 
-	a = heap_allocate( heap, 3072 );
+	a = heap_allocate( heap, 3072, NULL );
 	memset( a, 0, 3072 );
 	test( true, "Allocated 3072 bytes succesfully.", NULL );
 
-	b = heap_allocate( heap, 512 );
+	b = heap_allocate( heap, 512, NULL );
 	memset( b, 0, 512 );
 	test( true, "Allocated 512 bytes succesfully.", NULL );
 }
@@ -430,9 +456,9 @@ passthroughAllocator* passthrough_create( heapAllocator* heap ) {
 	return p;
 	}
 
-void* passthrough_allocate( passthroughAllocator* p, size_t size ) {
+void* passthrough_allocate( passthroughAllocator* p, size_t size, const char* source ) {
 	int before = p->heap->total_allocated;
-	void* mem = heap_allocate( p->heap, size );
+	void* mem = heap_allocate( p->heap, size, source );
 	int after = p->heap->total_allocated;
 	int delta = after - before;
 	p->total_allocated = (size_t)((int)p->total_allocated + delta);	

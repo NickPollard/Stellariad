@@ -82,7 +82,7 @@ vector pointForUV( vertPositions* p, int u, int v ) {
    This should normally just pull from cache - if blocks aren't there, build them
    */
 vertPositions* generatePositions( canyonTerrainBlock* b) {
-	vertPositions* vertSources = mem_alloc( sizeof( vertPositions ));
+	vertPositions* vertSources = mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
 	vertSources->uCount = b->u_samples + 2;
