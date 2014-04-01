@@ -41,6 +41,9 @@ void vmutex_lock( vmutex* mutex );
 // Relinquish the lock on a Mutex, allowing other threads to access it
 void vmutex_unlock( vmutex* mutex );
 
+// Init a non-static mutex
+void vmutex_init( vmutex* mutex );
+
 //
 // *** Conditions
 //

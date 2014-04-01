@@ -226,7 +226,7 @@ bool token_isFloat( const char* token ) {
 // Allocated in the string memory pool
 const char* sstring_create( const char* token ) {
 	size_t len = strlen( token );
-	char* buffer = heap_allocate( global_string_heap, sizeof( char ) * (len-1) );
+	char* buffer = heap_allocate( global_string_heap, sizeof( char ) * (len-1), NULL );
 	memcpy( buffer, &token[1], len-2 );
 	buffer[len-2] = '\0';
 	return buffer;

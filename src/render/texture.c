@@ -123,15 +123,13 @@ void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap,
 }
 
 void texture_queueWorkerTextureLoad( GLuint* tex, const char* filename, textureProperties* properties ) {
+	// TODO - tuple
 	const void** args = mem_alloc( sizeof( void* ) * 3 );
 	args[0] = tex;
 	args[1] = filename;
 	args[2] = properties;
 	//printf( "Queue worker task: Tex: " xPTRf ", filename: %s\n", (uintptr_t)tex, filename );
-	worker_task texture_load_task;
-	texture_load_task.func = texture_workerLoadFile;
-	texture_load_task.args = args;
-	worker_addTask( texture_load_task );
+	worker_addTask( task( texture_workerLoadFile, args ));
 }
 
 void texture_requestFile( GLuint* tex, const char* filename, textureProperties* properties ) {
@@ -359,7 +357,7 @@ GLuint texture_loadBitmap( int w, int h, int stride, uint8_t* bitmap, GLuint wra
 }
 
 void* texture_allocate( size_t size ) {
-	void* mem = heap_allocate( texture_heap, size );
+	void* mem = heap_allocate( texture_heap, size, NULL );
 	//printf( "TEXTURE: Allocating " dPTRf " bytes as 0x" xPTRf "\n", size, (uintptr_t)mem );
 	return mem;
 }

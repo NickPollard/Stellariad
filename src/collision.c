@@ -239,10 +239,7 @@ void collision_queueWorkerTick( int frame_counter, float dt ) {
 	//collisionArgs* args = mem_alloc( sizeof( collisionArgs ));
 	collision_args.dt = dt;
 	collision_args.frame_counter = frame_counter;
-	worker_task collision_task;
-	collision_task.func = collision_workerTick;
-	collision_task.args = &collision_args;
-	worker_addImmediateTask( collision_task );
+	worker_addImmediateTask( task( collision_workerTick, &collision_args ));
 }
 
 bool collisionFunc_SphereSphere( shape* a, shape* b, matrix matrix_a, matrix matrix_b ) {

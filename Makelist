@@ -30,6 +30,7 @@ SRCS =	src/camera.c \
 		src/vtime.c \
 		src/transform.c \
 		src/worker.c \
+		src/actor/actor.c \
 		src/base/pair.c \
 		src/base/ringqueue.c \
 		src/base/window_buffer.c \

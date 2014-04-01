@@ -1,6 +1,8 @@
 #ifndef __COMMON_FWD_H__
 #define __COMMON_FWD_H__
 
+struct actor_s;
+struct actorSystem_s;
 struct body_s;
 struct camera_s;
 struct canyon_s;
@@ -33,9 +35,12 @@ struct vertex_s;
 struct vertPositions;
 struct window_s;
 struct window_buffer_s;
+struct worker_task_s;
 struct xwindow_s;
 union vector_u;
 
+typedef struct actor_s actor;
+typedef struct actorSystem_s actorSystem;
 typedef struct body_s body;
 typedef struct camera_s camera;
 typedef struct canyon_s canyon;
@@ -68,6 +73,7 @@ typedef struct vertex_s vertex;
 typedef struct vertPositions_s vertPositions;
 typedef struct window_s window;
 typedef struct window_buffer_s window_buffer;
+typedef struct worker_task_s worker_task;
 typedef struct xwindow_s xwindow;
 
 typedef union vector_u vector;
@@ -75,5 +81,9 @@ typedef union vector_u color;
 
 typedef int modelHandle; // A Handle into the model array
 
+typedef actor* ActorRef;
+typedef worker_task Msg;
+
+typedef void* (*taskFunc)( void* );
 
 #endif // __COMMON_FWD_H__

@@ -46,6 +46,11 @@ void vmutex_unlock( vmutex* mutex ) {
 	pthread_mutex_unlock( mutex );
 }
 
+// Init a non-static mutex
+void vmutex_init( vmutex* mutex ) {
+	pthread_mutex_init ( mutex, NULL);
+}
+
 // *** Conditions
 
 void vthread_signalCondition( int i ) {
