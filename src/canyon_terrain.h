@@ -3,12 +3,15 @@
 #include "frustum.h"
 #include "actor/actor.h"
 #include "render/render.h"
+#include "system/thread.h"
 
 #define CANYON_TERRAIN_INDEXED 1
 
 struct canyonTerrainBlock_s {
 	int u_samples;
 	int v_samples;
+	int u;
+	int v;
 
 	float u_min;
 	float u_max;
@@ -73,6 +76,7 @@ struct canyonTerrain_s {
 	int					element_buffer_count;
 
 	bool firstUpdate;
+	vmutex mutex;
 };
 
 extern texture* terrain_texture;
