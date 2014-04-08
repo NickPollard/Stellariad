@@ -6,7 +6,6 @@
 #include "system/thread.h"
 
 #define CANYON_TERRAIN_INDEXED 1
-
 struct canyonTerrainBlock_s {
 	int u_samples;
 	int v_samples;
@@ -19,22 +18,8 @@ struct canyonTerrainBlock_s {
 	float v_max;
 
 	// Ints for uv-coord in terrain grid units
-	int uMin;
+	int uMin; // TODO are these now dupes of u,v?
 	int vMin;
-
-	int element_count;
-	int element_count_render; // The one currently used to render with; for smooth LoD switching
-	unsigned short* element_buffer;
-	vertex* vertex_buffer;
-
-	// *** Rendering
-	aabb	bb;
-
-	// *** GPU We double-buffer the terrain blocks for LOD purposes, so we can switch instantaneously
-	GLuint*			vertex_VBO;
-	GLuint*			element_VBO;
-	GLuint*			vertex_VBO_alt;
-	GLuint*			element_VBO_alt;
 
 	bool pending;	// Whether we need to recalculate the block
 	int	lod_level;	// Current lod-level
@@ -42,12 +27,31 @@ struct canyonTerrainBlock_s {
 	// *** Collision
 	body*			collision;
 
+	canyonTerrain* terrain;
 	canyon* canyon;
 	int	coord[2];
-	canyonTerrain* terrain;
 
 	ActorRef actor;
+
+	terrainRenderable* renderable;
 };
+
+struct terrainRenderable_s {
+	canyonTerrainBlock* block;
+
+	int element_count;
+	int element_count_render; // The one currently used to render with; for smooth LoD switching
+	unsigned short* element_buffer;
+	vertex* vertex_buffer;
+
+	aabb	bb;
+
+	// *** GPU We double-buffer the terrain blocks for LOD purposes, so we can switch instantaneously
+	GLuint*			vertex_VBO;
+	GLuint*			element_VBO;
+	GLuint*			vertex_VBO_alt;
+	GLuint*			element_VBO_alt;
+} ;
 
 struct canyonTerrain_s {
 	transform* trans;
