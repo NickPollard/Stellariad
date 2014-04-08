@@ -15,6 +15,3 @@ void actorMsg( ActorRef a, Msg m );
 
 // Spawn a new actor on this system
 ActorRef spawnActor( actorSystem* system );
-
-// Create an actor task message
-Msg task( taskFunc func, void* args );

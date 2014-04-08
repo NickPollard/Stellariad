@@ -93,7 +93,11 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 	return b;
 }
 
+static int numCaches = 0;
+
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
+	++numCaches;
+	//printf( "Creating cacheBlock #%d. (%d %d) (lod: %d)\n", numCaches, uMin, vMin, requiredLOD );
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
 	b->vMin = vMin;
@@ -148,7 +152,7 @@ void terrainCache_trim( terrainCache* t, int v ) {
 			trimCacheGrid( g->head, v );
 			(void)v;
 			if (gridEmpty(g->head)) {
-				//printf( "Freeing grid list " xPTRf "\n", (uintptr_t)g );
+				printf( "Freeing grid list " xPTRf "\n", (uintptr_t)g );
 				mem_free( g->head );
 			} else {
 				//vAssert( (uintptr_t)g->head < 0x00ffffffffffffff );

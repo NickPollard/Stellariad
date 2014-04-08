@@ -3,6 +3,7 @@
 #include "terrain_generate.h"
 //-----------------------
 #include "canyon.h"
+#include "worker.h"
 #include "terrain/cache.h"
 
 /*
@@ -57,12 +58,6 @@ vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIn
 	return p;
 }
 
-void generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts ) {
-	for ( int v = -1; v < b->v_samples + 1; ++v )
-		for ( int u = -1; u < b->u_samples + 1; ++u )
-			verts[indexFromUV(b, u, v)] = terrainPointCached( c, b, u, v );
-}
-
 vector pointForUV( vertPositions* p, int u, int v ) {
 	// if it's in p, return the cached version
 	if (u >= p->uMin && u < p->uMin + p->uCount && v >= p->vMin && v < p->vMin + p->vCount ) {
@@ -74,22 +69,6 @@ vector pointForUV( vertPositions* p, int u, int v ) {
 		vAssert( 0 );
 		return Vector(0.f, 0.f, 0.f, 1.f);
 	}
-}
-
-/*
-   Called Sychronously by the main terrain thread; Builds a vertPositions to be passed
-   to a child worker to actually construct the terrain.
-   This should normally just pull from cache - if blocks aren't there, build them
-   */
-vertPositions* generatePositions( canyonTerrainBlock* b) {
-	vertPositions* vertSources = mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
-	vertSources->uMin = -1;
-	vertSources->vMin = -1;
-	vertSources->uCount = b->u_samples + 2;
-	vertSources->vCount = b->v_samples + 2;
-	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
-	generateVerts( b->canyon, b, vertSources->positions );
-	return vertSources;
 }
 
 void vertPositions_delete( vertPositions* vs ) {

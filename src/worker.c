@@ -2,6 +2,7 @@
 #include "common.h"
 #include "worker.h"
 //-----------------------
+#include "mem/allocator.h"
 #include "system/thread.h"
 #include <unistd.h>
 
@@ -25,7 +26,7 @@ void worker_addTask( worker_task t ) {
 }
 
 worker_task worker_nextTask() {
-	worker_task task = { NULL, NULL };
+	worker_task task = { NULL, NULL, NULL };
 	vmutex_lock( &worker_task_mutex );
 	{
 		if ( worker_task_count > 0 ) {
@@ -55,7 +56,7 @@ void worker_addImmediateTask( worker_task t ) {
 	vmutex_unlock( &worker_task_mutex );
 }
 worker_task worker_nextImmediateTask() {
-	worker_task task = { NULL, NULL };
+	worker_task task = { NULL, NULL, NULL };
 	vmutex_lock( &worker_task_mutex );
 	{
 		if ( worker_immediate_task_count > 0 ) {
@@ -81,24 +82,18 @@ void* worker_threadFunc( void* args ) {
 			worker_task task = worker_nextImmediateTask();
 			if ( task.func )
 				task.func( task.args );
+			if ( task.onComplete )
+				worker_addImmediateTask( *task.onComplete );
 		}
 		else if ( worker_task_count > 0 ) {
 			// Grab the first task
 			worker_task task = worker_nextTask();
 			if ( task.func )
 				task.func( task.args );
+			if ( task.onComplete )
+				worker_addTask( *task.onComplete );
 		}
-		/*
-		else if ( actors ) {
-			// find the next actor from this system with pending tasks
-			// do it
-			actor* a = NULL;
-			actorReceive( a );
-		}
-		*/
 
-		//usleep( 5 );
-		//vthread_yield();
 		bool workWaiting = false;
 		vmutex_lock( &worker_task_mutex );
 		{
@@ -108,6 +103,19 @@ void* worker_threadFunc( void* args ) {
 		if ( workWaiting ) {
 			vthread_waitCondition( work_exists );
 		}
-		//usleep( 5 );
 	}
+}
+
+worker_task onComplete( worker_task first, worker_task andThen ) {
+	first.onComplete = mem_alloc( sizeof( worker_task ));
+	memcpy( first.onComplete, &andThen, sizeof( worker_task )); // TODO - memory implications!
+	return first;
+}
+
+worker_task task( taskFunc func, void* args ) {
+	worker_task w;
+	w.func = func;
+	w.args = args;
+	w.onComplete = NULL;
+	return w;
 }

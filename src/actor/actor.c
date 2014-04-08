@@ -72,13 +72,6 @@ void actorReceive( ActorRef a ) {
 	} actorUnlock( a );
 }
 
-worker_task task( taskFunc func, void* args ) {
-	worker_task w;
-	w.func = func;
-	w.args = args;
-	return w;
-}
-
 // Private //
 void actorPush( ActorRef a, Msg m ) { a->queue[a->pending++] = m; }
 
