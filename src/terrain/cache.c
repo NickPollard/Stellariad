@@ -152,7 +152,7 @@ void terrainCache_trim( terrainCache* t, int v ) {
 			trimCacheGrid( g->head, v );
 			(void)v;
 			if (gridEmpty(g->head)) {
-				printf( "Freeing grid list " xPTRf "\n", (uintptr_t)g );
+				//printf( "Freeing grid list " xPTRf "\n", (uintptr_t)g );
 				mem_free( g->head );
 			} else {
 				//vAssert( (uintptr_t)g->head < 0x00ffffffffffffff );

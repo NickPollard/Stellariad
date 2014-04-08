@@ -2,9 +2,9 @@
 #include "common.h"
 #include "actor.h"
 //-----------------------
+#include "engine.h"
 #include "mem/allocator.h"
 #include "worker.h"
-#include "system/thread.h"
 
 #define MaxActorTasks 16
 
@@ -24,8 +24,10 @@ void*	runSystem( void* args );
 
 void actorSystem_add( actorSystem* system, ActorRef a ) {
 	// TODO - This should be thread-safe WRT the ActorSystem
-	vAssert( system->count + 1 < MaxActors );
-	system->actors[system->count++] = a;
+	vmutex_lock( &system->mutex ); {
+		vAssert( system->count + 1 < MaxActors );
+		system->actors[system->count++] = a;
+	} vmutex_unlock( &system->mutex );
 }
 
 ActorRef spawnActor( actorSystem* system ) {
@@ -37,6 +39,17 @@ ActorRef spawnActor( actorSystem* system ) {
 	vmutex_init( &a->mutex );
 	actorSystem_add( system, a );
 	return a;
+}
+
+void actorSystem_remove( actorSystem* system, ActorRef a ) {
+	vmutex_lock( &system->mutex ); {
+		array_remove( (void**)&system->actors, &system->count, a );
+	} vmutex_unlock( &system->mutex );
+}
+
+void stopActor( ActorRef a ) {
+	actorSystem_remove( a->system, a );
+	mem_free( a );
 }
 
 void actorLock( ActorRef a ) { vmutex_lock( &a->mutex ); }
@@ -89,6 +102,7 @@ actorSystem* actorSystemCreate() {
 	memset( a->actors, 0, sizeof( ActorRef ) * MaxActors );
 	a->last = 0;
 	a->count = 0;
+	vmutex_init( &a->mutex );
 	return a;
 }
 

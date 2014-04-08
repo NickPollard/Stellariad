@@ -148,38 +148,40 @@ void* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
 // If we've already allocated a buffer at some point, just re-use it
 void terrainBlock_initVBO( canyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
-	b->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			b->vertex_buffer,	sizeof( vertex )	* vert_count );
-	b->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	b->element_buffer,	sizeof( GLushort ) 	* b->element_count );
+	terrainRenderable* r = b->renderable;
+	r->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
+	r->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	r->element_buffer,	sizeof( GLushort ) 	* r->element_count );
 }
 
 bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
+	terrainRenderable* r = b->renderable;
 	// If we have new render buffers, free the old ones and switch to the new
-	if (( b->vertex_VBO_alt && *b->vertex_VBO_alt ) && ( b->element_VBO_alt && *b->element_VBO_alt )) {
-		render_freeBuffer( b->vertex_VBO );
-		render_freeBuffer( b->element_VBO );
+	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt )) {
+		render_freeBuffer( r->vertex_VBO );
+		render_freeBuffer( r->element_VBO );
 
-		b->vertex_VBO = b->vertex_VBO_alt;
-		b->element_VBO = b->element_VBO_alt;
-		b->element_count_render = b->element_count;
-		b->vertex_VBO_alt = NULL;
-		b->element_VBO_alt = NULL;
+		r->vertex_VBO = r->vertex_VBO_alt;
+		r->element_VBO = r->element_VBO_alt;
+		r->element_count_render = r->element_count;
+		r->vertex_VBO_alt = NULL;
+		r->element_VBO_alt = NULL;
 	}
 
 	vector frustum[6];
 	camera_calculateFrustum( s->cam, frustum );
-	if ( frustum_cull( &b->bb, frustum ) )
+	if ( frustum_cull( &r->bb, frustum ) )
 		return false;
 
 	int zone = b->canyon->current_zone;
 	int first = ( zone + zone % 2 ) % b->canyon->zone_count;
 	int second = ( zone + 1 - (zone % 2)) % b->canyon->zone_count;
-	if ( b->vertex_VBO && *b->vertex_VBO && terrain_texture && terrain_texture_cliff ) {
-		drawCall* draw = drawCall_create( &renderPass_main, resources.shader_terrain, b->element_count_render, b->element_buffer, b->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
+	if ( r->vertex_VBO && *r->vertex_VBO && terrain_texture && terrain_texture_cliff ) {
+		drawCall* draw = drawCall_create( &renderPass_main, resources.shader_terrain, r->element_count_render, r->element_buffer, r->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
 		draw->texture_b = b->canyon->zones[first].texture_cliff->gl_tex;
 		draw->texture_c = b->canyon->zones[second].texture_ground->gl_tex;
 		draw->texture_d = b->canyon->zones[second].texture_cliff->gl_tex;
-		draw->vertex_VBO = *b->vertex_VBO;
-		draw->element_VBO = *b->element_VBO;
+		draw->vertex_VBO = *r->vertex_VBO;
+		draw->element_VBO = *r->element_VBO;
 	}
 	return true;
 }

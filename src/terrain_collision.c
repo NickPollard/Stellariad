@@ -19,10 +19,11 @@ void terrainBlock_calculateCollision( canyonTerrainBlock* b ) {
 											b->v_max - b->v_min, 
 											b->u_samples, 
 											b->v_samples );
+	terrainRenderable* r = b->renderable;
 	for ( int i = 0; i < b->u_samples; i++ ) {
 		for ( int j = 0; j < b->v_samples; j++ ) {
 			int index = canyonTerrainBlock_renderIndexFromUV( b, i, j );
-			h->verts[i + j * b->u_samples] = b->vertex_buffer[index].position;
+			h->verts[i + j * b->u_samples] = r->vertex_buffer[index].position;
 		}
 	}
 	heightField_calculateAABB( h );
@@ -34,18 +35,18 @@ void terrainBlock_calculateCollision( canyonTerrainBlock* b ) {
 	collision_addBody( b->collision );
 }
 
-void terrainBlock_calculateAABB( canyonTerrainBlock* b ) {
-	b->bb.min = b->vertex_buffer[0].position;
-	b->bb.max = b->vertex_buffer[0].position;
-	int vertex_count = canyonTerrainBlock_renderVertCount( b );
+void terrainBlock_calculateAABB( terrainRenderable* r ) {
+	r->bb.min = r->vertex_buffer[0].position;
+	r->bb.max = r->vertex_buffer[0].position;
+	int vertex_count = canyonTerrainBlock_renderVertCount( r->block );
 	for ( int i = 1; i < vertex_count; ++i ) {
-		vector vert = b->vertex_buffer[i].position;
-		b->bb.min.coord.x = fminf( b->bb.min.coord.x, vert.coord.x );
-		b->bb.min.coord.y = fminf( b->bb.min.coord.y, vert.coord.y );
-		b->bb.min.coord.z = fminf( b->bb.min.coord.z, vert.coord.z );
+		vector vert = r->vertex_buffer[i].position;
+		r->bb.min.coord.x = fminf( r->bb.min.coord.x, vert.coord.x );
+		r->bb.min.coord.y = fminf( r->bb.min.coord.y, vert.coord.y );
+		r->bb.min.coord.z = fminf( r->bb.min.coord.z, vert.coord.z );
 
-		b->bb.max.coord.x = fmaxf( b->bb.max.coord.x, vert.coord.x );
-		b->bb.max.coord.y = fmaxf( b->bb.max.coord.y, vert.coord.y );
-		b->bb.max.coord.z = fmaxf( b->bb.max.coord.z, vert.coord.z );
+		r->bb.max.coord.x = fmaxf( r->bb.max.coord.x, vert.coord.x );
+		r->bb.max.coord.y = fmaxf( r->bb.max.coord.y, vert.coord.y );
+		r->bb.max.coord.z = fmaxf( r->bb.max.coord.z, vert.coord.z );
 	}
 }
