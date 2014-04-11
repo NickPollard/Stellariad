@@ -86,6 +86,8 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 		const int u = gridIndex( uMin, minPeriod( uMin, GridCapacity ));
 		const int v = gridIndex( vMin, minPeriod( vMin, GridCapacity ));
 		cacheBlock* old = g->blocks[u][v];
+		vAssert( u < GridSize );
+		vAssert( v < GridSize );
 		mem_free( old );
 		g->blocks[u][v] = b;
 		takeRef( b );
@@ -145,9 +147,9 @@ bool gridEmpty( cacheGrid* g ) {
 }
 
 void terrainCache_trim( terrainCache* t, int v ) {
-	cacheGridlist* nw = NULL;
-	cacheGridlist* g = t->grids;
 	vmutex_lock( &terrainMutex ); {
+		cacheGridlist* nw = NULL;
+		cacheGridlist* g = t->grids;
 		while ( g && g->head ) {
 			trimCacheGrid( g->head, v );
 			(void)v;
@@ -162,7 +164,7 @@ void terrainCache_trim( terrainCache* t, int v ) {
 			mem_free( g );
 			g = next;
 		}
+		t->grids = nw;
 	} vmutex_unlock( &terrainMutex );
-	t->grids = nw;
 }
 

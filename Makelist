@@ -1,4 +1,5 @@
-SRCS =	src/camera.c \
+SRCS =	src/bounds.c \
+		src/camera.c \
 		src/canyon.c \
 		src/canyon_terrain.c \
 		src/canyon_zone.c \

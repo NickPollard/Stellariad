@@ -151,7 +151,7 @@ bool isNormalized( const vector* v ) {
 	return f_eq( 1.f, vector_length( v ));
 }
 
-vector vector_lerp( vector* from, vector* to, float amount ) {
+vector vector_lerp( const vector* from, const vector* to, float amount ) {
 	vector v;
 	float inv = 1.f - amount;
 	v.coord.x = from->coord.x * inv + to->coord.x * amount;

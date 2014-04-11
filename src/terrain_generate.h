@@ -16,3 +16,7 @@ void lodVectors( canyonTerrainBlock* b, vector* vectors);
 void vertPositions_delete( vertPositions* vs );
 // TODO
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
+vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
+int vertCount( canyonTerrainBlock* b );
+void* canyonTerrain_workerGenerateBlock( void* args );
+int indexFromUV( canyonTerrainBlock* b, int u, int v );

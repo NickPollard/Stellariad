@@ -40,7 +40,6 @@ Msg generateCache( pair* block ) {
    */
 void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	vector* verts = vertSources->positions;
-	//printf( "Generating verts!\n" );
 	for ( int v = -1; v < b->v_samples + 1; ++v )
 		for ( int u = -1; u < b->u_samples + 1; ++u )
 			verts[indexFromUV(b, u, v)] = terrainPointCached( b->canyon, b, u, v );
@@ -53,8 +52,7 @@ void* worker_generateVerts( void* args ) {
 }
 
 /*
-   Called Sychronously by the main terrain thread; Builds a vertPositions to be passed
-   to a child worker to actually construct the terrain.
+   Builds a vertPositions to be passed to a child worker to actually construct the terrain.
    This should normally just pull from cache - if blocks aren't there, build them
    */
 vertPositions* generatePositions( canyonTerrainBlock* b) {
@@ -77,9 +75,7 @@ vertPositions* generatePositions( canyonTerrainBlock* b) {
 }
 
 void* generateVertices_( void* args ) {
-	canyonTerrainBlock* b = args;
-	canyonTerrainBlock_calculateExtents( b, b->terrain, b->coord );
-	generatePositions( b );
+	generatePositions( args );
 	return NULL;
 }
 

@@ -78,10 +78,10 @@ void test_engine_init( engine* e ) {
 	lua_setScene( e->lua, theScene );
 
 #ifdef GRAPH_FPS
-#define kMaxFPSFrames 256
+#define kMaxFPSFrames 512
 	fpsdata = graphData_new( kMaxFPSFrames );
 	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
-	fpsgraph = graph_new( fpsdata, 100, 100, 640, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
+	fpsgraph = graph_new( fpsdata, 100, 100, 480, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
 	fps_timer = vtimer_create();
 #endif //GRAPH_FPS
 }

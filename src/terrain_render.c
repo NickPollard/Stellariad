@@ -4,10 +4,50 @@
 //-----------------------
 #include "canyon.h"
 #include "camera.h"
+#include "terrain_generate.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
 #include "render/graphicsbuffer.h"
 #include "render/texture.h"
+
+const float texture_scale = 0.0325f;
+const float texture_repeat = 10.f;
+
+texture* terrain_texture = NULL;
+texture* terrain_texture_cliff = NULL;
+texture* terrain_texture_2 = NULL;
+texture* terrain_texture_cliff_2 = NULL;
+
+// ***
+unsigned short elementBuffer[kMaxTerrainBlockElements];
+
+void initialiseDefaultElementBuffer( ) { for ( int i = 0; i < kMaxTerrainBlockElements; i++ ) elementBuffer[i] = i; }
+
+void canyonTerrain_staticInit() {
+	initialiseDefaultElementBuffer();
+
+	canyonTerrain_renderInit();
+}
+
+// Mod the texcoord to a sensible value, based on the terrain block coords
+// Used to stop our UV coordinates getting so big that floating point rounding issues cause aliasing in the texture
+float canyon_uvMapped( float block_minimum, float f ) { return f - ( texture_repeat * floorf( block_minimum / texture_repeat )); }
+
+bool validIndex( canyonTerrainBlock* b, int u, int v ) { return ( v >= 0 && v < b->v_samples && u >= 0 && u < b->u_samples ); }
+// Not adjusted as this is for renderable verts only
+int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v ) {
+	vAssert( u >= 0 && u < b->u_samples ); vAssert( v >= 0 && v < b->v_samples );
+	return u + v * b->u_samples;
+}
+
+int canyonTerrainBlock_triangleCount( canyonTerrainBlock* b ) { return ( b->u_samples - 1 ) * ( b->v_samples - 1 ) * 2; }
+
+vector calcUV(canyonTerrainBlock* b, vector* v, float v_pos) {
+	return Vector( v->coord.x * texture_scale,
+					v->coord.y * texture_scale, 
+					v->coord.z * texture_scale, 
+					canyon_uvMapped( b->v_min * texture_scale, v_pos * texture_scale ));
+}
 
 bool canyonTerrainBlock_triangleInvalid( canyonTerrainBlock* b, int u_index, int v_index, int u_offset, int v_offset ) {
 	u_offset = u_offset / 2 + u_offset % 2;
@@ -16,6 +56,40 @@ bool canyonTerrainBlock_triangleInvalid( canyonTerrainBlock* b, int u_index, int
 		( u_index + u_offset < 0 ) ||
 		( v_index + v_offset >= b->v_samples - 1 ) ||
 		( v_index + v_offset < 0 );
+}
+
+// As this is just renderable verts, we dont have the extra buffer space for normal generation
+int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b ) {
+#if CANYON_TERRAIN_INDEXED
+   	return ( b->u_samples ) * ( b->v_samples );
+#else
+	return b->element_count;
+#endif // CANYON_TERRAIN_INDEXED
+}
+
+void canyonTerrain_renderInit() {
+	if ( !terrain_texture ) 		{ terrain_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
+	if ( !terrain_texture_cliff )	{ terrain_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
+	if ( !terrain_texture_2 )		{ terrain_texture_2		= texture_load( "dat/img/terrain/ground_industrial.tga" ); }
+	if ( !terrain_texture_cliff_2 )	{ terrain_texture_cliff_2 = texture_load( "dat/img/terrain/cliff_industrial.tga" ); }
+}
+
+void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v ) {
+	int lod_ratio = lodRatio( b );
+	if ( u_index == -1 ) u_index = -lod_ratio;
+	if ( u_index == b->u_samples ) u_index = b->u_samples -1 + lod_ratio;
+	if ( v_index == -1 ) v_index = -lod_ratio;
+	if ( v_index == b->v_samples ) v_index = b->v_samples -1 + lod_ratio;
+
+	canyonTerrain* t = b->terrain;
+
+	float r = 4 / lod_ratio;
+	float uPerBlock = (2 * t->u_radius) / (float)t->u_block_count;
+	float uScale = uPerBlock / (float)(t->uSamplesPerBlock);
+	float vPerBlock = (2 * t->v_radius) / (float)t->v_block_count;
+	float vScale = vPerBlock / (float)(t->vSamplesPerBlock);
+	*u = (float)(u_index * r + b->uMin) * uScale;
+	*v = (float)(v_index * r + b->vMin) * vScale;
 }
 
 #if CANYON_TERRAIN_INDEXED
@@ -116,7 +190,6 @@ void* canyonTerrain_nextVertexBuffer( canyonTerrain* t ) {
 	return buffer;
 }
 
-#if CANYON_TERRAIN_INDEXED
 void* canyonTerrain_allocElementBuffer( canyonTerrain* t ) {
 	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
 	return mem_alloc( sizeof( unsigned short ) * max_element_count );
@@ -200,4 +273,75 @@ void canyonTerrain_render( void* data, scene* s ) {
 	}
 }
 
-#endif // CANYON_TERRAIN_INDEX
+void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals ) {
+	terrainRenderable* r = b->renderable;
+#if CANYON_TERRAIN_INDEXED
+	for ( int v_index = 0; v_index < b->v_samples; ++v_index ) {
+		for ( int u_index = 0; u_index < b->u_samples; ++u_index ) {
+			int i = indexFromUV( b, u_index, v_index );
+			float u,v;
+			canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
+			if (validIndex( b, u_index, v_index )) {
+				int buffer_index = canyonTerrainBlock_renderIndexFromUV( b, u_index, v_index );
+				vAssert( buffer_index < canyonTerrainBlock_renderVertCount( b ));
+				vAssert( buffer_index >= 0 );
+				r->vertex_buffer[buffer_index].position = verts[i];
+				r->vertex_buffer[buffer_index].uv = calcUV( b, &verts[i], v );
+				r->vertex_buffer[buffer_index].color = Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f );
+				r->vertex_buffer[buffer_index].normal = normals[i];
+			}
+		}
+	}
+	int triangleCount = canyonTerrainBlock_triangleCount( b );
+	int i = 0;
+	for ( int v = 0; v + 1 < b->v_samples; ++v ) {
+		for ( int u = 0; u + 1 < b->u_samples; ++u ) {
+			vAssert( i * 3 + 5 < r->element_count );
+			vAssert( canyonTerrainBlock_renderIndexFromUV( b, u + 1, v + 1 ) < canyonTerrainBlock_renderVertCount( b ) );
+			r->element_buffer[ i * 3 + 0 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v );
+			r->element_buffer[ i * 3 + 1 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v );
+			r->element_buffer[ i * 3 + 2 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v + 1 );
+			r->element_buffer[ i * 3 + 3 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v );
+			r->element_buffer[ i * 3 + 4 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v + 1 );
+			r->element_buffer[ i * 3 + 5 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v + 1 );
+			i+=2;
+		}
+	}
+	vAssert( i == triangleCount );
+#else
+	for ( int v = 0; v < b->v_samples; v ++ ) {
+		for ( int u = 0; u < b->u_samples; u ++  ) {
+			int i = indexFromUV( b, u, v );
+			vertex vert;
+			vert.position = verts[i];
+			vert.normal = normals[i];
+
+			float u_pos, v_pos;
+			canyonTerrainBlock_positionsFromUV( b, u, v, &u_pos, &v_pos );
+			vert.uv = calcUV( b, &vert.position, v_pos );
+			canyonTerrainBlock_fillTrianglesForVertex( b, verts, b->vertex_buffer, u, v, &vert );
+		}
+	}
+#endif // CANYON_TERRAIN_INDEXED
+}
+
+void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
+	terrainRenderable* r = b->renderable;
+	r->element_count = canyonTerrainBlock_triangleCount( b ) * 3;
+	vAssert( r->element_count > 0 );
+	vAssert( r->element_count <= kMaxTerrainBlockElements );
+
+#if CANYON_TERRAIN_INDEXED
+	if ( !r->element_buffer ) r->element_buffer = canyonTerrain_nextElementBuffer( b->terrain );
+#else
+	r->element_buffer = elementBuffer;
+#endif // CANYON_TERRAIN_INDEXED
+	if ( !r->vertex_buffer ) r->vertex_buffer = canyonTerrain_nextVertexBuffer( b->terrain );
+}
+
+terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
+	terrainRenderable* r = mem_alloc( sizeof( terrainRenderable ));
+	memset( r, 0, sizeof( terrainRenderable ));
+	r->block = b;
+	return r;
+}

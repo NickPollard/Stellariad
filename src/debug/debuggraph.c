@@ -16,11 +16,14 @@ void graph_render( graph* g ) {
 	float w = g->width;
 	float h = g->height;
 	for ( int i = 0; i < d->count-1; ++i ) {
-		int j = ( i + d->end ) % d->count;
+		//int j = ( i + d->end ) % d->count;
 		int k = ( i + d->end + 1 ) % d->count;
-		vector from =	Vector( (d->data[j]._1 - x_min) * inv_x * w + x, d->data[j]._2 * inv_y * h + y, 0.f, 1.f );
-		vector to =		Vector( (d->data[k]._1 - x_min) * inv_x * w + x, d->data[k]._2 * inv_y * h + y, 0.f, 1.f );
-		debugdraw_line2d( from, to, g->color );
+		//vector from =	Vector( (d->data[j]._1 - x_min) * inv_x * w + x, fminf(d->data[j]._2 * inv_y, 2.f) * h + y, 0.f, 1.f );
+		float yy = fminf(d->data[k]._2 * inv_y, 2.f);
+		vector from = Vector( (d->data[k]._1 - x_min) * inv_x * w + x, y, 0.f, 1.f );
+		vector to =	Vector( (d->data[k]._1 - x_min) * inv_x * w + x, yy * h + y, 0.f, 1.f );
+		vector color = vector_lerp( &color_black, &g->color, fminf( yy, 1.0f ));
+		debugdraw_line2d_gradient( from, to, color_black, color );
 	}
 	vector tl = Vector( x, y, 0.f, 1.f );
 	vector tr = Vector( x+w, y, 0.f, 1.f );
