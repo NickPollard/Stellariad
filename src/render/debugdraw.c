@@ -17,7 +17,7 @@ vertex debugDraw_vertex_buffer[kMaxDebugDrawVerts];
 GLushort debugDraw_element_buffer[kMaxDebugDrawVerts];
 int debugDraw_verts_used;
 
-void debugdraw_line2d( vector from, vector to, vector color ) {
+void debugdraw_line2d_gradient( vector from, vector to, vector color, vector color_to ) {
 	// Grab a vertex and element buffer from our static ones
 	int vert_count = 2;
 	vertex* vertex_buffer = &debugDraw_vertex_buffer[debugDraw_verts_used];
@@ -28,7 +28,7 @@ void debugdraw_line2d( vector from, vector to, vector color ) {
 	vertex_buffer[0].position = from;
 	vertex_buffer[1].position = to;
 	vertex_buffer[0].color = color;
-	vertex_buffer[1].color = color;
+	vertex_buffer[1].color = color_to;
 
 	element_buffer[0] = 0;
 	element_buffer[1] = 1;
@@ -37,6 +37,10 @@ void debugdraw_line2d( vector from, vector to, vector color ) {
 	const GLuint no_texture = 0;
 	drawCall* draw = drawCall_create( &renderPass_debug, resources.shader_debug_2d, vert_count, element_buffer, vertex_buffer, no_texture, modelview );
 	draw->elements_mode = GL_LINES;
+}
+
+void debugdraw_line2d( vector from, vector to, vector color ) {
+	debugdraw_line2d_gradient( from, to, color, color );
 }
 
 void debugdraw_line3d( vector from, vector to, vector color ) {

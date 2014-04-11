@@ -44,7 +44,7 @@ bool	render_initialised = false;
 bool	render_bloom_enabled = true;
 
 #ifdef GRAPH_GPU_FPS
-	#define kMaxGpuFPSFrames 256
+	#define kMaxGpuFPSFrames 512
 	graph*			gpu_fpsgraph; 
 	graphData*		gpu_fpsdata;
 	frame_timer* 	gpu_fps_timer = NULL;
@@ -302,7 +302,7 @@ void render_init( void* app ) {
 #ifdef GRAPH_GPU_FPS
 	gpu_fpsdata = graphData_new( kMaxGpuFPSFrames );
 	vector graph_blue = Vector( 0.2f, 0.2f, 0.8f, 1.f );
-	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 640, 240, (float)kMaxGpuFPSFrames, 0.033f, graph_blue );
+	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 480, 240, (float)kMaxGpuFPSFrames, 0.033f, graph_blue );
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
 
@@ -699,11 +699,11 @@ void render_renderThreadTick( engine* e ) {
 #ifdef GRAPH_GPU_FPS
 	glFinish();
 	float delta = timer_getDelta(gpu_fps_timer);
-	printf( "GPU time (millis): %.4f\n", delta);
+	//printf( "GPU time (millis): %.4f\n", delta);
 	static int framecount = 0;
 	++framecount;
 	graphData_append( gpu_fpsdata, (float)framecount, delta );
-	printf( "GPU Delta %.4f\n", delta );
+	//printf( "GPU Delta %.4f\n", delta );
 #endif
 	// Indicate that we have finished
 	vthread_signalCondition( finished_render );

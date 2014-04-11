@@ -74,7 +74,7 @@ bool isPowerOf2( unsigned int n ) {
 }
 
 int minPeriod( int i, int period ) {
-	return i - (i >= 0 ? i % period : (i % period)+period);
+	return i - (i >= 0 ? i % period : ((i + 1) % period)+period - 1);
 }
 
 #if UNIT_TEST

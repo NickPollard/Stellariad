@@ -4,7 +4,15 @@
 //-----------------------
 #include "canyon.h"
 #include "worker.h"
+#include "base/pair.h"
+#include "terrain_render.h"
+#include "terrain_collision.h"
 #include "terrain/cache.h"
+
+int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_samples + 2); }
+
+// Adjusted as we have a 1-vert margin for normal calculation at edges
+int indexFromUV( canyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
 /*
 vector normalForUV( vertPositions* p, int u, int v ) {
@@ -33,6 +41,7 @@ vector normalForUV( vertPositions* p, int u, int v ) {
 }
 */
 
+/*
 vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) {
 	float u, v, x, z;
 	const float r = 4 / lodRatio(b);
@@ -40,11 +49,13 @@ vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) 
 	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 	return Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
 }
+*/
 
-vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) {
-	const float r = 4 / lodRatio(b);
-	const int uReal = b->uMin + r*uIndex;
-	const int vReal = b->vMin + r*vIndex;
+vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uRelative, int vRelative ) {
+	//printf( "getting cached point for block %d %d.\n", b->uMin, b->vMin );
+	const int r = 4 / lodRatio(b);
+	const int uReal = b->uMin + r*uRelative;
+	const int vReal = b->vMin + r*vRelative;
 	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
 	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
 	const int uMin = uReal - uOffset;
@@ -78,9 +89,9 @@ void vertPositions_delete( vertPositions* vs ) {
 
 // Hopefully this should just be hitting the cache we were given
 void generatePoints( canyonTerrainBlock* b, vertPositions* vertSources, vector* verts ) {
-	for ( int v = -1; v < b->v_samples +1; ++v ) {
-		for ( int u = -1; u < b->u_samples +1; ++u ) {
-			verts[indexFromUV(b, u, v)] = pointForUV(vertSources,u,v);
+	for ( int vRelative = -1; vRelative < b->v_samples +1; ++vRelative ) {
+		for ( int uRelative = -1; uRelative < b->u_samples +1; ++uRelative ) {
+			verts[indexFromUV(b, uRelative, vRelative)] = pointForUV(vertSources,uRelative,vRelative);
 		}
 	}
 }
@@ -183,4 +194,25 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	lodVectors( b, normals );
 
 	canyonTerrainBlock_generateVertices( b, verts, normals );
+}
+
+void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
+	canyonTerrainBlock_createBuffers( b );
+
+	terrainBlock_build( b, vs );
+	terrainBlock_initVBO( b );
+	terrainBlock_calculateCollision( b );
+	terrainBlock_calculateAABB( b->renderable );
+	b->pending = false;
+
+	terrain_setBlock( b->terrain, b->u, b->v, b );
+}
+
+void* canyonTerrain_workerGenerateBlock( void* args ) {
+	canyonTerrainBlock* b = _2(args);
+	vertPositions* verts = _1(args);
+	canyonTerrainBlock_generate( verts, b );
+	vertPositions_delete( verts );
+	mem_free( args );
+	return NULL;
 }
