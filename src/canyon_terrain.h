@@ -29,7 +29,6 @@ struct canyonTerrainBlock_s {
 	int uMin; // TODO are these now dupes of absolute_u,v?
 	int vMin;
 
-	bool pending;	// Whether we need to recalculate the block
 	int	lod_level;	// Current lod-level
 
 	// *** Collision
@@ -112,6 +111,4 @@ void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector*
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
 void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );
 
-// TODO
-void canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v );
 void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBlock* b );

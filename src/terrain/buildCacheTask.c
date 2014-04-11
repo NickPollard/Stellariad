@@ -4,6 +4,7 @@
 //---------------------
 #include "canyon.h"
 #include "canyon_terrain.h"
+#include "future.h"
 #include "terrain_generate.h"
 #include "terrain/cache.h"
 #include "worker.h"
@@ -51,11 +52,27 @@ void* worker_generateVerts( void* args ) {
 	return NULL;
 }
 
-/*
-   Builds a vertPositions to be passed to a child worker to actually construct the terrain.
-   This should normally just pull from cache - if blocks aren't there, build them
-   */
-vertPositions* generatePositions( canyonTerrainBlock* b) {
+futurelist* generateAllCaches( canyonTerrainBlock* b ) {
+	(void)b;
+	NYI;
+	return NULL;
+}
+
+void* buildCacheTask( void* args ) {
+	future* f = _2(args);
+	future_completeWith( f, futures_sequence( generateAllCaches( _1(args) )));
+	return NULL;
+}
+
+/* Builds a vertPositions to be passed to a child worker to actually construct the terrain.
+   This should normally just pull from cache - if blocks aren't there, build them */
+future* buildCache(canyonTerrainBlock* b) {
+	future* f = future_create();
+	worker_addTask( task(buildCacheTask, Pair( b, f )));
+	return f;
+}
+
+void generatePositions( canyonTerrainBlock* b) {
 	vertPositions* vertSources = mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
@@ -63,15 +80,8 @@ vertPositions* generatePositions( canyonTerrainBlock* b) {
 	vertSources->vCount = b->v_samples + 2;
 	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
 
-	int num;
-	pair** cacheBlocks = blocksForVerts( vertSources, &num );
-	Msg* messages = stackArray( Msg, num );
-	messages[0] = onComplete( generateCache( cacheBlocks[0] ), task( worker_generateVerts, Pair( b, vertSources )) );
-	for ( int i = 1; i < num; ++i )
-		messages[i] = onComplete( generateCache( cacheBlocks[i] ), messages[i-1]);
-	worker_addTask( messages[num-1] );
-
-	return vertSources;
+	//future_onComplete( buildCache(b), runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
+	worker_addTask( task( worker_generateVerts, Pair( b, vertSources )));
 }
 
 void* generateVertices_( void* args ) {

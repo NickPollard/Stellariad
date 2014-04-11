@@ -18,3 +18,4 @@ worker_task onComplete( worker_task first, worker_task andThen );
 
 // Create an actor task message
 Msg task( taskFunc func, void* args );
+Msg* taskAlloc( taskFunc func, void* args );

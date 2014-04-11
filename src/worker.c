@@ -119,3 +119,9 @@ worker_task task( taskFunc func, void* args ) {
 	w.onComplete = NULL;
 	return w;
 }
+
+worker_task* taskAlloc( taskFunc func, void* args ) {
+	worker_task* w = mem_alloc( sizeof( worker_task ));
+	*w = task( func, args );
+	return w;
+}
