@@ -55,7 +55,7 @@ void stopActor( ActorRef a ) {
 void actorLock( ActorRef a ) { vmutex_lock( &a->mutex ); }
 void actorUnlock( ActorRef a ) { vmutex_unlock( &a->mutex ); }
 
-void actorMsg( ActorRef a, Msg m ) {
+void tell( ActorRef a, Msg m ) {
 	actorLock( a ); {
 		actorPush( a, m );
 	} actorUnlock( a );

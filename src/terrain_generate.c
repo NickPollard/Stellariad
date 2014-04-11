@@ -203,15 +203,13 @@ void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
 	terrainBlock_initVBO( b );
 	terrainBlock_calculateCollision( b );
 	terrainBlock_calculateAABB( b->renderable );
-	b->pending = false;
 
 	terrain_setBlock( b->terrain, b->u, b->v, b );
 }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
-	canyonTerrainBlock* b = _2(args);
 	vertPositions* verts = _1(args);
-	canyonTerrainBlock_generate( verts, b );
+	canyonTerrainBlock_generate( verts, _2(args) );
 	vertPositions_delete( verts );
 	mem_free( args );
 	return NULL;

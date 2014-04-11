@@ -10,13 +10,15 @@ struct vertPositions_s {
 };
 
 void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources );
-vector lodV( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio );
-vector lodU( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio );
-void lodVectors( canyonTerrainBlock* b, vector* vectors);
-void vertPositions_delete( vertPositions* vs );
 // TODO
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
 vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
+
+// Total number of real (not rendered) verts in this block
 int vertCount( canyonTerrainBlock* b );
+
+// Worker Task to generate this block
 void* canyonTerrain_workerGenerateBlock( void* args );
+
+// Turn local u,v pair into a vert-array index
 int indexFromUV( canyonTerrainBlock* b, int u, int v );

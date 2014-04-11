@@ -13,7 +13,7 @@ struct actorSystem_s {
 actorSystem* actorSystemCreate();
 
 // Send a message to an Actor
-void actorMsg( ActorRef a, Msg m );
+void tell( ActorRef a, Msg m );
 
 // Spawn a new actor on this system
 ActorRef spawnActor( actorSystem* system );
