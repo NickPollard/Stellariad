@@ -13,6 +13,7 @@ typedef struct list_s {
 	} type##list;												\
 	type##list* type##list_cons( type* h, type##list* t );		\
 	void type##list_delete( type##list* lst );					\
+	int type##list_length( type##list* lst );					\
 
 
 #define IMPLEMENT_LIST(type)									\

@@ -8,6 +8,7 @@
 #include "collision.h"
 #include "dynamicfog.h"
 #include "font.h"
+#include "future.h"
 #include "input.h"
 #include "log.h"
 #include "lua.h"
@@ -165,6 +166,8 @@ void engine_tick( engine* e ) {
 		}
 		lua_setActiveState( NULL );
 	}
+
+	futures_tick( dt );
 
 	collision_processResults( e->frame_counter, dt );
 	// Memory barrier?
@@ -432,11 +435,13 @@ void engine_run(engine* e) {
 
 		// Make sure we don't have too many tasks outstanding - ideally this should never get this high
 		// Prevents an eventual overflow assertion
+		/*
 		while ( worker_task_count > 400 ) {
 			usleep( 2 );
 		}
+		*/
 #ifndef ANDROID
-		usleep( 10000 );
+		//usleep( 10000 );
 #endif
 
 #if PROFILE_ENABLE

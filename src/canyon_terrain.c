@@ -241,6 +241,7 @@ void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	canyon_seekForWorldPosition( t->canyon, t->sample_point );
 	zone_sample_point = t->sample_point;
 
+	terrainCache_tick( t->canyon->terrainCache, dt, t->sample_point );
 	canyonTerrain_updateBlocks( t->canyon, t );
 }
 

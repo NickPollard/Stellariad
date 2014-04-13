@@ -109,7 +109,7 @@ extern matrix camera_inverse;
 extern matrix camera_mtx;
 extern matrix perspective;
 extern bool	render_initialised;
-extern vmutex	gl_mutex;
+//extern vmutex	gl_mutex;
 extern renderPass renderPass_main;
 extern renderPass renderPass_depth;
 extern renderPass renderPass_alpha;

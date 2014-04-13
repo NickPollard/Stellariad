@@ -3,6 +3,7 @@
 #include "actor.h"
 //-----------------------
 #include "engine.h"
+#include "future.h"
 #include "mem/allocator.h"
 #include "worker.h"
 
@@ -79,6 +80,7 @@ void actorReceive( ActorRef a ) {
 		msg.func(msg.args);
 		a->active = false;
 	}
+	(void)msg;
 
 	actorLock( a ); {
 		a->active = false;
