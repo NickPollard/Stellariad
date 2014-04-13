@@ -98,6 +98,7 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 static int numCaches = 0;
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
+	printf( "Generating cache %d %d.\n", uMin, vMin );
 	++numCaches;
 	//printf( "Creating cacheBlock #%d. (%d %d) (lod: %d)\n", numCaches, uMin, vMin, requiredLOD );
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
@@ -168,3 +169,32 @@ void terrainCache_trim( terrainCache* t, int v ) {
 	} vmutex_unlock( &terrainMutex );
 }
 
+void terrainCache_tick( terrainCache* t, float dt, vector sample ) {
+	(void)dt;
+	(void)t;
+	(void)sample;
+	/*
+	float v = from(sample);
+	for ( int u = uMin; u < uMax; ++u ) {
+		if (closeEnough(u, v)) {
+			// generate
+		}
+	}
+	*/
+	/*
+	//printf( "getting cached point for block %d %d.\n", b->uMin, b->vMin );
+	const int r = 4 / lodRatio(b);
+	const int uReal = b->uMin + r*uRelative;
+	const int vReal = b->vMin + r*vRelative;
+	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
+	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
+	const int uMin = uReal - uOffset;
+	const int vMin = vReal - vOffset;
+
+	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
+	if (!cache || cache->lod > b->lod_level)
+		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
+	vector p = cache->positions[uOffset][vOffset];
+	cacheBlockFree( cache );
+	*/
+}

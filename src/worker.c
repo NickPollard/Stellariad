@@ -122,6 +122,7 @@ worker_task task( taskFunc func, void* args ) {
 
 worker_task* taskAlloc( taskFunc func, void* args ) {
 	worker_task* w = mem_alloc( sizeof( worker_task ));
-	*w = task( func, args );
+	const worker_task t = task( func, args );
+	memcpy( w, &t, sizeof(worker_task)); 
 	return w;
 }

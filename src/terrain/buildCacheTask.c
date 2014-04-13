@@ -48,7 +48,10 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	worker_addTask( task( canyonTerrain_workerGenerateBlock, Pair( vertSources, b )));
 }
 void* worker_generateVerts( void* args ) {
+	(void)args;
+	/*
 	generateVerts( _1(args), _2(args) );
+	*/
 	return NULL;
 }
 
@@ -81,7 +84,15 @@ void generatePositions( canyonTerrainBlock* b) {
 	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
 
 	//future_onComplete( buildCache(b), runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
-	worker_addTask( task( worker_generateVerts, Pair( b, vertSources )));
+
+	//future_complete_(future_onComplete( future_create(), runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources ))));
+
+	
+	future* f = future_create();
+	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
+	future_complete_( f );
+
+	//worker_addTask( task( worker_generateVerts, Pair( b, vertSources )));
 }
 
 void* generateVertices_( void* args ) {

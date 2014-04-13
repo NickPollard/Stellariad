@@ -38,12 +38,14 @@ void vthread_yield() {
 
 // Lock a Mutex, preventing other threads from accessing it
 void vmutex_lock( vmutex* mutex ) {
-	pthread_mutex_lock( mutex );
+	int error = pthread_mutex_lock( mutex );
+	vAssert( !error );
 }
 
 // Relinquish the lock on a Mutex, allowing other threads to access it
 void vmutex_unlock( vmutex* mutex ) {
-	pthread_mutex_unlock( mutex );
+	int error = pthread_mutex_unlock( mutex );
+	vAssert( !error );
 }
 
 // Init a non-static mutex

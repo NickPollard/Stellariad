@@ -8,6 +8,7 @@
 #include "collision.h"
 #include "dynamicfog.h"
 #include "font.h"
+#include "future.h"
 #include "input.h"
 #include "log.h"
 #include "lua.h"
@@ -44,7 +45,7 @@
 
 IMPLEMENT_LIST(delegate)
 
-#define kNumWorkerThreads 2
+#define kNumWorkerThreads 1
 
 // System libraries
 
@@ -165,6 +166,8 @@ void engine_tick( engine* e ) {
 		}
 		lua_setActiveState( NULL );
 	}
+
+	futures_tick( dt );
 
 	collision_processResults( e->frame_counter, dt );
 	// Memory barrier?

@@ -42,3 +42,6 @@ void terrainCache_trim( terrainCache* t, int v );
 
 // Free a cacheblock once no longer referenced
 void cacheBlockFree( cacheBlock* b );
+
+// Tick the cache
+void terrainCache_tick( terrainCache* t, float dt, vector sample );

@@ -8,58 +8,93 @@
 
 // TODO - MAKE THREADSAFE!!
 
+vmutex futuresMutex = kMutexInitialiser;
+
 IMPLEMENT_LIST(handler)
 IMPLEMENT_LIST(future)
 
-void future_onComplete( future* f, handler h, void* args ) {
-	if ( f->complete )
-		h( f->value, args );
-	else
-		f->on_complete = handlerlist_cons( &h, f->on_complete ); // TODO - ARGH
+futurelist* futures = NULL;
+
+future* future_onComplete( future* f, handler h, void* args ) {
+	vmutex_lock( &futuresMutex ); {
+		if ( f->complete )
+			h( f->value, args );
+		else {
+			handler* h_copy = mem_alloc(sizeof(handler));
+			*h_copy = h;
+			f->on_complete = handlerlist_cons( h_copy, f->on_complete ); // TODO - ARGH
+		}
+	} vmutex_unlock( &futuresMutex );
+	return f;
 }
 
 void future_delete( future* f ) {
-	handlerlist_delete( f->on_complete );
-	mem_free( f );
+	vmutex_lock( &futuresMutex ); {
+		handlerlist_delete( f->on_complete );
+		mem_free( f );
+	} vmutex_unlock( &futuresMutex );
 }
 
 future* future_create() {
 	future* f = mem_alloc( sizeof( future ));
 	f->complete = false;
 	f->execute = false;
+	futures = futurelist_cons( f, futures );
+	f->on_complete = NULL;
 	return f;
 }
 
 void future_complete( future* f, const void* data ) {
-	vAssert( !f->complete );
-	f->value = data;
-	f->complete = true;
-	f->execute = true;
-	printf( "Future complete! Data: %s\n", (const char*)data );
+	vmutex_lock( &futuresMutex ); {
+		vAssert( !f->complete );
+		f->value = data;
+		f->complete = true;
+		f->execute = true;
+		//printf( "Future complete! Data: %s\n", (const char*)data );
+	} vmutex_unlock( &futuresMutex );
+}
+
+void future_complete_( future* f ) {
+	future_complete( f, NULL );
 }
 
 bool future_tryExecute( future* f ) {
 	if (f->execute) {
 		vAssert( f->complete );
 		f->execute = false;
-		//foreach( f->oncomplete, apply() );
+		for ( handlerlist* hl = f->on_complete; hl; hl = hl->tail )
+			if (hl->head) {
+				handler handlr = *hl->head;
+				(void)handlr;
+				printf( "tryExecute " xPTRf ":" xPTRf "\n", (uintptr_t)f, (uintptr_t)handlr );
+				handlr(f->value, NULL); // TODO - bundle in data!
+			}
 		return true;
 	}
 	return false;
 }
 
-void future_executeFutures() {	/*
-	for ( f : each future ) {
-		future_tryExecute( f );
-	}
-	*/
+void future_executeFutures() {
+	vmutex_lock( &futuresMutex ); {
+		futurelist* fl = futures;
+		while ( fl ) {
+			if ( fl->head )
+				future_tryExecute( fl->head );
+			fl = fl->tail;
+		}
+	} vmutex_unlock( &futuresMutex );
 }
-		
+
+void futures_tick( float dt ) {
+	(void)dt;
+	future_executeFutures();
+}
+
 /*
-	texture* t = new_texture()
-	future* f = new_future()
-	...
-	f->value = t
+   texture* t = new_texture()
+   future* f = new_future()
+   ...
+   f->value = t
 
 	f_tex = load_texture()
 	future_onComplete( f_tex, set_texture )
