@@ -4,7 +4,12 @@
 
 extern vmutex futuresMutex;
 
-typedef void* (*handler)(const void*, void*);
+typedef void* (*handlerfunc)(const void*, void*);
+
+typedef struct handler_s { 
+	handlerfunc func;
+	void* args;
+} handler;
 
 DEF_LIST(handler)
 
@@ -24,7 +29,7 @@ void future_complete( future* f, const void* data );
 
 void future_complete_( future* f );
 
-future* future_onComplete( future* f, handler h, void* args );
+future* future_onComplete( future* f, handlerfunc h, void* args );
 
 future* future_create();
 

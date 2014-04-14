@@ -98,7 +98,7 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 static int numCaches = 0;
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
-	printf( "Generating cache %d %d.\n", uMin, vMin );
+	//printf( "Generating cache %d %d.\n", uMin, vMin );
 	++numCaches;
 	//printf( "Creating cacheBlock #%d. (%d %d) (lod: %d)\n", numCaches, uMin, vMin, requiredLOD );
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here

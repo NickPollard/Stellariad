@@ -15,14 +15,15 @@ IMPLEMENT_LIST(future)
 
 futurelist* futures = NULL;
 
-future* future_onComplete( future* f, handler h, void* args ) {
+future* future_onComplete( future* f, handlerfunc hf, void* args ) {
 	vmutex_lock( &futuresMutex ); {
 		if ( f->complete )
-			h( f->value, args );
+			hf( f->value, args );
 		else {
-			handler* h_copy = mem_alloc(sizeof(handler));
-			*h_copy = h;
-			f->on_complete = handlerlist_cons( h_copy, f->on_complete ); // TODO - ARGH
+			handler* h = mem_alloc(sizeof(handler));
+			h->func = hf;
+			h->args = args;
+			f->on_complete = handlerlist_cons( h, f->on_complete ); // TODO - ARGH
 		}
 	} vmutex_unlock( &futuresMutex );
 	return f;
@@ -66,8 +67,9 @@ bool future_tryExecute( future* f ) {
 			if (hl->head) {
 				handler handlr = *hl->head;
 				(void)handlr;
-				printf( "tryExecute " xPTRf ":" xPTRf "\n", (uintptr_t)f, (uintptr_t)handlr );
-				handlr(f->value, NULL); // TODO - bundle in data!
+				//printf( "tryExecute " xPTRf ":" xPTRf "\n", (uintptr_t)f, (uintptr_t)handlr->func );
+				handlr.func(f->value, handlr.args);
+				//mem_free( handlr.args ); /// TODO - ??
 			}
 		return true;
 	}
@@ -101,24 +103,42 @@ void futures_tick( float dt ) {
 	future_onComplete( lua_callback )
    */
 
-void* completeWith( const void* data, void* f ) {
-	future_complete( f, data );
+void* completeWith( const void* data, void* ff ) {
+	// NOTE - we don't lock here otherwise we hit re-entry
+	future* f = ff;
+	vAssert( !f->complete );
+	f->value = data;
+	f->complete = true;
+	f->execute = true;
 	return NULL;
 }
 
 void future_completeWith( future* f, future* other ) {
-	future_onComplete( f, completeWith, other );
+	future_onComplete( other, completeWith, f );
 }
 
+future* future_onCompleteUNSAFE( future* f, handlerfunc hf, void* args ) {
+	if ( f->complete )
+		hf( f->value, args );
+	else {
+		handler* h = mem_alloc(sizeof(handler));
+		h->func = hf;
+		h->args = args;
+		f->on_complete = handlerlist_cons( h, f->on_complete ); // TODO - ARGH
+	}
+	return f;
+}
+
+// Args -> Pair( future, Pair( func, args ))
 void* deferredOnComplete( const void* data, void* args ) {
 	(void)data;
-	future_onComplete( _1(args), _1(_2(args)), _2(_2(args))); 
+	future_onCompleteUNSAFE( _1(args), _1(_2(args)), _2(_2(args))); 
 	return NULL;
 }
 
 future* futurePair_sequence( future* a, future* b ) {
 	future* f = future_create();
-	future_onComplete( a, deferredOnComplete, Pair(b, Pair(deferredOnComplete, f)) );
+	future_onComplete( a, deferredOnComplete, Pair(b, Pair(completeWith, f)));
 	return f;
 }
 
@@ -129,9 +149,8 @@ future* futures_sequence( futurelist* fs ) {
 		return now;
 	}
 	futurelist* next = fs->tail;
-	if (!next) {
+	if (!next)
 		return fs->head;
-	}
 	future* f = fs->head;
 	while ( next && next->head ) {
 		f = futurePair_sequence( next->head, f );
