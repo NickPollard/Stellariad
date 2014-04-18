@@ -41,34 +41,51 @@ void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uC
 }
 
 void* buildCacheBlockTask(void* args) {
-	canyonTerrainBlock* b = _1(args);
+	canyonTerrainBlock* b = _1(_1(args));
+	future* f = _2(_1(args));
 	int uMin = (uintptr_t)_1(_2(args));
 	int vMin = (uintptr_t)_2(_2(args));
-	printf( "generating cache block %d %d.\n", uMin, vMin );
 
-	//cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	//if (!cache || cache->lod > b->lod_level)
 	canyon* c = b->terrain->canyon;
-	terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
+	// ! only if not exist or lower-lod
+	int found_lod = b->lod_level;
+	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
+	if (!cache || cache->lod > b->lod_level) {
+		terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
+	} else {
+		found_lod = cache->lod;
+	}
 
+	//printf( "Finished generating cache block %d %d.\n", uMin, vMin );
+	void* lod = (void*)(uintptr_t)min(b->lod_level, found_lod);
+	future_complete( f, lod );
 	////cacheBlockFree( cache );
+	mem_free( _1(args) );
 	mem_free( _2(args) );
 	mem_free( args );
 
 	return NULL;
 }
 
-future* generateCache( int u, int v ) {
+future* generateCache( canyonTerrainBlock* b, int u, int v ) {
 	(void)u;(void)v;
 	// If already built, or building, return that future
+	future* f = NULL;
+	bool pending = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, &f);
+	vAssert( f );
 	// else start it building
-	printf( "Generating cache for %d %d.\n", u, v );
-
-
-
-
-	future* f = future_create();
-	future_complete_( f );
+	if (pending) {
+		//f = future_create(); // TODO - SUSPICIOUS!
+		//printf( "Creating block future " xPTRf "\n", (uintptr_t)f);
+		void* uu = (void*)(uintptr_t)u;
+		void* vv = (void*)(uintptr_t)v;
+		worker_addTask( task( buildCacheBlockTask, Pair(Pair(b, f), Pair(uu, vv))));
+	} else {
+		//printf( "Using pending block future " xPTRf "\n", (uintptr_t)f);
+		//if (!f->complete)
+		//	future_complete_(f);
+		//printf( "block already in flight!\n");
+	}
 	return f;
 }
 
@@ -90,6 +107,12 @@ void* worker_generateVerts( void* args ) {
 	return NULL;
 }
 
+void* echo(const void* args, void* args2) {
+	(void)args;(void)args2;
+	//printf( "Finished!\n" );
+	return NULL;
+}
+
 futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	(void)b;
 	//future* f = future_create();
@@ -100,9 +123,10 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	cacheBlockFor( b, b->u_samples, b->v_samples, &cacheMaxU, &cacheMaxV );
 
 	futurelist* fs = NULL;
-	for (int u = cacheMinU; u < cacheMaxU; u+=CacheBlockSize ) {
-		for (int v = cacheMinV; v < cacheMaxV; v+=CacheBlockSize ) {
-			fs = futurelist_cons( generateCache( u, v ), fs );
+	//printf( "Generating range: %d,%d -> %d,%d\n", cacheMinU,cacheMinV, cacheMaxU,cacheMaxV );
+	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize ) {
+		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
+			fs = futurelist_cons( future_onComplete( generateCache( b, u, v ), echo, NULL), fs );
 		}
 	}
 	/*

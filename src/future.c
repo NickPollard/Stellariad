@@ -112,6 +112,16 @@ void* completeWith( const void* data, void* ff ) {
 	f->execute = true;
 	return NULL;
 }
+void* completeWithSequence( const void* data, void* ff ) {
+	// NOTE - we don't lock here otherwise we hit re-entry
+	future* f = ff;
+	vAssert( !f->complete );
+	//printf( "Completing sequenced future " xPTRf "\n", (uintptr_t)f );
+	f->value = data;
+	f->complete = true;
+	f->execute = true;
+	return NULL;
+}
 
 void future_completeWith( future* f, future* other ) {
 	future_onComplete( other, completeWith, f );
@@ -132,30 +142,32 @@ future* future_onCompleteUNSAFE( future* f, handlerfunc hf, void* args ) {
 // Args -> Pair( future, Pair( func, args ))
 void* deferredOnComplete( const void* data, void* args ) {
 	(void)data;
+	//future* f = _1(args);
+	//future* ff = _2(_2(args));
+	//printf( "Setting up future sequence onComplete. " xPTRf " (%s) -> " xPTRf " \n", (uintptr_t)f, f->complete ? "Completed" : "Not Yet Completed", (uintptr_t)ff );
 	future_onCompleteUNSAFE( _1(args), _1(_2(args)), _2(_2(args))); 
 	return NULL;
 }
 
 future* futurePair_sequence( future* a, future* b ) {
 	future* f = future_create();
-	future_onComplete( a, deferredOnComplete, Pair(b, Pair(completeWith, f)));
+	future_onComplete( a, deferredOnComplete, Pair(b, Pair(completeWithSequence, f)));
 	return f;
 }
 
+future* future_(void* value) {
+	future* now = future_create();
+	future_complete( now, value );
+	return now;
+}
+
 future* futures_sequence( futurelist* fs ) {
-	if (!fs) {
-		future* now = future_create();
-		future_complete( now, NULL );
-		return now;
-	}
+	if (!fs)
+		return future_( NULL );
 	futurelist* next = fs->tail;
-	if (!next)
-		return fs->head;
 	future* f = fs->head;
-	while ( next && next->head ) {
+	for ( ; next && next->head; next = next->tail )
 		f = futurePair_sequence( next->head, f );
-		next = next->tail;
-	}
 	return f;
 }
 

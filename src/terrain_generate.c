@@ -62,8 +62,13 @@ vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uRelative, int 
 	const int vMin = vReal - vOffset;
 
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache || cache->lod > b->lod_level)
+	if (!cache || cache->lod > b->lod_level) {
+		if (!cache)
+			printf( "Emergency (MISSING) cache generate! %d %d\n", uMin, vMin );
+		else 
+			printf( "Emergency (LOD) cache generate! %d %d (lod: %d -> %d)\n", uMin, vMin, cache->lod, b->lod_level );
 		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
+	}
 	vector p = cache->positions[uOffset][vOffset];
 	cacheBlockFree( cache );
 	return p;

@@ -23,6 +23,7 @@ typedef struct cacheGrid_s {
 	int uMin;
 	int vMin;
 	cacheBlock* blocks[GridSize][GridSize];
+	future* futures[GridSize][GridSize];
 } cacheGrid;
 
 // *** Terrain Cache
@@ -45,3 +46,5 @@ void cacheBlockFree( cacheBlock* b );
 
 // Tick the cache
 void terrainCache_tick( terrainCache* t, float dt, vector sample );
+
+bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, future** f );

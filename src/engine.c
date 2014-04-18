@@ -45,7 +45,7 @@
 
 IMPLEMENT_LIST(delegate)
 
-#define kNumWorkerThreads 1
+#define kNumWorkerThreads 2
 
 // System libraries
 
@@ -435,11 +435,13 @@ void engine_run(engine* e) {
 
 		// Make sure we don't have too many tasks outstanding - ideally this should never get this high
 		// Prevents an eventual overflow assertion
+		/*
 		while ( worker_task_count > 400 ) {
 			usleep( 2 );
 		}
+		*/
 #ifndef ANDROID
-		usleep( 10000 );
+		//usleep( 10000 );
 #endif
 
 #if PROFILE_ENABLE

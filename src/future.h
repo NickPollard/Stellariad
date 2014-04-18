@@ -13,13 +13,13 @@ typedef struct handler_s {
 
 DEF_LIST(handler)
 
-typedef struct future_s {
+struct future_s {
 	const void* value;
 	bool complete;
 	bool execute;
 	handlerlist* on_complete;
 	// TODO - GarbageCollect
-} future;
+};
 
 DEF_LIST(future)
 
