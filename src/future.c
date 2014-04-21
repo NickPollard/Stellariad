@@ -53,7 +53,6 @@ void future_complete( future* f, const void* data ) {
 		f->value = data;
 		f->complete = true;
 		f->execute = true;
-		//printf( "Future complete! Data: %s\n", (const char*)data );
 	} vmutex_unlock( &futuresMutex );
 }
 
@@ -108,7 +107,6 @@ void* completeWithSequence( const void* data, void* ff ) {
 	// NOTE - we don't lock here otherwise we hit re-entry
 	future* f = ff;
 	vAssert( !f->complete );
-	//printf( "Completing sequenced future " xPTRf "\n", (uintptr_t)f );
 	f->value = data;
 	f->complete = true;
 	f->execute = true;
@@ -134,16 +132,12 @@ future* future_onCompleteUNSAFE( future* f, handlerfunc hf, void* args ) {
 // Args -> Pair( future, Pair( func, args ))
 void* deferredOnComplete( const void* data, void* args ) {
 	(void)data;
-	//future* f = _1(args);
-	//future* ff = _2(_2(args));
-	//printf( "Setting up future sequence onComplete. " xPTRf " (%s) -> " xPTRf " \n", (uintptr_t)f, f->complete ? "Completed" : "Not Yet Completed", (uintptr_t)ff );
 	future_onCompleteUNSAFE( _1(args), _1(_2(args)), _2(_2(args))); 
 	return NULL;
 }
 
 future* futurePair_sequence( future* a, future* b ) {
 	future* f = future_create();
-	//printf( "future pair sequence onComplete. " xPTRf ", " xPTRf " -> " xPTRf "\n", (uintptr_t)a, (uintptr_t)b, (uintptr_t)f );
 	future_onComplete( a, deferredOnComplete, Pair(b, Pair(completeWithSequence, f)));
 	return f;
 }

@@ -52,7 +52,7 @@ future* generateCache( canyonTerrainBlock* b, int u, int v ) {
 	(void)u;(void)v;
 	// If already built, or building, return that future
 	future* f = NULL;
-#if 0
+#if 1
 	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, &f);
 #else
 	bool empty = true;
