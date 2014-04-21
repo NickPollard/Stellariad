@@ -40,8 +40,10 @@ future* future_create() {
 	future* f = mem_alloc( sizeof( future ));
 	f->complete = false;
 	f->execute = false;
-	futures = futurelist_cons( f, futures );
 	f->on_complete = NULL;
+	vmutex_lock( &futuresMutex ); {
+		futures = futurelist_cons( f, futures );
+	} vmutex_unlock( &futuresMutex );
 	return f;
 }
 
@@ -61,6 +63,7 @@ void future_complete_( future* f ) {
 
 bool future_tryExecute( future* f ) {
 	if (f->execute) {
+		//printf( "Executing future " xPTRf "\n", (uintptr_t)f );
 		vAssert( f->complete );
 		f->execute = false;
 		for ( handlerlist* hl = f->on_complete; hl; hl = hl->tail )
@@ -91,17 +94,6 @@ void futures_tick( float dt ) {
 	(void)dt;
 	future_executeFutures();
 }
-
-/*
-   texture* t = new_texture()
-   future* f = new_future()
-   ...
-   f->value = t
-
-	f_tex = load_texture()
-	future_onComplete( f_tex, set_texture )
-	future_onComplete( lua_callback )
-   */
 
 void* completeWith( const void* data, void* ff ) {
 	// NOTE - we don't lock here otherwise we hit re-entry
@@ -151,6 +143,7 @@ void* deferredOnComplete( const void* data, void* args ) {
 
 future* futurePair_sequence( future* a, future* b ) {
 	future* f = future_create();
+	//printf( "future pair sequence onComplete. " xPTRf ", " xPTRf " -> " xPTRf "\n", (uintptr_t)a, (uintptr_t)b, (uintptr_t)f );
 	future_onComplete( a, deferredOnComplete, Pair(b, Pair(completeWithSequence, f)));
 	return f;
 }
@@ -177,4 +170,11 @@ void* runTask( const void* input, void* args ) {
 	worker_addTask( *tsk );
 	mem_free( tsk );
 	return NULL;
+}
+
+void debugPrintFutures() {
+	for ( futurelist* fs = futures; fs && fs->head; fs = fs->tail ) {
+		if ( !fs->head->complete )
+		printf( "Future " xPTRf " incomplete.\n", (uintptr_t)fs->head );
+	}
 }

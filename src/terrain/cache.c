@@ -211,19 +211,19 @@ void terrainCache_tick( terrainCache* t, float dt, vector sample ) {
 }
 
 bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, future** f ) {
-	bool pending = false;
+	bool empty = false;
 	vmutex_lock( &terrainMutex ); {
 		cacheGrid* g = cachedGrid( cache, uMin, vMin );
 		if (!g)
 			g = terrainCacheAddGrid( cache, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
 		future* fut = g ? g->futures[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] : NULL;
-		pending = !fut;
-		if (pending) {
+		empty = !fut;
+		if (empty) {
 			fut = future_create();
 			g->futures[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] = fut;
 		}
 		*f = fut;
 	} vmutex_unlock( &terrainMutex );
-	return pending;
+	return empty;
 }
 

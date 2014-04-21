@@ -21,6 +21,7 @@ android_profile_results
 profile_results
 android_gmon.out
 gmon.out
+memlog
 
 #android local properties
 android/gen/R.java.d
@@ -31,3 +32,4 @@ log.txt
 
 #ctags
 vitae.tags
+
