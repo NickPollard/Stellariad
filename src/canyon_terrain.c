@@ -74,6 +74,9 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t ) {
 				}
 			}
 
+	canyonTerrainBlock** blocks = stackArray( canyonTerrainBlock*, t->total_block_count );
+	int blockCount = 0;
+	//float time = timer_getDelta( scratch_timer );
 			for ( int v = 0; v < t->v_block_count; v++ ) {
 				for ( int u = 0; u < t->u_block_count; u++ ) {
 					absolute uu = Absolute(bounds[0][0] + u);
@@ -86,10 +89,20 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t ) {
 					const int newLOD = canyonTerrain_lodLevelForBlock( c, t, uu, vv );
 					if ( !boundsContains( intersection, coord ) || t->firstUpdate || newLOD < oldLOD ) {
 						canyonTerrainBlock* b = newBlock( t, uu, vv );
-						tell( b->actor, generateVertices( b ));
+						//tell( b->actor, generateVertices( b ));
+						blocks[blockCount++] = b;
 					}
 				}
 			}
+	//time = timer_getDelta( scratch_timer );
+	//printf( "Canyon blocks create %6.5f\n", time );
+			for ( int i = 0; i < blockCount; ++i ) {
+				canyonTerrainBlock* b = blocks[i];
+				tell( b->actor, generateVertices( b ));
+			}
+	//time = timer_getDelta( scratch_timer );
+	//printf( "Canyon blocks tel %6.5f\n", time );
+
 
 			memcpy( t->bounds, bounds, sizeof( int ) * 2 * 2 );
 			memcpy( t->blocks, newBlocks, sizeof( canyonTerrainBlock* ) * t->total_block_count );
@@ -99,7 +112,7 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t ) {
 }
 
 canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v ) {
-	canyonTerrainBlock* b = mem_alloc( sizeof( canyonTerrainBlock ));
+	canyonTerrainBlock* b = mem_alloc( sizeof( canyonTerrainBlock )); // TODO - expensive mem_alloc? Need a canyonTerrainBlock pool?
 	memset( b, 0, sizeof( canyonTerrainBlock ));
 	b->u_samples = t->uSamplesPerBlock;
 	b->v_samples = t->vSamplesPerBlock;

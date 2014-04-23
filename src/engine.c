@@ -45,7 +45,7 @@
 
 IMPLEMENT_LIST(delegate)
 
-#define kNumWorkerThreads 4
+#define kNumWorkerThreads 1
 
 // System libraries
 
@@ -72,6 +72,7 @@ void engine_inputInputs( engine* e );
 graph* fpsgraph; 
 graphData* fpsdata;
 frame_timer* fps_timer;
+frame_timer* scratch_timer;
 #endif // GRAPH_FPS
 
 void test_engine_init( engine* e ) {
@@ -84,6 +85,7 @@ void test_engine_init( engine* e ) {
 	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
 	fpsgraph = graph_new( fpsdata, 100, 100, 480, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
 	fps_timer = vtimer_create();
+	scratch_timer = vtimer_create();
 #endif //GRAPH_FPS
 }
 
@@ -419,6 +421,8 @@ void engine_run(engine* e) {
 			static int framecount = 0;
 			++framecount;
 			graphData_append( fpsdata, (float)framecount, dt );
+			printf( "CPU Delta %6.5f\n", dt );
+
 #endif // GRAPH_FPS
 			engine_waitForRenderThread();
 #ifdef GRAPH_FPS

@@ -23,7 +23,7 @@
 
 #define DEBUG_LUA false
 
-#if 1
+#if 0
 #define GRAPH_GPU_FPS
 #define GRAPH_FPS
 #endif
@@ -33,6 +33,10 @@ extern scene* theScene;
 extern float depth;
 
 extern int threadsignal_render;
+
+#ifdef GRAPH_FPS
+extern frame_timer* scratch_timer;
+#endif
 
 DEF_LIST(delegate)
 #define kDefaultDelegateSize 16
@@ -144,6 +148,7 @@ void stopPostTick( engine* e, void* entity, tickfunc tick );
 
 // *** Array funcs
 int array_find( void** array, int count, void* ptr );
+#define arrayAdd( a, b, c ) array_add( (void**)(a), (b), (c) )
 void array_add( void** array, int* count, void* ptr );
 void array_remove( void** array, int* count, void* ptr );
 

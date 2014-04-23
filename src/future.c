@@ -2,6 +2,7 @@
 #include "common.h"
 #include "future.h"
 //--------------------------------------------------------
+#include "engine.h"
 #include "worker.h"
 #include "base/pair.h"
 #include "mem/allocator.h"
@@ -13,7 +14,10 @@ vmutex futuresMutex = kMutexInitialiser;
 IMPLEMENT_LIST(handler)
 IMPLEMENT_LIST(future)
 
-futurelist* futures = NULL;
+//futurelist* futures = NULL;
+#define MaxFutures 1024
+int futureCount = 0;
+future* futures[MaxFutures];
 
 future* future_onComplete( future* f, handlerfunc hf, void* args ) {
 	vmutex_lock( &futuresMutex ); {
@@ -42,7 +46,8 @@ future* future_create() {
 	f->execute = false;
 	f->on_complete = NULL;
 	vmutex_lock( &futuresMutex ); {
-		futures = futurelist_cons( f, futures );
+		arrayAdd(&futures, &futureCount, f );
+		//futures = futurelist_cons( f, futures );
 	} vmutex_unlock( &futuresMutex );
 	return f;
 }
@@ -80,12 +85,9 @@ bool future_tryExecute( future* f ) {
 
 void future_executeFutures() {
 	vmutex_lock( &futuresMutex ); {
-		futurelist* fl = futures;
-		while ( fl ) {
-			if ( fl->head )
-				future_tryExecute( fl->head );
-			fl = fl->tail;
-		}
+		// TODO - cleanup
+		for ( int i = 0; i < futureCount; ++i )
+			future_tryExecute( futures[i] );
 	} vmutex_unlock( &futuresMutex );
 }
 
@@ -167,8 +169,10 @@ void* runTask( const void* input, void* args ) {
 }
 
 void debugPrintFutures() {
+	/*
 	for ( futurelist* fs = futures; fs && fs->head; fs = fs->tail ) {
 		if ( !fs->head->complete )
 		printf( "Future " xPTRf " incomplete.\n", (uintptr_t)fs->head );
 	}
+	*/
 }

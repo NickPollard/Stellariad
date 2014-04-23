@@ -30,6 +30,7 @@ float shelf( float n, float shelf, float force ) {
 }
 
 float terrain_detailHeight( float u, float v ) {
+	return 0.f;
 	(void)u;(void)v;
 	float scale = 1.f;
 	float amplitude = 16.f;

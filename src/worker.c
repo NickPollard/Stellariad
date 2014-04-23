@@ -15,14 +15,11 @@ worker_task worker_immediate_tasks[kMaxWorkerTasks];
 
 // TODO worker task adding/removing should be lock free
 void worker_addTask( worker_task t ) {
-	vmutex_lock( &worker_task_mutex );
-	{
+	vmutex_lock( &worker_task_mutex ); {
 		vAssert( worker_task_count < kMaxWorkerTasks );
-		//printf("Adding worker task\n");
 		worker_tasks[worker_task_count++] = t;
 		vthread_broadcastCondition( work_exists );
-	}
-	vmutex_unlock( &worker_task_mutex );
+	} vmutex_unlock( &worker_task_mutex );
 }
 
 worker_task worker_nextTask() {

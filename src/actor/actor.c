@@ -21,10 +21,10 @@ struct actor_s {
 void	actorPush( ActorRef a, Msg m );
 Msg		actorNextTask( ActorRef a );
 void*	runSystem( void* args );
+void*	dummyTask( void* args );
 // //
 
 void actorSystem_add( actorSystem* system, ActorRef a ) {
-	// TODO - This should be thread-safe WRT the ActorSystem
 	vmutex_lock( &system->mutex ); {
 		vAssert( system->count + 1 < MaxActors );
 		system->actors[system->count++] = a;
@@ -61,6 +61,7 @@ void tell( ActorRef a, Msg m ) {
 		actorPush( a, m );
 	} actorUnlock( a );
 	worker_addTask( task( runSystem, a->system ));
+	//worker_addTask( task( dummyTask, a->system ));
 }
 
 void actorReceive( ActorRef a ) {
@@ -141,4 +142,8 @@ void* runSystem( void* system ) {
 	ActorRef a = systemNext( system );
 	actorReceive( a );
 	return NULL;
+}
+
+void* dummyTask( void* system ) {
+	return system;
 }

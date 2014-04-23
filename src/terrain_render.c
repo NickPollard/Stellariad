@@ -340,7 +340,7 @@ void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 }
 
 terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
-	terrainRenderable* r = mem_alloc( sizeof( terrainRenderable ));
+	terrainRenderable* r = mem_alloc( sizeof( terrainRenderable )); // TODO - Expensive mem_alloc? Another pool?
 	memset( r, 0, sizeof( terrainRenderable ));
 	r->block = b;
 	return r;

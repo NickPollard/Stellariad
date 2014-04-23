@@ -13,7 +13,7 @@ local shouldDespawn
 shouldDespawn = function(canyon, upto)
   return function(doodad)
     return vtransform_getWorldPosition(doodad.transform):map(function(p)
-      local unused, v = vcanyon_fromWorld(canyon, p)
+      local v = 0.0
       return v < upto
     end):getOrElse(true)
   end
@@ -121,7 +121,6 @@ end
 doodads.spawned = 0.0
 doodads.update = function(canyon, transform)
   if canyon ~= nil then
-    vprint("Updating doodads.")
     return trans_worldPos(transform):foreach(function(p)
       local spawn_upto = (vcanyonV_atWorld(canyon, p)) + doodads.spawn_distance
       doodads.spawnRange(canyon, doodads.spawned, spawn_upto)

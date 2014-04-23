@@ -49,37 +49,22 @@ void* buildCacheBlockTask(void* args) {
 }
 
 future* generateCache( canyonTerrainBlock* b, int u, int v ) {
-	(void)u;(void)v;
 	// If already built, or building, return that future
 	future* f = NULL;
-#if 1
 	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, &f);
-#else
-	bool empty = true;
-	f = future_create();
-#endif
 	vAssert( f );
 	// else start it building
 	if (empty) {
-		//printf( "Creating block future " xPTRf "\n", (uintptr_t)f);
 		void* uu = (void*)(uintptr_t)u;
 		void* vv = (void*)(uintptr_t)v;
 		worker_addTask( task( buildCacheBlockTask, Pair(Pair(b, f), Pair(uu, vv))));
-	} else {
-		//printf( "Using pending block future " xPTRf "\n", (uintptr_t)f);
-		//if (!f->complete)
-		//	future_complete_(f);
-		//printf( "block already in flight!\n");
 	}
 	return f;
 }
 
-/*
-   At this point all the terrain caches should be filled,
-   so we can just use them safely
-   */
+/* At this point all the terrain caches should be filled,
+   so we can just use them safely */
 void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources ) {
-	//printf( "Finish build terrainBlock %d %d.\n", b->u.coord, b->v.coord );
 	vector* verts = vertSources->positions;
 	for ( int v = -1; v < b->v_samples + 1; ++v )
 		for ( int u = -1; u < b->u_samples + 1; ++u )
@@ -93,11 +78,6 @@ void* worker_generateVerts( void* args ) {
 	return NULL;
 }
 
-void* echo(const void* args, void* args2) {
-	(void)args;(void)args2;
-	//printf( "Finished!\n" );
-	return NULL;
-}
 
 futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
@@ -133,10 +113,8 @@ void generatePositions( canyonTerrainBlock* b) {
 	vertSources->vCount = b->v_samples + 2;
 	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
 
-	//printf( "Starting to build terrainBlock %d %d.\n", b->u.coord, b->v.coord );
 	future* f = buildCache( b );
 	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
-	//future_complete_(future_onComplete( future_create(), runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources ))));
 }
 
 void* generateVertices_( void* args ) {

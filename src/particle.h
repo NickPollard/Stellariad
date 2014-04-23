@@ -3,8 +3,10 @@
 #include "maths/maths.h"
 #include "render/render.h"
 
+#ifdef DEBUG
 //#define DEBUG_PARTICLE_LIVENESS_TEST
 #define DEBUG_PARTICLE_SOURCES
+#endif
 
 #define kMaxParticles 128
 #define kMaxParticleVerts (kMaxParticles * 6)
