@@ -24,10 +24,10 @@ void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uC
 }
 
 void* buildCacheBlockTask(void* args) {
-	canyonTerrainBlock* b = _1(_1(args));
-	future* f = _2(_1(args));
-	int uMin = (uintptr_t)_1(_2(args));
-	int vMin = (uintptr_t)_2(_2(args));
+	canyonTerrainBlock* b = _1(args);
+	future* f = _2(args);
+	int uMin = (uintptr_t)_3(args);
+	int vMin = (uintptr_t)_4(args);
 
 	canyon* c = b->terrain->canyon;
 	// ! only if not exist or lower-lod
@@ -41,8 +41,6 @@ void* buildCacheBlockTask(void* args) {
 	void* lod = (void*)(uintptr_t)min(b->lod_level, found_lod);
 	future_complete( f, lod );
 	////cacheBlockFree( cache );
-	mem_free( _1(args) );
-	mem_free( _2(args) );
 	mem_free( args );
 
 	return NULL;
@@ -57,7 +55,7 @@ future* generateCache( canyonTerrainBlock* b, int u, int v ) {
 	if (empty) {
 		void* uu = (void*)(uintptr_t)u;
 		void* vv = (void*)(uintptr_t)v;
-		worker_addTask( task( buildCacheBlockTask, Pair(Pair(b, f), Pair(uu, vv))));
+		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
 	return f;
 }
@@ -73,8 +71,8 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	worker_addTask( task( canyonTerrain_workerGenerateBlock, Pair( vertSources, b )));
 }
 void* worker_generateVerts( void* args ) {
-	(void)args;
 	generateVerts( _1(args), _2(args) );
+	mem_free(args);
 	return NULL;
 }
 
@@ -86,14 +84,17 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 
 	futurelist* fs = NULL;
 	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
-		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize )
-			fs = futurelist_cons( generateCache( b, u, v ), fs );
+		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
+			future* f = generateCache( b, u, v );
+			if ( !f->complete )
+				fs = futurelist_cons( f, fs );
+		}
 	return fs;
 }
 
 void* buildCacheTask( void* args ) {
-	future* f = _2(args);
-	future_completeWith( f, futures_sequence( generateAllCaches( _1(args) )));
+	future_completeWith( _2(args), futures_sequence( generateAllCaches( _1(args) )));
+	mem_free(args);
 	return NULL;
 }
 

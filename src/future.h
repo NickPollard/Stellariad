@@ -18,6 +18,9 @@ struct future_s {
 	bool complete;
 	bool execute;
 	handlerlist* on_complete;
+	// Memory optimization; we have one handler&list inline
+	handlerlist hl;
+	handler h;
 	// TODO - GarbageCollect
 };
 
@@ -25,7 +28,7 @@ DEF_LIST(future)
 
 bool future_tryExecute( future* f );
 
-void future_complete( future* f, const void* data );
+future* future_complete( future* f, const void* data );
 
 void future_complete_( future* f );
 

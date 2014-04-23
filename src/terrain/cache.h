@@ -3,7 +3,7 @@
 #include "maths/vector.h"
 #include "base/list.h"
 
-#define CacheBlockSize 64
+#define CacheBlockSize 32
 #define GridSize 16
 #define GridCapacity (CacheBlockSize * GridSize)
 

@@ -71,8 +71,8 @@ float perlin( float u, float v ) {
 	const float c = noiseTexture[ iuu  ][ ivv_ ];
 	const float d = noiseTexture[ iuu_ ][ ivv_ ];
 
-	return sinerp( sinerp( a, b, fu ),
-					sinerp( c, d, fu ),
+	return lerp( lerp( a, b, fu ),
+					lerp( c, d, fu ),
 					fv );
 }
 

@@ -5,6 +5,8 @@
 #include "render/render.h"
 #include "system/thread.h"
 
+#define PoolMaxBlocks 512
+
 #define CANYON_TERRAIN_INDEXED 1
 
 #define kMaxTerrainBlockWidth 80

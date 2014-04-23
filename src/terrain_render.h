@@ -15,4 +15,7 @@ void terrainBlock_initVBO( canyonTerrainBlock* b );
 
 void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b );
 int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b );
-terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b );
+
+// *** Terrain Renderable
+terrainRenderable*	terrainRenderable_create( canyonTerrainBlock* b );
+void				terrainRenderable_delete( terrainRenderable* r );

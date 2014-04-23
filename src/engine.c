@@ -45,7 +45,7 @@
 
 IMPLEMENT_LIST(delegate)
 
-#define kNumWorkerThreads 1
+#define kNumWorkerThreads 4
 
 // System libraries
 

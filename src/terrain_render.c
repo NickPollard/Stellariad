@@ -18,16 +18,14 @@ texture* terrain_texture_cliff = NULL;
 texture* terrain_texture_2 = NULL;
 texture* terrain_texture_cliff_2 = NULL;
 
+DECLARE_POOL(terrainRenderable)
+IMPLEMENT_POOL(terrainRenderable)
+pool_terrainRenderable* static_renderable_pool = NULL;
+
 // ***
 unsigned short elementBuffer[kMaxTerrainBlockElements];
 
 void initialiseDefaultElementBuffer( ) { for ( int i = 0; i < kMaxTerrainBlockElements; i++ ) elementBuffer[i] = i; }
-
-void canyonTerrain_staticInit() {
-	initialiseDefaultElementBuffer();
-
-	canyonTerrain_renderInit();
-}
 
 // Mod the texcoord to a sensible value, based on the terrain block coords
 // Used to stop our UV coordinates getting so big that floating point rounding issues cause aliasing in the texture
@@ -68,6 +66,8 @@ int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b ) {
 }
 
 void canyonTerrain_renderInit() {
+	static_renderable_pool = pool_terrainRenderable_create( PoolMaxBlocks );
+	initialiseDefaultElementBuffer();
 	if ( !terrain_texture ) 		{ terrain_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
 	if ( !terrain_texture_cliff )	{ terrain_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
 	if ( !terrain_texture_2 )		{ terrain_texture_2		= texture_load( "dat/img/terrain/ground_industrial.tga" ); }
@@ -240,9 +240,9 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 		r->element_VBO_alt = NULL;
 	}
 
-	vector frustum[6];
-	camera_calculateFrustum( s->cam, frustum );
-	if ( frustum_cull( &r->bb, frustum ) )
+	//vector frustum[6];
+	//camera_calculateFrustum( s->cam, frustum );
+	if ( frustum_cull( &r->bb, s->cam->frustum ) )
 		return false;
 
 	int zone = b->canyon->current_zone;
@@ -271,6 +271,7 @@ void canyonTerrain_render( void* data, scene* s ) {
 		if ( t->blocks[i] )
 			count += canyonTerrainBlock_render( t->blocks[i], s );
 	}
+	//printf( "Rendering %d out of %d blocks.\n", count, t->total_block_count );
 }
 
 void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals ) {
@@ -340,8 +341,12 @@ void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 }
 
 terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
-	terrainRenderable* r = mem_alloc( sizeof( terrainRenderable )); // TODO - Expensive mem_alloc? Another pool?
+	terrainRenderable* r = pool_terrainRenderable_allocate( static_renderable_pool ); 
 	memset( r, 0, sizeof( terrainRenderable ));
 	r->block = b;
 	return r;
+}
+
+void terrainRenderable_delete( terrainRenderable* r ) {
+	pool_terrainRenderable_free( static_renderable_pool, r );
 }

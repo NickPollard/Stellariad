@@ -31,6 +31,19 @@ void				canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrai
 int					canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, absolute u, absolute v );
 
 // ***
+
+DECLARE_POOL(canyonTerrainBlock)
+IMPLEMENT_POOL(canyonTerrainBlock)
+
+pool_canyonTerrainBlock* static_block_pool = NULL;
+
+void canyonTerrain_staticInit() {
+	static_block_pool = pool_canyonTerrainBlock_create( PoolMaxBlocks );
+
+	canyonTerrain_renderInit();
+}
+
+// ***
 int canyonTerrain_blockIndexFromUV( canyonTerrain* t, int u, int v ) { return u + v * t->u_block_count; }
 int canyonTerrain_blockIndexFromAbsoluteUV( canyonTerrain* t, absolute u, absolute v ) { return u.coord - t->bounds[0][0] + (v.coord - t->bounds[0][1]) * t->u_block_count; }
 
@@ -112,7 +125,8 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t ) {
 }
 
 canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v ) {
-	canyonTerrainBlock* b = mem_alloc( sizeof( canyonTerrainBlock )); // TODO - expensive mem_alloc? Need a canyonTerrainBlock pool?
+	//canyonTerrainBlock* b = mem_alloc( sizeof( canyonTerrainBlock )); // TODO - expensive mem_alloc? Need a canyonTerrainBlock pool?
+	canyonTerrainBlock* b = pool_canyonTerrainBlock_allocate( static_block_pool ); 
 	memset( b, 0, sizeof( canyonTerrainBlock ));
 	b->u_samples = t->uSamplesPerBlock;
 	b->v_samples = t->vSamplesPerBlock;
@@ -131,9 +145,9 @@ void deleteBlock( canyonTerrainBlock* b ) {
 		canyonTerrain_freeElementBuffer( b->terrain, b->renderable->element_buffer );
 		canyonTerrain_freeVertexBuffer( b->terrain, (unsigned short*)b->renderable->vertex_buffer );
 		terrainBlock_removeCollision( b );
-		mem_free( b->renderable );
 		stopActor( b->actor );
-		mem_free( b ); 
+		terrainRenderable_delete( b->renderable );
+		pool_canyonTerrainBlock_free( static_block_pool, b );
 	}
 }
 
