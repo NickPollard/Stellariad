@@ -42,6 +42,7 @@ bool isNormalized( const vector* v );
 
 void vector_scale( vector* dst, vector* src, float scale );
 vector vector_lerp( const vector* from, const vector* to, float amount );
+vector veclerp( const vector from, const vector to, float amount );
 
 vector vector_mul( vector* a, vector* b );
 vector vector_max( vector* a, vector* b );

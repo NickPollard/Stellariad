@@ -10,9 +10,7 @@ struct vertPositions_s {
 };
 
 void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources );
-// TODO
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
-vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
 
 // Total number of real (not rendered) verts in this block
 int vertCount( canyonTerrainBlock* b );

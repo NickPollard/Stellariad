@@ -85,6 +85,7 @@ bool future_tryExecute( future* f ) {
 				//printf( "tryExecute " xPTRf ":" xPTRf "\n", (uintptr_t)f, (uintptr_t)handlr->func );
 				handlr.func(f->value, handlr.args);
 				//mem_free( handlr.args ); /// TODO - ??
+				arrayRemove(&futures, &futureCount, f );
 			}
 		return true;
 	}

@@ -161,6 +161,18 @@ vector vector_lerp( const vector* from, const vector* to, float amount ) {
 	return v;
 }
 
+vector veclerp( const vector from, const vector to, float amount ) {
+	vector v;
+	float inv = 1.f - amount;
+	v.coord.x = from.coord.x * inv + to.coord.x * amount;
+	v.coord.y = from.coord.y * inv + to.coord.y * amount;
+	v.coord.z = from.coord.z * inv + to.coord.z * amount;
+	v.coord.w = from.coord.w * inv + to.coord.w * amount;
+	return v;
+}
+
+
+
 vector vector_mul( vector* a, vector* b ) {
 	vector v;
 	v.coord.x = a->coord.x * b->coord.x;

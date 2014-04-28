@@ -105,21 +105,35 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 static int numCaches = 0;
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
-	//printf( "Generating cache %d %d.\n", uMin, vMin );
 	requiredLOD = 0; // TODO - Don't do this
 	++numCaches;
-	//printf( "Creating cacheBlock #%d. (%d %d) (lod: %d)\n", numCaches, uMin, vMin, requiredLOD );
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
 	b->vMin = vMin;
 	b->lod = requiredLOD;
 	int lod = max( 1, 2 * requiredLOD );
+#define LodVerts (CacheBlockSize / 4 + 1)
+	vector worldSpace[LodVerts][LodVerts];
+	for ( int vOffset = 0; vOffset < LodVerts; ++vOffset ) {
+		for ( int uOffset = 0; uOffset < LodVerts; ++uOffset ) {
+			float u, v, x, z;
+			terrain_positionsFromUV( t, uMin + uOffset*4, vMin + vOffset*4, &u, &v );
+			terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
+			worldSpace[uOffset][vOffset] = Vector(x, 0.f, z, 0.f);
+		}
+	}
 	for ( int vOffset = 0; vOffset < CacheBlockSize; vOffset+=lod ) {
 		for ( int uOffset = 0; uOffset < CacheBlockSize; uOffset+=lod ) {
-			float u, v, x, z;
+			float u, v;
 			terrain_positionsFromUV( t, uMin + uOffset, vMin + vOffset, &u, &v );
-			terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
-			b->positions[uOffset][vOffset] = Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
+			vector A = worldSpace[uOffset / 4][vOffset / 4];
+			vector B = worldSpace[uOffset / 4][vOffset / 4 + 1];
+			vector C = worldSpace[uOffset / 4 + 1][vOffset / 4];
+			vector D = worldSpace[uOffset / 4 + 1][vOffset / 4 + 1];
+			float uLerp = (float)(uOffset % 4) / 4.f;
+			float vLerp = (float)(vOffset % 4) / 4.f;
+			vector vec = veclerp(veclerp( A, B, vLerp), veclerp( C, D, vLerp), uLerp);
+			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyonTerrain_sampleUV( u, v ), vec.coord.z, 1.f );
 		}
 	}
 	b->refCount = 1;

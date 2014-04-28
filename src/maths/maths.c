@@ -18,12 +18,6 @@ float fclamp( float a, float bottom, float top ) {
 	return fminf( fmaxf( a, bottom), top);
 }
 
-/*
-float fmod( float f, float m ) {
-	return f - (floorf( f / m ) * m);
-}
-*/
-
 // Return the fractional part of f
 double fract( double d ) {
 	return d - floor( d );

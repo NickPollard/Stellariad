@@ -14,61 +14,20 @@ int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_sa
 // Adjusted as we have a 1-vert margin for normal calculation at edges
 int indexFromUV( canyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
-/*
-vector normalForUV( vertPositions* p, int u, int v ) {
-	NYI;
-	vector top,bottom,left,right;
-	vector a, b, c, x, y;
-	// Calculate vertical vector - Take cross product to calculate normals
-	Sub( &a, &bottom, &top );
-	Cross( &x, &a, &y_axis );
-	Cross( &b, &x, &a );
-
-	// Calculate horizontal vector - Take cross product to calculate normals
-	Sub( &a, &right, &left );
-	Cross( &y, &a, &y_axis );
-	Cross( &c, &y, &a );
-
-	// Make sure these can be RESTRICT
-	Normalize( &b, &b );
-	Normalize( &c, &c );
-
-	vector total;
-	Add( &total, &b, &c );
-	total.coord.w = 0.f;
-	Normalize( &total, &total );
-	return total;
-}
-*/
-
-/*
-vector terrainPoint( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex ) {
-	float u, v, x, z;
-	const float r = 4 / lodRatio(b);
-	terrain_positionsFromUV( b->terrain, r*uIndex + b->uMin, r*vIndex + b->vMin, &u, &v );
-	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
-	return Vector( x, canyonTerrain_sampleUV( u, v ), z, 1.f );
-}
-*/
-
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uRelative, int vRelative ) {
-	//printf( "getting cached point for block %d %d.\n", b->uMin, b->vMin );
 	const int r = 4 / lodRatio(b);
 	const int uReal = b->uMin + r*uRelative;
 	const int vReal = b->vMin + r*vRelative;
 	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
 	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
+	//const int uOffset = minPeriod( uReal, CacheBlockSize ); // TODO - fix this
+	//const int vOffset = minPeriod( vReal, CacheBlockSize );
 	const int uMin = uReal - uOffset;
 	const int vMin = vReal - vOffset;
 
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache || cache->lod > b->lod_level) {
-		if (!cache)
-			printf( "Emergency (MISSING) cache generate! %d %d\n", uMin, vMin );
-		else 
-			printf( "Emergency (LOD) cache generate! %d %d (lod: %d -> %d)\n", uMin, vMin, cache->lod, b->lod_level );
+	if (!cache || cache->lod > b->lod_level)
 		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
-	}
 	vector p = cache->positions[uOffset][vOffset];
 	cacheBlockFree( cache );
 	return p;
@@ -94,11 +53,9 @@ void vertPositions_delete( vertPositions* vs ) {
 
 // Hopefully this should just be hitting the cache we were given
 void generatePoints( canyonTerrainBlock* b, vertPositions* vertSources, vector* verts ) {
-	for ( int vRelative = -1; vRelative < b->v_samples +1; ++vRelative ) {
-		for ( int uRelative = -1; uRelative < b->u_samples +1; ++uRelative ) {
+	for ( int vRelative = -1; vRelative < b->v_samples +1; ++vRelative )
+		for ( int uRelative = -1; uRelative < b->u_samples +1; ++uRelative )
 			verts[indexFromUV(b, uRelative, vRelative)] = pointForUV(vertSources,uRelative,vRelative);
-		}
-	}
 }
 
 vector lodV( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio ) {
@@ -127,16 +84,6 @@ void lodVectors( canyonTerrainBlock* b, vector* vectors) {
 		}
 	}
 }
-
-/*
-void generateNormals() {
-	for ( int u = 0; u < b->u_max; ++u ) {
-		for ( int v = 0; v < b->v_max; ++v ) {
-			normals[u][v] = normalForUV(u,v);
-		}
-	}
-}
-*/
 
 // Generate Normals
 void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals ) {
