@@ -5,7 +5,7 @@
 #include "render/render.h"
 #include "system/thread.h"
 
-#define PoolMaxBlocks 512
+#define PoolMaxBlocks 768
 
 #define CANYON_TERRAIN_INDEXED 1
 
@@ -42,6 +42,8 @@ struct canyonTerrainBlock_s {
 	ActorRef actor;
 
 	terrainRenderable* renderable;
+	engine* engine;
+	future* ready;
 };
 
 struct terrainRenderable_s {

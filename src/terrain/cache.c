@@ -104,6 +104,21 @@ cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 
 static int numCaches = 0;
 
+vector vecSample( vector* array, int w, int h, float u, float v ) {
+	(void)w;
+	const int iu = (int)floorf(u);
+	const int iv = (int)floorf(v);
+	vAssert( iu >= 0 && iu + 1 < w );
+	vAssert( iv >= 0 && iv + 1 < h );
+	const vector A = array[iu * h + iv];
+	const vector B = array[iu * h + (iv+1)];
+	const vector C = array[(iu+1) * h + iv];
+	const vector D = array[(iu+1) * h + (iv+1)];
+	const float uLerp = fractf(u);
+	const float vLerp = fractf(v);
+	return veclerp(veclerp( A, B, vLerp), veclerp( C, D, vLerp), uLerp);
+}
+
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
 	requiredLOD = 0; // TODO - Don't do this
 	++numCaches;
@@ -126,13 +141,7 @@ cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, 
 		for ( int uOffset = 0; uOffset < CacheBlockSize; uOffset+=lod ) {
 			float u, v;
 			terrain_positionsFromUV( t, uMin + uOffset, vMin + vOffset, &u, &v );
-			vector A = worldSpace[uOffset / 4][vOffset / 4];
-			vector B = worldSpace[uOffset / 4][vOffset / 4 + 1];
-			vector C = worldSpace[uOffset / 4 + 1][vOffset / 4];
-			vector D = worldSpace[uOffset / 4 + 1][vOffset / 4 + 1];
-			float uLerp = (float)(uOffset % 4) / 4.f;
-			float vLerp = (float)(vOffset % 4) / 4.f;
-			vector vec = veclerp(veclerp( A, B, vLerp), veclerp( C, D, vLerp), uLerp);
+			vector vec = vecSample( (vector*)worldSpace, LodVerts, LodVerts, ((float)uOffset) / 4.f, ((float)vOffset) / 4.f );
 			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyonTerrain_sampleUV( u, v ), vec.coord.z, 1.f );
 		}
 	}

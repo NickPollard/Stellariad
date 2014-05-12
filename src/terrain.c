@@ -65,12 +65,9 @@ float terrain_canyonHeight( float u, float v ) {
 
 // The procedural function
 float canyonTerrain_sampleUV( float u, float v ) {
-	float detail = terrain_detailHeight( u, v ) * 0.5f;
-	float scale = 0.435f;
-	float cliff = terrain_detailHeight( u * scale, v * scale );
-	float canyon = terrain_canyonHeight( u, v );
-	(void)canyon;(void)cliff;
+	const float detail = terrain_detailHeight( u, v ) * 0.5f;
+	const float scale = 0.435f;
+	const float cliff = terrain_detailHeight( u * scale, v * scale );
+	const float canyon = terrain_canyonHeight( u, v );
 	return detail - curvestep(cliff * 2.f, 50.f) - canyon;
 }
-
-

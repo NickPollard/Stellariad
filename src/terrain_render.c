@@ -4,6 +4,7 @@
 //-----------------------
 #include "canyon.h"
 #include "camera.h"
+#include "future.h"
 #include "terrain_generate.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
@@ -169,7 +170,7 @@ void* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
 void canyonTerrain_initVertexBuffers( canyonTerrain* t ) {
 	// Init w*h*2 buffers that we can use for vertex_buffers
 	vAssert( t->vertex_buffers == 0 );
-	int count = t->u_block_count * t->v_block_count * 2;
+	int count = t->u_block_count * t->v_block_count * 3;
 	t->vertex_buffers = mem_alloc( count * sizeof( vertex* ));
 	for ( int i = 0; i < count; i++ ) {
 		t->vertex_buffers[i] = canyonTerrain_allocVertexBuffer( t );
@@ -185,7 +186,7 @@ void canyonTerrain_freeVertexBuffer( canyonTerrain* t, unsigned short* buffer ) 
 	--t->vertex_buffer_count;
 }
 void* canyonTerrain_nextVertexBuffer( canyonTerrain* t ) {
-	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 2 ));
+	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
 	void* buffer = t->vertex_buffers[t->vertex_buffer_count++];
 	return buffer;
 }
@@ -197,13 +198,14 @@ void* canyonTerrain_allocElementBuffer( canyonTerrain* t ) {
 void canyonTerrain_initElementBuffers( canyonTerrain* t ) {
 	// Init w*h*2 buffers that we can use for element_buffers
 	vAssert( t->element_buffers == 0 );
-	int count = t->u_block_count * t->v_block_count * 2;
+	int count = t->u_block_count * t->v_block_count * 3;
 	t->element_buffers = mem_alloc( count * sizeof( unsigned short* ));
 	for ( int i = 0; i < count; i++ ) {
 		t->element_buffers[i] = canyonTerrain_allocElementBuffer( t );
 	}
 }
 void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer ) {
+	printf( "Free\n" );
 	// Find the buffer in the list
 	// Switch it with the last
 	int count = t->element_buffer_count;
@@ -213,17 +215,19 @@ void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer )
 	--t->element_buffer_count;
 }
 void* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
-	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 2 ));
+	printf( "Allocate\n" );
+	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
 	void* buffer = t->element_buffers[t->element_buffer_count++];
 	return buffer;
 }
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
-void terrainBlock_initVBO( canyonTerrainBlock* b ) {
+future* terrainBlock_initVBO( canyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
 	terrainRenderable* r = b->renderable;
 	r->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
 	r->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	r->element_buffer,	sizeof( GLushort ) 	* r->element_count );
+	return b->ready;
 }
 
 bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
@@ -240,8 +244,6 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 		r->element_VBO_alt = NULL;
 	}
 
-	//vector frustum[6];
-	//camera_calculateFrustum( s->cam, frustum );
 	if ( frustum_cull( &r->bb, s->cam->frustum ) )
 		return false;
 
@@ -348,5 +350,7 @@ terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
 }
 
 void terrainRenderable_delete( terrainRenderable* r ) {
+	canyonTerrain_freeElementBuffer( r->block->terrain, r->element_buffer );
+	canyonTerrain_freeVertexBuffer( r->block->terrain, (unsigned short*)r->vertex_buffer );
 	pool_terrainRenderable_free( static_renderable_pool, r );
 }

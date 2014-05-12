@@ -45,8 +45,8 @@ void mem_init(int argc, char** argv) {
 	(void)argc; (void)argv;
 	static_heap = heap_create( static_heap_size );
 	// Start with two simple bitpools
-	heap_addBitpool( static_heap, 16, 8192 );
-	heap_addBitpool( static_heap, 64, 8192 );
+	heap_addBitpool( static_heap, 16, 16384 );
+	heap_addBitpool( static_heap, 64, 16384 );
 }
 
 void heap_addBitpool( heapAllocator* h, size_t size, size_t count ) {

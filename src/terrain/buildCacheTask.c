@@ -93,7 +93,10 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 }
 
 void* buildCacheTask( void* args ) {
-	future_completeWith( _2(args), futures_sequence( generateAllCaches( _1(args) )));
+	futurelist* fs = generateAllCaches( _1( args ));
+	future_completeWith( _2(args), futures_sequence( fs ));
+	futurelist_delete( fs );
+	//future_completeWith( _2(args), futures_sequence( generateAllCaches( _1(args) )));
 	mem_free(args);
 	return NULL;
 }

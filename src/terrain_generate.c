@@ -3,6 +3,7 @@
 #include "terrain_generate.h"
 //-----------------------
 #include "canyon.h"
+#include "future.h"
 #include "worker.h"
 #include "base/pair.h"
 #include "terrain_render.h"
@@ -148,15 +149,21 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	canyonTerrainBlock_generateVertices( b, verts, normals );
 }
 
+void* setBlock( const void* data, void* args ) {
+		(void)data;
+		canyonTerrainBlock* b = args;
+		terrain_setBlock( b->terrain, b->u, b->v, b );
+		return NULL;
+}
+
 void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
 	canyonTerrainBlock_createBuffers( b );
 
 	terrainBlock_build( b, vs );
-	terrainBlock_initVBO( b );
 	terrainBlock_calculateCollision( b );
 	terrainBlock_calculateAABB( b->renderable );
 
-	terrain_setBlock( b->terrain, b->u, b->v, b );
+	future_onComplete( terrainBlock_initVBO( b ), setBlock, b );
 }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
