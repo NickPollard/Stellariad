@@ -39,7 +39,7 @@ void skybox_init( ) {
 	texture_free( bitmap );
 #endif
 
-	mem_free( skybox_image );
+	texture_free( skybox_image );
 
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;

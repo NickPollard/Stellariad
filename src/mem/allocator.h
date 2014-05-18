@@ -37,6 +37,7 @@ struct heapAllocator_s {
 	size_t total_free;		// in bytes, currently free
 	size_t allocations;
 	block* first;					// doubly-linked list of blocks
+	block* free;					// doubly-linked list of free blocks
 	// Bitpools
 	int			bitpool_count;
 	bitpool		bitpools[kMaxBitpools];
@@ -51,6 +52,10 @@ struct block_s {
 	size_t	size;	// in bytes, the block size
 	block*	next;			// doubly-linked list pointer
 	block*	prev;			// doubly-linked list pointer
+	block* padding;
+	block* nextFree;
+	block* paddingee;
+	block* prevFree;
 	size_t	free;	// true (1) if free, false (0) if used
 #ifdef MEM_STACK_TRACE
 	const char* stack;
@@ -68,6 +73,11 @@ typedef struct passthroughAllocator_s {
 	size_t total_allocated;	// in bytes, currently allocated
 	size_t allocations;
 } passthroughAllocator;
+
+typedef struct empty_s {
+	block* nextFree;
+	block* prevFree;
+} empty;
 
 // Default allocate from the static heap
 // Passes straight through to heap_allocate()
@@ -119,7 +129,7 @@ void heap_addBitpool( heapAllocator* h, size_t size, size_t count );
 void block_insertAfter( block* before, block* after );
 
 // Create and initialise a block in a given piece of memory of *size* bytes
-block* block_create( void* data, int size );
+block* block_create( heapAllocator* heap, void* data, size_t size );
 
 // Create a new passthrough allocator using the given HEAP
 passthroughAllocator* passthrough_create( heapAllocator* heap );

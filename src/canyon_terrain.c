@@ -212,8 +212,6 @@ void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBl
 		if ( i >= 0 && i <= t->total_block_count ) { // We might not still need this block when it finishes
 			if ( t->blocks[i] )
 				deleteBlock( t->blocks[i] );
-			else
-				printf( "Skipping delete.\n" );
 			t->blocks[i] = b;
 		} else
 			deleteBlock( b );

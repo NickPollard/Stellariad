@@ -52,6 +52,7 @@ void runTests() {
 int main(int argc, char** argv) {
 	printf("Loading Vitae.\n");
 
+	test_allocator();
 	init(argc, argv);
 
 	// *** Initialise Engine

@@ -79,12 +79,14 @@
 // *** Asserts
 
 #define vAssert( a )	if ( !(a) ) { \
-							printf( "Assert Failed: " #a " (%s:%d)\n", __FILE__, __LINE__ ); \
+							printf( "%sAssert Failed: %s", TERM_RED, TERM_WHITE ); \
+							printf( #a " (%s:%d)\n", __FILE__, __LINE__ ); \
 							lua_activeStateStack( ); \
 							assert( (a) ); \
 						}
 #define vAssertMsg( a, msg )	if ( !(a) ) { \
-							printf( "Assert Failed: " #a " (%s:%d)\n", __FILE__, __LINE__ ); \
+							printf( "%sAssert Failed: %s: ", TERM_RED, TERM_WHITE ); \
+							printf( #a " (%s:%d)\n", __FILE__, __LINE__ ); \
 							printf( "Assert Msg: %s\n", msg ); \
 							assert( (a) ); \
 						}

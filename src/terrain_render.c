@@ -215,7 +215,7 @@ void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer )
 	--t->element_buffer_count;
 }
 void* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
-	printf( "Allocate\n" );
+	//printf( "Allocate\n" );
 	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
 	void* buffer = t->element_buffers[t->element_buffer_count++];
 	return buffer;
