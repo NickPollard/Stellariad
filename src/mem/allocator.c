@@ -14,7 +14,7 @@ void validateFreeList( heapAllocator* heap );
 int countFree( heapAllocator* heap );
 int printFree( heapAllocator* heap );
 
-#define static_heap_size (400 * 1024 * 1024) // In MegaBytes
+#define static_heap_size (480 * 1024 * 1024) // In MegaBytes
 heapAllocator* static_heap = NULL;
 vmutex allocator_mutex = kMutexInitialiser;
 #define kMaxAlignmentSpace 8
@@ -400,7 +400,7 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 
 	block* b = (block*)((uint8_t*)data - sizeof( block ));
 	// Check it's in the right heap!
-	heapContains( heap, b );
+	//heapContains( heap, b );
 
 #ifdef MEM_GUARD_BLOCK
 	vAssert( b->guard == kGuardValue );
@@ -419,7 +419,6 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 
 	checkFree( heap, b );
 	// Try to merge blocks
-	/*
 	if ( b->next && b->next->free ) {
 		checkFree( heap, b->next );
 		block_merge( heap, b, b->next );
@@ -429,7 +428,6 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 		checkFree( heap, b->prev );
 		block_merge( heap, b->prev, b );
 	}
-	*/
 
 	//validateFreeList( heap );
 	--heap->allocations;

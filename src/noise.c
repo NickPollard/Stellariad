@@ -39,10 +39,10 @@ float noiseLookup( float u, float v ) {
 	const int iv = (int)v;
 	//const int uu = iu + NoiseResolution * 16;
 //	const int vv = iv + NoiseResolution * 16;
-	//const int uu = (iu + (abs(iu) / NoiseResolution + 1) * NoiseResolution);
-	//const int vv = (iv + (abs(iv) / NoiseResolution + 1) * NoiseResolution);
-	const int uu = abs(iu % NoiseResolution);
-	const int vv = abs(iv % NoiseResolution);
+	const int uu = (iu + (abs(iu) / NoiseResolution + 1) * NoiseResolution);
+	const int vv = (iv + (abs(iv) / NoiseResolution + 1) * NoiseResolution);
+	//const int uu = abs(iu % NoiseResolution);
+	//const int vv = abs(iv % NoiseResolution);
 	return noiseTexture[uu % NoiseResolution][vv % NoiseResolution];
 }
 
@@ -71,8 +71,8 @@ float perlin( float u, float v ) {
 	const float c = noiseTexture[ iuu  ][ ivv_ ];
 	const float d = noiseTexture[ iuu_ ][ ivv_ ];
 
-	return lerp( lerp( a, b, fu ),
-					lerp( c, d, fu ),
+	return sinerp( sinerp( a, b, fu ),
+					sinerp( c, d, fu ),
 					fv );
 }
 
