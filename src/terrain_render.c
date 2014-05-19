@@ -205,7 +205,6 @@ void canyonTerrain_initElementBuffers( canyonTerrain* t ) {
 	}
 }
 void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer ) {
-	printf( "Free\n" );
 	// Find the buffer in the list
 	// Switch it with the last
 	int count = t->element_buffer_count;

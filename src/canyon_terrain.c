@@ -84,7 +84,7 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 					if ( boundsContains( intersection, coord ) )
 						newBlocks[blockCoord(coord, bounds, t->u_block_count)] = t->blocks[i];
 					else
-						deleteBlock( t->blocks[i] );
+						if ( t->blocks[i] ) deleteBlock( t->blocks[i] );
 				}
 			}
 

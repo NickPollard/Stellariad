@@ -26,7 +26,8 @@ float sun_fog( vec4 local_sun_dir, vec4 fragment_position ) {
 float sun( vec4 local_sun_dir, vec4 fragment_position ) {
 	float g = max(0.1, smoothstep( 0.50, 1.0, abs(normalize(local_sun_dir).z)));
 	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 ));
-	return pow(f, 4.0);
+	//return pow(f, 4.0);
+	return 0.0;
 }
 
 void main() {
