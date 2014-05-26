@@ -24,6 +24,7 @@ typedef struct cacheGrid_s {
 	int vMin;
 	cacheBlock* blocks[GridSize][GridSize];
 	future* futures[GridSize][GridSize];
+	int neededLods[GridSize][GridSize];
 } cacheGrid;
 
 // *** Terrain Cache
@@ -31,6 +32,9 @@ terrainCache* terrainCache_create();
 
 // Retrieve a currently cached block (if it exists; may return NULL)
 cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin );
+
+// Create and add a cacheBlock to the cache, and return the block
+cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod );
 
 // Add a cacheBlock to the cache, and return the block
 cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b );
@@ -47,4 +51,4 @@ void cacheBlockFree( cacheBlock* b );
 // Tick the cache
 void terrainCache_tick( terrainCache* t, float dt, vector sample );
 
-bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, future** f );
+bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, future** f );

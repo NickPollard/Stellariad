@@ -26,7 +26,6 @@
 // *** Forward Declarations
 canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* e );
 void				deleteBlock( canyonTerrainBlock* b );
-void				canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e );
 void				canyonTerrain_calculateBounds( canyon* c, int bounds[2][2], canyonTerrain* t, vector* sample_point );
 void				canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v );
 int					canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, absolute u, absolute v );
@@ -75,6 +74,11 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 			canyonTerrainBlock** newBlocks = stackArray( canyonTerrainBlock*, t->total_block_count );
 			memset( newBlocks, 0, sizeof( canyonTerrainBlock* ) * t->total_block_count );
 
+			//for ( int i = 0; i < t->total_block_count; ++i ) {
+				//canyonTerrainBlock* b = t->blocks[i];
+				//vAssert( (uintptr_t)b < 0x0001000000000000 );
+			//}
+
 			for ( int v = 0; v < t->v_block_count; v++ ) {
 				for ( int u = 0; u < t->u_block_count; u++ ) {
 					int coord[2];
@@ -112,6 +116,10 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 			}
 
 			memcpy( t->bounds, bounds, sizeof( int ) * 2 * 2 );
+			//for ( int i = 0; i < t->total_block_count; ++i ) {
+				//canyonTerrainBlock* b = newBlocks[i];
+				//vAssert( (uintptr_t)b < 0x0001000000000000 );
+			//}
 			memcpy( t->blocks, newBlocks, sizeof( canyonTerrainBlock* ) * t->total_block_count );
 			t->firstUpdate = false;
 		}
@@ -140,6 +148,7 @@ canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* 
 	b->v = v;
 	b->renderable = terrainRenderable_create( b );
 	canyonTerrainBlock_calculateExtents( b, b->terrain, u, v );
+	//printf( "Generating new block 0x" xPTRf " at lod %d.\n", (uintptr_t)b, b->lod_level );
 	b->engine = e;
 	startTick( b->engine, b, canyonTerrainBlock_tick );
 	b->ready = future_create();
@@ -207,6 +216,7 @@ void canyonTerrain_calculateBounds( canyon* c, int bounds[2][2], canyonTerrain* 
 }
 
 void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBlock* b ) {
+	vAssert( (uintptr_t)b < 0x0001000000000000 );
 	vmutex_lock( &t->mutex ); {
 		int i = canyonTerrain_blockIndexFromAbsoluteUV( t, u, v );
 		if ( i >= 0 && i <= t->total_block_count ) { // We might not still need this block when it finishes
@@ -256,7 +266,6 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	canyonTerrain_initVertexBuffers( t );
 	if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
 	canyonTerrain_createBlocks( c, t );
-	//canyonTerrain_updateBlocks( c, t ); // TODO - necessary?
 
 	t->trans = transform_create();
 	return t;

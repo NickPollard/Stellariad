@@ -33,14 +33,23 @@ void* buildCacheBlockTask(void* args) {
 	// ! only if not exist or lower-lod
 	int found_lod = b->lod_level;
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache || cache->lod > b->lod_level)
-		terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
-	else
+	if (!cache) {
+		//printf( "Building lod %d\n.", b->lod_level );
+		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
+	} else if (cache->lod > b->lod_level) {
+		//printf( "upgrading lod from %d to %d\n.", cache->lod, b->lod_level );
+		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
+	}
+	else {
+		//printf( "lod %d already exists\n.", cache->lod );
 		found_lod = cache->lod;
+	}
+	//if ( (uintptr_t)b == 0x7fffd9c695ec )
+		//printf( "Requesting cache %d,%d for block 0x" xPTRf " at lod %d.\n", uMin, vMin, (uintptr_t)b, b->lod_level );
 
 	void* lod = (void*)(uintptr_t)min(b->lod_level, found_lod);
 	future_complete( f, lod );
-	////cacheBlockFree( cache );
+	//cacheBlockFree( cache );
 	mem_free( args );
 
 	return NULL;
@@ -49,8 +58,10 @@ void* buildCacheBlockTask(void* args) {
 future* generateCache( canyonTerrainBlock* b, int u, int v ) {
 	// If already built, or building, return that future
 	future* f = NULL;
-	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, &f);
+	// TODO - need to check Lod!
+	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, b->lod_level, &f);
 	vAssert( f );
+	// TODO - set required lod
 	// else start it building
 	if (empty) {
 		void* uu = (void*)(uintptr_t)u;
@@ -85,6 +96,8 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	futurelist* fs = NULL;
 	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
 		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
+			if ( (uintptr_t)b == 0x7fffd9c695ec )
+				printf( "Requesting cache %d,%d for block 0x" xPTRf " at lod %d.\n", u, v, (uintptr_t)b, b->lod_level );
 			future* f = generateCache( b, u, v );
 			if ( !f->complete )
 				fs = futurelist_cons( f, fs );

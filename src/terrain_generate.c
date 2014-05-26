@@ -27,8 +27,10 @@ vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uRelative, int 
 	const int vMin = vReal - vOffset;
 
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache || cache->lod > b->lod_level)
+	if (!cache || cache->lod > b->lod_level) {
+		vAssert( 0 );
 		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
+	}
 	vector p = cache->positions[uOffset][vOffset];
 	cacheBlockFree( cache );
 	return p;

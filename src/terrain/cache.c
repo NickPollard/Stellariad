@@ -68,6 +68,11 @@ cacheGrid* cacheGrid_create( int u, int v ) {
 	cacheGrid* g = mem_alloc( sizeof( cacheGrid ));
 	memset( g->blocks, 0, sizeof( cacheBlock* ) * GridSize * GridSize );
 	memset( g->futures, 0, sizeof( future* ) * GridSize * GridSize );
+	memset( g->neededLods, 0, sizeof( int ) * GridSize * GridSize );
+	const int lowestLod = 2;
+	for ( int x = 0; x < GridSize; ++x )
+		for ( int y = 0; y < GridSize; ++y )
+			g->neededLods[x][y] = lowestLod;
 	g->uMin = u;
 	g->vMin = v;
 	return g;
@@ -78,26 +83,58 @@ cacheGrid* terrainCacheAddGrid( terrainCache* t, cacheGrid* g ) {
 	return g;
 }
 
+cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
+	const int uMin = b->uMin;
+	const int vMin = b->vMin;
+	cacheGrid* g = cachedGrid( t, uMin, vMin );
+	if (!g)
+		g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
+	const int u = gridIndex( uMin, minPeriod( uMin, GridCapacity ));
+	const int v = gridIndex( vMin, minPeriod( vMin, GridCapacity ));
+	cacheBlock* old = g->blocks[u][v];
+	vAssert( u < GridSize );
+	vAssert( v < GridSize );
+	// TODO check LoD
+	if (old && old->lod > b->lod) {
+		printf( "Replacing lod %d cache block with lod %d block.\n", old->lod, b->lod );
+		mem_free( old );
+		g->blocks[u][v] = b;
+		takeRef( b );
+	}
+	else if (old) {
+		printf( "discarding new lod %d cache block - old lod %d block exists.\n", b->lod, old->lod );
+		mem_free( b );
+	} else {
+		//printf( "Adding new lod %d cache block\n", b->lod );
+		mem_free( old );
+		g->blocks[u][v] = b;
+		takeRef( b );
+	}
+	return b;
+}
+
+int cacheGetNeededLod( terrainCache* cache, int uMin, int vMin ) {
+	cacheGrid* g = cachedGrid( cache, uMin, vMin );
+	if (!g)
+		g = terrainCacheAddGrid( cache, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
+	const int lowestLod = 2;
+	const int lod = g ? g->neededLods[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] : lowestLod;
+	return lod;
+}
+
+cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod ) {
+	cacheBlock* b = NULL;
+	vmutex_lock( &terrainMutex ); {
+		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod ); // TODO - Get this from the cache, in case we need a higher lod than we thought
+		//const int highestLodNeeded = min( lod, lod ); // TODO - Get this from the cache, in case we need a higher lod than we thought
+		b =	terrainCacheAddInternal( c->terrainCache, terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded ));
+	} vmutex_unlock( &terrainMutex );
+	return b;
+}
+
 cacheBlock* terrainCacheAdd( terrainCache* t, cacheBlock* b ) {
 	vmutex_lock( &terrainMutex ); {
-		const int uMin = b->uMin;
-		const int vMin = b->vMin;
-		cacheGrid* g = cachedGrid( t, uMin, vMin );
-		if (!g)
-			g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
-		const int u = gridIndex( uMin, minPeriod( uMin, GridCapacity ));
-		const int v = gridIndex( vMin, minPeriod( vMin, GridCapacity ));
-		cacheBlock* old = g->blocks[u][v];
-		vAssert( u < GridSize );
-		vAssert( v < GridSize );
-		// TODO check LoD
-		if (old && old->lod < b->lod) {
-			mem_free( b );
-		} else {
-			mem_free( old );
-			g->blocks[u][v] = b;
-			takeRef( b );
-		}
+		terrainCacheAddInternal( t, b );
 	} vmutex_unlock( &terrainMutex );
 	return b;
 }
@@ -120,7 +157,7 @@ vector vecSample( vector* array, int w, int h, float u, float v ) {
 }
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
-	requiredLOD = 0; // TODO - Don't do this
+	//requiredLOD = 0; // TODO - Don't do this
 	++numCaches;
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
@@ -233,18 +270,35 @@ void terrainCache_tick( terrainCache* t, float dt, vector sample ) {
 	*/
 }
 
-bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, future** f ) {
+// Need to have locked terrainMutex!
+void setLodNeeded( terrainCache* cache, int uMin, int vMin, int lodNeeded ) {
+	cacheGrid* g = cachedGrid( cache, uMin, vMin );
+	if (!g)
+		g = terrainCacheAddGrid( cache, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
+	vAssert( g );
+	const int lod = min(g->neededLods[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))], lodNeeded);
+	g->neededLods[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] = lod;
+}
+
+bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, future** f ) {
+	(void)lodNeeded;
 	bool empty = false;
 	vmutex_lock( &terrainMutex ); {
+		const int u = minPeriod( uMin, GridCapacity );
+		const int v = minPeriod( vMin, GridCapacity );
+		const int gu = gridIndex(uMin, u);
+		const int gv = gridIndex(vMin, v);
 		cacheGrid* g = cachedGrid( cache, uMin, vMin );
 		if (!g)
-			g = terrainCacheAddGrid( cache, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
-		future* fut = g ? g->futures[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] : NULL;
-		empty = !fut;
+			g = terrainCacheAddGrid( cache, cacheGrid_create( u, v ));
+		vAssert( g ) ;
+		future* fut = g->futures[gu][gv];
+		empty = !fut || (g->neededLods[gu][gv] > lodNeeded);
 		if (empty) {
 			fut = future_create();
-			g->futures[gridIndex(uMin, minPeriod(uMin, GridCapacity))][gridIndex(vMin, minPeriod(vMin, GridCapacity))] = fut;
+			g->futures[gu][gv] = fut;
 		}
+		setLodNeeded( cache, uMin, vMin, lodNeeded );
 		*f = fut;
 	} vmutex_unlock( &terrainMutex );
 	return empty;
