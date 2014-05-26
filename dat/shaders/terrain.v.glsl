@@ -38,7 +38,7 @@ uniform vec4 viewspace_up;
 uniform vec4 directional_light_direction;
 
 float sun_fog( vec4 local_sun_dir, vec4 view_direction ) {
-	return max( 0.0, dot( local_sun_dir, view_direction ));
+	return clamp( dot( local_sun_dir, view_direction ), 0.0, 1.0 );
 }
 
 void main() {
