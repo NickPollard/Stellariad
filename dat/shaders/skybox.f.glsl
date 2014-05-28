@@ -20,11 +20,7 @@ uniform vec4 sun_color;
 const vec4 cloud_color = vec4( 1.0, 1.0, 1.0, 1.0 );
 
 float sun_fog( vec4 sunLocal, vec4 fragment_position ) {
-	//vec3 a = sunLocal.xyz;
-	//cec3 b = fragment_position.xyz;
 	return clamp( dot( normalize( sunLocal ), normalize( fragment_position )), 0.0, 1.0 );
-	//return dot( normalize( sunLocal ), normalize( fragment_position ));
-	//return dot( normalize( a ), normalize( b )) * 0.15; 
 }
 
 vec4 myNormalize( vec4 v ) {
@@ -38,7 +34,8 @@ vec4 myNormalize( vec4 v ) {
 float sun( vec4 local_sun_dir, vec4 fragment_position ) {
 	float g = max(0.1, smoothstep( 0.50, 1.0, abs(normalize(local_sun_dir).z)));
 	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 ));
-	return pow(f, 4.0);
+	vec3 v = cross(normalize(fragment_position.xyz), local_sun_dir.xyz);
+	return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
 }
 
 void main() {
