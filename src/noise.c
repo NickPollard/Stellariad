@@ -21,9 +21,8 @@ double msin( double d ) {
 }
 
 float noise( float f ) {
-	return fractf(sin(f * 43276.1432));
-	//const double d = f;
-	//return fractf((float)sin(d * 43276.1432));
+	const double d = f;
+	return fractf((float)sin(d * 43276.1432));
 }
 
 float noise2D( float u, float v ) {
@@ -34,46 +33,23 @@ float noise2D_wrapped( float u, float v, float scale ) {
 	return noise2D( fmodf( u, (float)NoiseResolution * scale), fmodf( v, (float)NoiseResolution * scale));
 }
 
-float noiseLookup( float u, float v ) {
-	const int iu = (int)u;
-	const int iv = (int)v;
-	//const int uu = iu + NoiseResolution * 16;
-//	const int vv = iv + NoiseResolution * 16;
-	const int uu = (iu + (abs(iu) / NoiseResolution + 1) * NoiseResolution);
-	const int vv = (iv + (abs(iv) / NoiseResolution + 1) * NoiseResolution);
-	//const int uu = abs(iu % NoiseResolution);
-	//const int vv = abs(iv % NoiseResolution);
-	return noiseTexture[uu % NoiseResolution][vv % NoiseResolution];
-}
-
-float noiseLookupInt( int uu, int vv ) {
-	return noiseTexture[uu % NoiseResolution][vv % NoiseResolution];
-}
-
 float perlin( float u, float v ) {
-	const float iu = floorf( u );
-	const float iv = floorf( v );
-	const float fu = u - iu;
-	const float fv = v - iv;
+	const int iu = (int)floorf( u );
+	const int iv = (int)floorf( v );
 	
-	// TODO - try lift out int/float transition from noiseLookup
-	//const float a = noiseLookup(iu, iv);
-	//const float b = noiseLookup(iu + 1.f, iv);
-	//const float c = noiseLookup(iu, iv + 1.f);
-	//const float d = noiseLookup(iu + 1.f, iv + 1.f);
-
-	const int iuu = abs((int)iu % NoiseResolution );
-	const int ivv = abs((int)iv % NoiseResolution );
-	const int iuu_ = abs(((int)iu + 1) % NoiseResolution );
-	const int ivv_ = abs(((int)iv + 1) % NoiseResolution );
+	const int n = NoiseResolution;
+	const int iuu = (n + iu % n) % n;
+	const int ivv = (n + iv % n) % n;
+	const int iuu_ = (n + (iu+1) % n) % n;
+	const int ivv_ = (n + (iv+1) % n) % n;
 	const float a = noiseTexture[ iuu  ][ ivv  ];
 	const float b = noiseTexture[ iuu_ ][ ivv  ];
 	const float c = noiseTexture[ iuu  ][ ivv_ ];
 	const float d = noiseTexture[ iuu_ ][ ivv_ ];
 
-	return sinerp( sinerp( a, b, fu ),
-					sinerp( c, d, fu ),
-					fv );
+	return sinerp( sinerp( a, b, fractf( u )),
+					sinerp( c, d, fractf( u )),
+						fractf( v ));
 }
 
 float perlin_octave( float u, float v, float scale ) {
@@ -84,7 +60,6 @@ float perlin_octave( float u, float v, float scale ) {
 	const float fu = fractf( u_ * scale );
 	const float fv = fractf( v_ * scale );
 	
-	//printf( "u: %.2f, wrapped: %.2f\n", 2.f, fmodf( 2.f, 2.f ));
 	const float s = (float)NoiseResolution * scale / 32.f;
 	
 	const float a = noise2D(fmodf(iu, s),fmodf(iv,s));
@@ -99,7 +74,6 @@ float perlin_octave( float u, float v, float scale ) {
 
 float perlin_raw( float u, float v ) {
 	return 
-		//perlin_octave( u, v, 1.f ) / 1.f;
 		(perlin_octave( u, v, 32.f ) / 32.f +
 		perlin_octave( u, v, 16.f ) / 16.f +
 		perlin_octave( u, v, 8.f ) / 8.f +
