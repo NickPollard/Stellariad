@@ -400,7 +400,7 @@ function init()
 	--color = Vector( 1.0, 1.0, 1.0, 1.0 )
 	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
-	splash_intro_new()
+	ui.splash_intro()
 end
 
 function ship_collisionHandler( ship, collider )
@@ -543,28 +543,6 @@ function restart()
 	setup_controls()
 end
 
-function studio_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 ):onComplete( function ( s )
-		ui.panelFadeIn( s, 2.0 )
-		inTime( 3.0, function ()
-			ui.hide_splash( s )
-			f:complete( nil )
-		end ) end ) 
-	return f
-end
-
-function author_splash() 
-	local f = future:new()	
-	ui.splash( "dat/img/splash_author.tga", 512, 256 ):onComplete( function ( s )
-		ui.panelFadeIn( s, 2.0 )
-		inTime( 2.0, function ()
-			ui.hide_splash( s )
-			f:complete( nil )
-		end ) end ) 
-	return f
-end
-
 local touchpad = {}
 function touchpad:new()
 	local p = { pad = nil, onTouchHandlers = list:empty() }
@@ -592,39 +570,6 @@ function createTouchPad( input, x, y, w, h )
 	pad.pad = vcreateTouchPad( input, x, y, w, h )
 	addTicker( pad )
 	return pad
-end
-
-function skies_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_skies_modern.tga", screen_width, screen_height )
-		:onComplete( function ( s )
-			ui.panelFadeIn( s, 2.0 )
-			local w = screen_width
-			local h = screen_height
-			local touch_to_play = createTouchPad( input, 0, 0, w, h )
-			--inTime( 4.0, function ()
-			touch_to_play:onTouch( function ()
-				vprint( "touch" )
-				ui.hide_splash( s )
-				f:complete( nil )
-				removeTicker( touch_to_play )
-				end )
-		end ) 
-	return f
-end
-
-function splash_intro_new()
-	vtexture_preload( "dat/img/splash_author.tga" )
-	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
-	studio_splash():onComplete( function (s)
-		author_splash():onComplete( function (a)
-			skies_splash():onComplete( function (a)
-				ui.hide_splash( bg )
-				ui.show_crosshair()
-				gameplay_start()
-			end )
-		end )
-	end )
 end
 
 function test()

@@ -28,5 +28,43 @@ ui.show_crosshair = () ->
 	position = x: ( screen_width - w ) * 0.5, y: ( screen_height - h ) * 0.5
 	vuiPanel_create( engine, "dat/img/crosshair_arrows.tga", Vector( 0.3, 0.6, 1.0, 0.8 ), position.x, position.y, w, h )
 
+ui.splash_intro = () ->
+	vtexture_preload( "dat/img/splash_author.tga" )
+	bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
+	ui.studio_splash()\onComplete( (s) -> ui.author_splash()\onComplete( (a) -> ui.skies_splash()\onComplete( (a) ->
+				ui.hide_splash( bg )
+				ui.show_crosshair()
+				gameplay_start())))
+
+ui.skies_splash = () ->
+	f = future\new()
+	ui.splash( "dat/img/splash_skies_modern.tga", screen_width, screen_height )\onComplete( ( s ) ->
+			ui.panelFadeIn( s, 2.0 )
+			touch_to_play = createTouchPad( input, 0, 0, screen_width, screen_height )
+			touch_to_play\onTouch( ()->
+				vprint( "touch" )
+				ui.hide_splash( s )
+				f\complete( nil )
+				removeTicker( touch_to_play )))
+	f
+
+ui.studio_splash = () ->
+	f = future\new()
+	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 )\onComplete( ( s ) ->
+		ui.panelFadeIn( s, 2.0 )
+		inTime( 3.0, () ->
+			ui.hide_splash( s )
+			f\complete( nil )))
+	f
+
+ui.author_splash = () ->
+	f = future\new()
+	ui.splash( "dat/img/splash_author.tga", 512, 256 )\onComplete( ( s ) ->
+		ui.panelFadeIn( s, 2.0 )
+		inTime( 2.0, () ->
+			ui.hide_splash( s )
+			f\complete( nil )))
+	f
+
 -- Return
 ui
