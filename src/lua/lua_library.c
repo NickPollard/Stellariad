@@ -821,7 +821,7 @@ int LUA_createUIPanel( lua_State* l ) {
 	float y = lua_tonumber( l, 5 );
 	float w = lua_tonumber( l, 6 );
 	float h = lua_tonumber( l, 7 );
-	panel* p = panel_create();
+	panel* p = panel_create( e );
 	p->x = x;
 	p->y = y;
 	p->width = w;
@@ -847,7 +847,7 @@ int LUA_createUIPanel_future( lua_State* l ) {
 	
 	int future_ref = lua_store( l ); // Must be top of the stack
 
-	panel* p = panel_create();
+	panel* p = panel_create( e );
 	p->x = x;
 	p->y = y;
 	p->width = w;
@@ -869,6 +869,20 @@ int LUA_hideUIPanel( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
 	panel* p = lua_toptr( l, 2 );
 	panel_hide( e, p );
+	return 0;
+}
+
+int LUA_setPanelAlpha( lua_State* l ) {
+	panel* p = lua_toptr( l, 1 );
+	float a = lua_tonumber( l, 2 );
+	panel_setAlpha( p, a );
+	return 0;
+}
+
+int LUA_panelFadeIn( lua_State* l ) {
+	panel* p = lua_toptr( l, 1 );
+	float t = lua_tonumber( l, 2 );
+	panel_fadeIn( p, t );	
 	return 0;
 }
 
@@ -1254,6 +1268,9 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_createUIPanel, "vuiPanel_create" );
 	lua_registerFunction( l, LUA_createUIPanel_future, "vuiPanel_create_future" );
 	lua_registerFunction( l, LUA_hideUIPanel, "vuiPanel_hide" );
+	lua_registerFunction( l, LUA_setPanelAlpha, "vuiPanel_setAlpha" );
+	lua_registerFunction( l, LUA_panelFadeIn, "vuiPanel_fadeIn" );
+	
 
 	// *** Game
 	lua_registerFunction( l, LUA_canyonPosition, "vcanyon_position" );

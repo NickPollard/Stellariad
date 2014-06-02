@@ -4,16 +4,23 @@
 #include "panel.h"
 //-------------------------
 #include "model.h"
+#include "particle.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/shader.h"
 #include "render/texture.h"
 #include "system/hash.h"
 
+IMPLEMENT_LIST(animator);
+
 vector ui_color_default = {{ 0.f, 0.5f, 0.7f, 0.5f }};
 
+// *** Forward Declaratations
+void panel_tick( void* pnl, float dt, engine* e );
+// ***
+
 // Create a Panel
-panel* panel_create() {
+panel* panel_create( engine* e ) {
 	panel* p = mem_alloc( sizeof( panel ));
 	memset( p, 0, sizeof( panel ));
 
@@ -26,6 +33,9 @@ panel* panel_create() {
 	p->visible = true;
 	p->texture = NULL;
 
+	p->animators = NULL;
+
+	startTick( e, p, panel_tick );
 	return p;
 }
 
@@ -43,9 +53,9 @@ void panel_draw( panel* p, float x, float y ) {
 	vAssert( p->texture );
 
 	// We draw a quad as two triangles
-	p->vertex_buffer[0].position = Vector( p->x,				p->y,				0.1f, 1.f );
+	p->vertex_buffer[0].position = Vector( p->x,			p->y,				0.1f, 1.f );
 	p->vertex_buffer[1].position = Vector( p->x + p->width,	p->y,				0.1f, 1.f );
-	p->vertex_buffer[2].position = Vector( p->x,				p->y + p->height,	0.1f, 1.f );
+	p->vertex_buffer[2].position = Vector( p->x,			p->y + p->height,	0.1f, 1.f );
 	p->vertex_buffer[3].position = Vector( p->x + p->width,	p->y + p->height,	0.1f, 1.f );
 
 	p->vertex_buffer[0].uv = Vector( 0.f, 0.f, 0.f, 0.f );
@@ -53,10 +63,12 @@ void panel_draw( panel* p, float x, float y ) {
 	p->vertex_buffer[2].uv = Vector( 0.f, 1.f, 0.f, 0.f );
 	p->vertex_buffer[3].uv = Vector( 1.f, 1.f, 0.f, 0.f );
 
-	p->vertex_buffer[0].color = p->color;
-	p->vertex_buffer[1].color = p->color;
-	p->vertex_buffer[2].color = p->color;
-	p->vertex_buffer[3].color = p->color;
+	vector color = vector_scaled( p->color, p->color.coord.w );
+	color.coord.w = p->color.coord.w;
+	p->vertex_buffer[0].color = color;
+	p->vertex_buffer[1].color = color;
+	p->vertex_buffer[2].color = color;
+	p->vertex_buffer[3].color = color;
 
 	// Copy our data to the GPU
 	// There are now <index_count> vertices, as we have unrolled them
@@ -79,4 +91,54 @@ void panel_show( engine* e, panel* p ) {
 	if ( !p->visible )
 		engine_addRender( e, p, panel_render );
 	p->visible = true;
+}
+
+void panel_setAlpha( panel* p, float alpha ) {
+	p->color.coord.w = alpha;
+}
+
+// *** An animateable property
+bool animate( animator* a, float dt ) {
+	a->time += dt;
+	float f = property_samplef( a->property, a->time );
+	*(a->target) = f;
+	return false;
+}
+
+animator* newAnimator( property* p, float* target ) {
+	animator* a = mem_alloc( sizeof( animator ));
+	a->time = 0.f;
+	a->property = p;
+	a->target = target;
+	return a;
+}
+
+void animator_delete( animator* a ) {
+	mem_free( a );
+}
+
+void panel_tick( void* pnl, float dt, engine* e ) {
+	(void)e;
+	panel*p = pnl;
+	animatorlist* prev = NULL;
+	for ( animatorlist* a = p->animators; a; a = a->tail ) {
+		if (animate( a->head, dt )) {
+			if (prev) prev->tail = a->tail; // Kill this one
+			animator_delete( a->head );
+			mem_free( a );
+		}
+		prev = a;
+	}
+}
+
+void panel_addAnimator( panel* p, animator* a ) {
+	p->animators = animatorlist_cons( a, p->animators );
+}
+
+void panel_fadeIn( panel* p, float overTime ) {
+	property* prop = property_create( 2 );
+	property_addf( prop, 0.f, 0.f );
+	property_addf( prop, overTime, 1.f );
+	animator* a = newAnimator( prop, &p->color.coord.w );
+	panel_addAnimator( p, a );
 }
