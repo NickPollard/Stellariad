@@ -119,7 +119,6 @@ void collision_runCallbacks() {
 void collision_generateEvents() {
 	// for every body, check every other body
 	// TODO - keep separate lists for layers; iterate those instead
-	/*
 	for ( int i = 0; i < body_count; ++i )
 		for ( int j = i + 1; j < body_count; j++ ) {
 			vAssert( bodies[i] )
@@ -127,7 +126,6 @@ void collision_generateEvents() {
 			if ( !bodies[i]->disabled && !bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
 				collision_event( bodies[i], bodies[j] );
 		}
-		*/
 }
 
 void collisionMesh_drawWireframe( collisionMesh* m, matrix trans, vector color ) {

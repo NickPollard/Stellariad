@@ -653,7 +653,6 @@ void render_draw( window* w, engine* e ) {
 
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
-	//glEnable( GL_BLEND );
 
 	if ( render_bloom_enabled ) {
 		render_current_texture_unit = 0;
@@ -677,7 +676,6 @@ void render_draw( window* w, engine* e ) {
 
 	// No depth-test for debug
 	glDisable( GL_DEPTH_TEST );
-	//glEnable( GL_BLEND );
 	render_drawPass( w, &renderPass_debug );
 
 	render_swapBuffers( w );

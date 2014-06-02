@@ -144,7 +144,7 @@ GLuint shader_compile( GLenum type, const char* path, const char* source ) {
 
 	glGetShaderiv( glShader, GL_COMPILE_STATUS, &shader_ok );
 	if ( !shader_ok ) {
-		printf( "Error: Failed to compile Shader from File %s.\n", path );
+		printError( "Failed to compile Shader from File %s.\n", path );
 		gl_dumpInfoLog( glShader, glGetShaderiv,  glGetShaderInfoLog );
 		assert( 0 );
 	}

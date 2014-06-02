@@ -84,28 +84,16 @@ cacheGrid* terrainCacheAddGrid( terrainCache* t, cacheGrid* g ) {
 }
 
 cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
-	const int uMin = b->uMin;
-	const int vMin = b->vMin;
-	cacheGrid* g = cachedGrid( t, uMin, vMin );
+	cacheGrid* g = cachedGrid( t, b->uMin, b->vMin );
 	if (!g)
-		g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( uMin, GridCapacity ), minPeriod( vMin, GridCapacity )));
-	const int u = gridIndex( uMin, minPeriod( uMin, GridCapacity ));
-	const int v = gridIndex( vMin, minPeriod( vMin, GridCapacity ));
+		g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( b->uMin, GridCapacity ), minPeriod( b->vMin, GridCapacity )));
+	const int u = gridIndex( b->uMin, minPeriod( b->uMin, GridCapacity ));
+	const int v = gridIndex( b->vMin, minPeriod( b->vMin, GridCapacity ));
 	cacheBlock* old = g->blocks[u][v];
-	vAssert( u < GridSize );
-	vAssert( v < GridSize );
-	// TODO check LoD
-	if (old && old->lod > b->lod) {
-		printf( "Replacing lod %d cache block with lod %d block.\n", old->lod, b->lod );
-		mem_free( old );
-		g->blocks[u][v] = b;
-		takeRef( b );
-	}
-	else if (old) {
-		printf( "discarding new lod %d cache block - old lod %d block exists.\n", b->lod, old->lod );
+	vAssert( u < GridSize && v < GridSize );
+	if (old && old->lod <= b->lod)
 		mem_free( b );
-	} else {
-		//printf( "Adding new lod %d cache block\n", b->lod );
+	else {
 		mem_free( old );
 		g->blocks[u][v] = b;
 		takeRef( b );
