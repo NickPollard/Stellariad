@@ -27,7 +27,6 @@ varying float cliff;
 varying float specular;
 #endif
 
-
 // Uniform
 uniform	mat4 projection;
 uniform	mat4 modelview;
@@ -41,9 +40,24 @@ float sun_fog( vec4 local_sun_dir, vec4 view_direction ) {
 	return clamp( dot( local_sun_dir, view_direction ), 0.0, 1.0 );
 }
 
+//float sun( vec4 local_sun_dir, vec4 fragment_position ) {
+	//float g = max(0.1, smoothstep( 0.50, 1.0, abs(normalize(local_sun_dir).z)));
+	//float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 ));
+	//vec3 v = cross(normalize(fragment_position.xyz), local_sun_dir.xyz);
+	//return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
+//}
+
+float sun( vec4 sunDir, vec4 fragPosition ) {
+	vec4 sun = normalize( sunDir );
+	vec4 dir = normalize( fragPosition );
+	float g = max(0.1, smoothstep( 0.50, 1.0, abs(sun.z)));
+	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( sun, dir ), 0.0, 1.0 ));
+	vec3 v = cross(dir.xyz, sun.xyz);
+	return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
+}
+
 void main() {
 	gl_Position = projection * modelview * position;
-#if 1
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	frag_normal = normal;
@@ -65,15 +79,18 @@ void main() {
 	float distant_fog_far		= 700.0;
 	float distant_fog_distance	= 100.0; // distant_fog_far - distant_fog_near
 
-	float distance = sqrt( frag_position.z * frag_position.z + frag_position.x * frag_position.x );
 	float height_factor = clamp( ( fog_height - position.y ) / fog_height, 0.0, 1.0 );
+	float distance = sqrt( frag_position.z * frag_position.z + frag_position.x * frag_position.x );
 	float near_fog = min(( distance - fog_near ) / fog_distance, fog_max ) * height_factor;
 	float far_fog = ( distance - distant_fog_near ) / distant_fog_distance;
 	fog = clamp( max( near_fog, far_fog ), 0.0, 1.0 );
 
 	// sunlight on fog
-	float fog_sun_factor = sun_fog( camera_space_sun_direction, view_direction );
-	local_fog_color = fog_color + ( sun_color * fog_sun_factor );
+	float fogSun = sun_fog( camera_space_sun_direction, view_direction );
+	// Actual sun
+	vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);
+	float sun = sun( camera_space_sun_direction, view_direction );
+	local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
 	
 	// Cliff
 	float edge_ground = 0.03;
@@ -88,5 +105,4 @@ void main() {
 	vec4 spec_bounce = reflect( directional_light_direction, cameraSpace_frag_normal );
 	specular = max( 0.0, dot( spec_bounce, -view_direction ));
 #endif // NORMAL_MAPPING
-#endif
 }

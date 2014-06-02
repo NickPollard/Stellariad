@@ -27,6 +27,15 @@ float sun_fog( vec4 local_sun_dir, vec4 fragment_position ) {
 	return clamp( dot( normalize(local_sun_dir), normalize( fragment_position )), 0.0, 1.0 );
 }
 
+float sun( vec4 sunDir, vec4 fragPosition ) {
+	vec4 sun = normalize( sunDir );
+	vec4 dir = normalize( fragPosition );
+	float g = max(0.1, smoothstep( 0.50, 1.0, abs(sun.z)));
+	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( sun, dir ), 0.0, 1.0 ));
+	vec3 v = cross(dir.xyz, sun.xyz);
+	return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
+}
+
 void main() {
 	vec4 material = texture2D( tex, texcoord );
 
@@ -39,6 +48,12 @@ void main() {
 	vec4 specular = directionalSpecular * pow( spec, 10.0 ) * material.a;
 
 	vec4 fragColor = (ambient + specular + diffuse) * material;
-	vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, fragPosition ));
+	//vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, fragPosition ));
+
+	vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);
+	float sun = sun( camera_space_sun_direction, normalize(fragPosition) );
+	float fogSun = sun_fog( camera_space_sun_direction, fragPosition );
+	vec4 local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
+
 	gl_FragColor = vec4(mix( fragColor, local_fog_color, fog ).xyz, 1.0);
 }

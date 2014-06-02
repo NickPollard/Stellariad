@@ -40,6 +40,6 @@ void main() {
 	float height_factor = clamp( ( fog_height - position.y ) / fog_height, 0.0, 1.0 );
 	float distance = sqrt( fragPosition.z * fragPosition.z + fragPosition.x * fragPosition.x );
 	float near_fog = clamp(( distance - fog_near ) / fog_distance, 0.0, fog_max ) * height_factor;
-	float far_fog = clamp(( fragPosition.z - distant_fog_near ) / distant_fog_distance, 0.0, 1.0 );
+	float far_fog = clamp(( distance - distant_fog_near ) / distant_fog_distance, 0.0, 1.0 );
 	fog = max( near_fog, far_fog );
 }
