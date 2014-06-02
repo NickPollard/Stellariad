@@ -118,17 +118,17 @@ function spawn.spawnGroup( spawn_group, v )
 														end )
 end
 
-function spawn.spawnTurret( u, v )
+function spawn.spawnTurret( canyon, u, v )
 	local spawn_height = 0.0
 
 	-- position
-	local x, y, z = vcanyon_position( u, v )
+	local x, y, z = vcanyon_position( canyon, u, v )
 	local position = Vector( x, y + spawn_height, z, 1.0 )
 	local turret = gameobject_create( "dat/model/gun_turret.s" )
 	vtransform_setWorldPosition( turret.transform, position )
 
 	-- Orientation
-	local facing_x, facing_y, facing_z = vcanyon_position( u, v - 1.0 )
+	local facing_x, facing_y, facing_z = vcanyon_position( canyon, u, v - 1.0 )
 	local facing_position = Vector( facing_x, y + spawn_height, facing_z, 1.0 )
 	vtransform_facingWorld( turret.transform, facing_position )
 
@@ -226,40 +226,40 @@ local type_strafer = {
 	model = "dat/model/ship_red.s"
 }
 
-function spawn.triggeredSpawn( v, player_speed, func )
+function spawn.triggeredSpawn( canyon, v, player_speed, func )
 	local trigger_v = v + vrand( spawn.random, 0.0, 2.0 ) - ( 300.0 + player_speed * 5 )
 	triggerWhen( function()
 		return vtransform_getWorldPosition( player_ship.transform ):map( function( p )
-			local unused, player_v = vcanyon_fromWorld( p )
+			local unused, player_v = vcanyon_fromWorld( canyon, p )
 			return player_v > trigger_v
 		end ):getOrElse( false )
 	end,
 	func )
 end
 
-function spawn.spawnInterceptor( u, v, height, enemy_type )
+function spawn.spawnInterceptor( canyon, u, v, height, enemy_type )
 	local mirror = vrand( spawn.random, 0.0, 1.0 ) > 0.5 and -1.0 or 1.0
-	local spawn_x, spawn_y, spawn_z = vcanyon_position( u + mirror * interceptor_spawn_offset.u, v + interceptor_spawn_offset.v )
+	local spawn_x, spawn_y, spawn_z = vcanyon_position( canyon, u + mirror * interceptor_spawn_offset.u, v + interceptor_spawn_offset.v )
 	spawn_y = spawn_y + interceptor_spawn_offset.y
 	local spawn_position = Vector( spawn_x, spawn_y, spawn_z, 1.0 )
-	local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset )
+	local x, y, z = vcanyon_position( canyon, u, v + interceptor_target_v_offset )
 	move_to = { x = x, y = y + height, z = z }
 
 	local interceptor = spawn.create_interceptor( enemy_type )
 
 	vtransform_setWorldPosition( interceptor.transform, spawn_position )
-	local x, y, z = vcanyon_position( u, v + interceptor_target_v_offset - 100.0 )
+	local x, y, z = vcanyon_position( canyon, u, v + interceptor_target_v_offset - 100.0 )
 	local attack_target = { x = x, y = move_to.y, z = z }
 	local flee_to = { x = spawn_x, y = spawn_y + interceptor_spawn_offset.y * 2, z = spawn_z }
 	interceptor.behaviour = ai.interceptor_behaviour_flee( interceptor, move_to, attack_target, enemy_type.attack_type, flee_to )
 end
 
-function spawn.spawnStrafer( u, v, height, enemy_type )
+function spawn.spawnStrafer( canyon, u, v, height, enemy_type )
 	local mirror = vrand( spawn.random, 0.0, 1.0 ) > 0.5 and -1.0 or 1.0
-	local spawn_x, spawn_y, spawn_z = vcanyon_position( 0 + mirror * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
+	local spawn_x, spawn_y, spawn_z = vcanyon_position( canyon, 0 + mirror * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
 	spawn_y = spawn_y + height
 	local spawn_position = Vector( spawn_x, spawn_y, spawn_z, 1.0 )
-	local move_x, move_y, move_z = vcanyon_position( 0 + mirror * -1.0 * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
+	local move_x, move_y, move_z = vcanyon_position( canyon, 0 + mirror * -1.0 * strafer_spawn_offset.u, v + strafer_spawn_offset.v )
 	move_y = move_y + height
 	local move_to = { x = move_x, y = move_y, z = move_z }
 
@@ -268,26 +268,26 @@ function spawn.spawnStrafer( u, v, height, enemy_type )
 	strafer.behaviour = ai.strafer_behaviour( strafer, move_to )
 end
 
-function spawn.spawnGroupForIndex( i, player_ship )
-	return spawn.generateSpawnGroupForDifficulty( i, player_ship )
+function spawn.spawnGroupForIndex( canyon, i, player_ship )
+	return spawn.generateSpawnGroupForDifficulty( canyon, i, player_ship )
 end
 
 
 
-function spawn.randomEnemy( player_speed )
+function spawn.randomEnemy( canyon, player_speed )
 	local r = vrand( spawn.random, 0.0, 1.0 )
 	if r > 0.8 then
-		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnStrafer( coord.u, coord.v, coord.y, type_strafer ) end) end, spawn.positionerStrafer
+		return function( coord ) spawn.triggeredSpawn( canyon, coord.v, player_speed, function() spawn.spawnStrafer( canyon, coord.u, coord.v, coord.y, type_strafer ) end) end, spawn.positionerStrafer
 	elseif r > 0.5 then
-		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnInterceptor( coord.u, coord.v, coord.y, type_interceptor_missile ) end) end, spawn.positionerInterceptor
+		return function( coord ) spawn.triggeredSpawn( canyon, coord.v, player_speed, function() spawn.spawnInterceptor( canyon, coord.u, coord.v, coord.y, type_interceptor_missile ) end) end, spawn.positionerInterceptor
 	elseif r > 0.0 then
-		return function( coord ) spawn.triggeredSpawn( coord.v, player_speed, function() spawn.spawnInterceptor( coord.u, coord.v, coord.y, type_interceptor ) end) end, spawn.positionerInterceptor
+		return function( coord ) spawn.triggeredSpawn( canyon, coord.v, player_speed, function() spawn.spawnInterceptor( canyon, coord.u, coord.v, coord.y, type_interceptor ) end) end, spawn.positionerInterceptor
 	else
-		return function( coord ) spawn.spawnTurret( coord.u, coord.v ) end, spawn.positionerTurret
+		return function( coord ) spawn.spawnTurret( canyon, coord.u, coord.v ) end, spawn.positionerTurret
 	end
 end
 
-function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
+function spawn.generateSpawnGroupForDifficulty( canyon, difficulty, player_ship )
 	-- For now, assume difficulty is number of units to spawn
 	local count = math.min( difficulty, spawn_max )
 	local group = {}
@@ -295,7 +295,7 @@ function spawn.generateSpawnGroupForDifficulty( difficulty, player_ship )
 	group.positioners = { count = count }
 	local i = 1
 	while i <= count do
-		group.spawners[i], group.positioners[i] = spawn.randomEnemy( player_ship.speed )
+		group.spawners[i], group.positioners[i] = spawn.randomEnemy( canyon, player_ship.speed )
 		i = i + 1
 	end
 	return group
