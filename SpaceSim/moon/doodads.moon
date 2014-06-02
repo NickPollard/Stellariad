@@ -107,4 +107,5 @@ doodads.update = ( canyon, transform ) ->
 			doodads.spawnRange( canyon, doodads.spawned, spawn_upto )
 			doodads.spawned = spawn_upto)
 
+-- return
 doodads

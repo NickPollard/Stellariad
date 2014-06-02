@@ -15,6 +15,7 @@ android/libs
 android/xxx.map
 android/gen
 *.d
+SpaceSim/lua/compiled
 
 # profile output
 android_profile_results

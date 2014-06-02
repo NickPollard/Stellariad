@@ -106,6 +106,8 @@ C and only controlled remotely by Lua
 
 	tickers = list:empty() 
 
+local spawning_active = false
+
 -- Create a spacesim Game object
 -- A gameobject has a visual representation (model), a physical entity for velocity and momentum (physic)
 -- and a transform for locating it in space (transform)
@@ -541,34 +543,22 @@ function restart()
 	setup_controls()
 end
 
-function splash_intro()
-	vtexture_preload( "dat/img/splash_author.tga" )
-	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga", 512, 256 )
-	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
-	inTime( 2.0, function () 
-		ui.hide_splash( studio_splash ) 
-		local author_splash = ui.show_splash( "dat/img/splash_author.tga", 512, 256 )
-		inTime( 2.0, function ()
-			ui.hide_splash( author_splash ) 
-			ui.hide_splash( bg ) 
-			ui.show_crosshair()
-			gameplay_start()
-		end )
-	end )
-end
-
 function studio_splash() 
 	local f = future:new()
-	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 ):onComplete( function ( splash ) inTime( 2.0, function ()
-			ui.hide_splash( splash )
+	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 ):onComplete( function ( s )
+		ui.panelFadeIn( s, 2.0 )
+		inTime( 3.0, function ()
+			ui.hide_splash( s )
 			f:complete( nil )
 		end ) end ) 
 	return f
 end
 
 function author_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_author.tga", 512, 256 ):onComplete( function ( s ) inTime( 2.0, function ()
+	local f = future:new()	
+	ui.splash( "dat/img/splash_author.tga", 512, 256 ):onComplete( function ( s )
+		ui.panelFadeIn( s, 2.0 )
+		inTime( 2.0, function ()
 			ui.hide_splash( s )
 			f:complete( nil )
 		end ) end ) 
@@ -607,13 +597,15 @@ end
 function skies_splash() 
 	local f = future:new()
 	ui.splash( "dat/img/splash_skies_modern.tga", screen_width, screen_height )
-		:onComplete( function ( splash )
+		:onComplete( function ( s )
+			ui.panelFadeIn( s, 2.0 )
 			local w = screen_width
 			local h = screen_height
 			local touch_to_play = createTouchPad( input, 0, 0, w, h )
 			--inTime( 4.0, function ()
 			touch_to_play:onTouch( function ()
-				ui.hide_splash( splash )
+				vprint( "touch" )
+				ui.hide_splash( s )
 				f:complete( nil )
 				removeTicker( touch_to_play )
 				end )
@@ -943,7 +935,6 @@ function toggle_camera()
 	end
 end
 
-local spawning_active = false
 local paused = false
 local pauseFrame = nil
 
@@ -969,6 +960,7 @@ function tick( dt )
 		end
 	end
 
+
 	if player_active then
 		playership_tick( player_ship, dt )
 	end
@@ -979,8 +971,8 @@ function tick( dt )
 	triggers.tick( dt )
 
 	if spawning_active then
-		update_spawns( player_ship.transform )
-		update_despawns( player_ship.transform )
+		update_spawns( canyon, player_ship.transform )
+		update_despawns( canyon, player_ship.transform )
 	end
 
 	if not debug_doodads_disabled then
@@ -1002,7 +994,7 @@ function addTicker( ticker )
 end
 
 function removeTicker( ticker )
-	--tickers = tickers:remove( ticker )
+	tickers = tickers:remove( ticker )
 end
 
 -- Called on termination to clean up after itself
@@ -1067,12 +1059,12 @@ end
 
 
 -- Spawn all entities in the given range
-function entities_spawnRange( near, far )
+function entities_spawnRange( canyon, near, far )
 	local i = spawn_index( near ) + 1
 	local spawn_v = i * spawn_interval
 	while library.contains( spawn_v, near, far ) do
 		local interceptor_offset_u = 20.0
-		spawn.spawnGroup( spawn.spawnGroupForIndex( i, player_ship ), spawn_v )
+		spawn.spawnGroup( spawn.spawnGroupForIndex( canyon, i, player_ship ), spawn_v )
 		i = i + 1
 		spawn_v = i * spawn_interval
 	end
@@ -1086,24 +1078,24 @@ function entities_despawnAll()
 end
 
 -- Spawn all entities that need to be spawned this frame
-function update_spawns( transform )
+function update_spawns( c, transform )
 	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( canyon, p )
+		local u,v = vcanyon_fromWorld( c, p )
 		local spawn_until = v + spawn_distance
-		entities_spawnRange( entities_spawned, spawn_until )
+		entities_spawnRange( c, entities_spawned, spawn_until )
 		entities_spawned = spawn_until;
 	end )
 end
 
-function update_despawns( transform ) 
+function update_despawns( c, transform ) 
 	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( canyon, p )
+		local u,v = vcanyon_fromWorld( c, p )
 		local despawn_up_to = v - despawn_distance
 
 		for unit in array.iterator( interceptors ) do
 			-- TODO remove them properly
 			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-				u,v = vcanyon_fromWorld( canyon, p_ )
+				u,v = vcanyon_fromWorld( c, p_ )
 				if v < despawn_up_to then
 					ship_delete( unit )
 					unit = nil
@@ -1115,7 +1107,7 @@ function update_despawns( transform )
 			-- TODO remove them properly
 			if unit.transform then
 				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( canyon, p_ )
+					u,v = vcanyon_fromWorld( c, p_ )
 					if v < despawn_up_to then
 						ship_delete( unit )
 						unit = nil

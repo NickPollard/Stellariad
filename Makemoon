@@ -1,4 +1,6 @@
-MOON_SRCS = entities.moon \
+MOON_SRCS = color.moon \
 			doodads.moon \
+			entities.moon \
 			list.moon \
-			timers.moon
+			timers.moon \
+			ui.moon
