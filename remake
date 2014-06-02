@@ -1,8 +1,14 @@
 #!/bin/zsh
 while /bin/true
 do
-echo "\nReady >>\n"
+#echo "\nReady >>\n"
+echo "\n\x1b[33mReady >>\x1b[0m\n"
 inotifywait -rqq -e close_write src SpaceSim
-echo "\nCompiling...\n"
-make debug 2>&1 | sed -e 's/[a-zA-Z_]*\/[a-zA-Z_]*\.\(c\|h\|o\)/\x1b[31m&\x1b[0m/' | grep -v "Nothing to be done for"
+echo "\n\x1b[33mCompiling...\x1b[0m\n"
+make debug 2>&1 \
+	| sed -e 's/[a-zA-Z_\/\.]*\.\(c\|h\|o\|moon\|lua\)/\x1b[32m&\x1b[0m/' \
+	| sed -e 's/[a-zA-Z_\/\.]*\.\(lua\)/\x1b[32m&\x1b[0m/' \
+	| sed -e 's/.*error.*/\x1b[31m\[error\]\x1b[0m&/' \
+	| sed -e 's/.*Failed to parse.*/\x1b[31m\[error\]\x1b[0m&/' \
+	| grep -v "Nothing to be done for"
 done

@@ -1,7 +1,7 @@
 C = gcc
 #ARCH = -m32
 ARCH = -m64
-CFLAGS = -Wall -Wextra -Werror $(ARCH) -std=gnu99 -I . -I/usr/include/lua5.1  -Isrc -pg
+CFLAGS = -Wall -Wextra -Werror -fno-diagnostics-show-option $(ARCH) -std=gnu99 -I . -I/usr/include/lua5.1  -Isrc -pg
 LFLAGS = $(ARCH) -pg
 #PLATFORM_LIBS = -L/usr/lib/i386-linux-gnu -L/usr/local/lib/i386-linux-gnu
 PLATFORM_LIBS = -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu
