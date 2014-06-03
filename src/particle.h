@@ -90,6 +90,7 @@ void property_addfv( property* p, float time, float* values );
 void property_addv( property* p, float time, vector value );
 vector property_samplev( property* p, float time );
 float property_samplef( property* p, float time );
+float property_duration( property* p );
 
 void particle_staticInit();
 

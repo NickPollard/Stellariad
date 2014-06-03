@@ -10,6 +10,9 @@ end
 ui.panelFadeIn = function(p, t)
   return vuiPanel_fadeIn(p, t)
 end
+ui.panelFadeOut = function(p, t)
+  return vuiPanel_fadeOut(p, t)
+end
 ui.show_splash_withColor = function(image, w, h, c)
   local centre = {
     x = screen_width * 0.5,
@@ -30,14 +33,16 @@ end
 ui.hide_splash = function(s)
   return vuiPanel_hide(engine, s)
 end
-ui.show_crosshair = function()
+ui.create_crosshair = function()
   local w = 128
   local h = 128
   local position = {
     x = (screen_width - w) * 0.5,
     y = (screen_height - h) * 0.5
   }
-  return vuiPanel_create(engine, "dat/img/crosshair_arrows.tga", Vector(0.3, 0.6, 1.0, 0.8), position.x, position.y, w, h)
+  local crosshair = vuiPanel_create(engine, "dat/img/crosshair_arrows.tga", Vector(0.3, 0.6, 1.0, 0.8), position.x, position.y, w, h)
+  ui.hide_splash(crosshair)
+  return crosshair
 end
 ui.splash_intro = function()
   vtexture_preload("dat/img/splash_author.tga")
@@ -45,15 +50,14 @@ ui.splash_intro = function()
   return ui.studio_splash():onComplete(function(s)
     return ui.author_splash():onComplete(function(a)
       return ui.skies_splash():onComplete(function(a)
-        ui.hide_splash(bg)
-        ui.show_crosshair()
+        ui.panelFadeOut(bg, 0.5)
+        ui.crosshair = ui.create_crosshair()
         return gameplay_start()
       end)
     end)
   end)
 end
-local skies_splash
-skies_splash = function()
+ui.skies_splash = function()
   local f = future:new()
   ui.splash("dat/img/splash_skies_modern.tga", screen_width, screen_height):onComplete(function(s)
     ui.panelFadeIn(s, 2.0)
@@ -67,24 +71,28 @@ skies_splash = function()
   end)
   return f
 end
-local studio_splash
-studio_splash = function()
+ui.studio_splash = function()
   local f = future:new()
   ui.splash("dat/img/splash_vitruvian.tga", 512, 256):onComplete(function(s)
-    ui.panelFadeIn(s, 2.0)
-    return inTime(3.0, function()
+    ui.panelFadeIn(s, 1.5)
+    inTime(2.0, function()
+      return ui.panelFadeOut(s, 1.5)
+    end)
+    return inTime(3.5, function()
       ui.hide_splash(s)
       return f:complete(nil)
     end)
   end)
   return f
 end
-local author_splash
-author_splash = function()
+ui.author_splash = function()
   local f = future:new()
   ui.splash("dat/img/splash_author.tga", 512, 256):onComplete(function(s)
-    ui.panelFadeIn(s, 2.0)
-    return inTime(2.0, function()
+    ui.panelFadeIn(s, 1.5)
+    inTime(2.0, function()
+      return ui.panelFadeOut(s, 1.5)
+    end)
+    return inTime(3.5, function()
       ui.hide_splash(s)
       return f:complete(nil)
     end)

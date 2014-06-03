@@ -378,6 +378,11 @@ float property_keyDomain( float* key ) {
 	return *key;
 }
 
+float property_duration( property* p ) {
+	float t = p->data[(p->count-1) * p->stride];
+	return t;
+}
+
 // Return a new property that contains only the keys in the given domain range
 // BUFFER is a pointer to space big enough to use for the range
 // this is passed in so we can use stack allocation ot save a mem_alloc traversal

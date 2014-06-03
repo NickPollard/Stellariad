@@ -56,3 +56,4 @@ void panel_render( void* panel_, scene* s );
 
 void panel_setAlpha( panel* p, float alpha );
 void panel_fadeIn( panel* p, float overTime );
+void panel_fadeOut( panel* p, float overTime );

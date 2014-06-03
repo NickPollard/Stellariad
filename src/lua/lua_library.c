@@ -865,6 +865,13 @@ int LUA_createUIPanel_future( lua_State* l ) {
 	return 1;
 }
 
+int LUA_showUIPanel( lua_State* l ) {
+	engine* e = lua_toptr( l, 1 );
+	panel* p = lua_toptr( l, 2 );
+	panel_show( e, p );
+	return 0;
+}
+
 int LUA_hideUIPanel( lua_State* l ) {
 	engine* e = lua_toptr( l, 1 );
 	panel* p = lua_toptr( l, 2 );
@@ -876,6 +883,13 @@ int LUA_setPanelAlpha( lua_State* l ) {
 	panel* p = lua_toptr( l, 1 );
 	float a = lua_tonumber( l, 2 );
 	panel_setAlpha( p, a );
+	return 0;
+}
+
+int LUA_panelFadeOut( lua_State* l ) {
+	panel* p = lua_toptr( l, 1 );
+	float t = lua_tonumber( l, 2 );
+	panel_fadeOut( p, t );	
 	return 0;
 }
 
@@ -1268,8 +1282,10 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_createUIPanel, "vuiPanel_create" );
 	lua_registerFunction( l, LUA_createUIPanel_future, "vuiPanel_create_future" );
 	lua_registerFunction( l, LUA_hideUIPanel, "vuiPanel_hide" );
+	lua_registerFunction( l, LUA_showUIPanel, "vuiPanel_show" );
 	lua_registerFunction( l, LUA_setPanelAlpha, "vuiPanel_setAlpha" );
 	lua_registerFunction( l, LUA_panelFadeIn, "vuiPanel_fadeIn" );
+	lua_registerFunction( l, LUA_panelFadeOut, "vuiPanel_fadeOut" );
 	
 
 	// *** Game

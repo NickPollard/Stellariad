@@ -509,6 +509,8 @@ function gameplay_start()
 	player_active = true
 	inTime( 2.0, function () 
 		player_ship.speed = player_ship_initial_speed
+		ui.show( ui.crosshair )
+		ui.panelFadeIn( ui.crosshair, 0.5 )
 		--playership_addEngineGlows( player_ship )
 		if not debug_spawning_disabled then
 			spawning_active = true

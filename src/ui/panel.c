@@ -102,7 +102,7 @@ bool animate( animator* a, float dt ) {
 	a->time += dt;
 	float f = property_samplef( a->property, a->time );
 	*(a->target) = f;
-	return false;
+	return a->time > property_duration( a->property );;
 }
 
 animator* newAnimator( property* p, float* target ) {
@@ -121,13 +121,15 @@ void panel_tick( void* pnl, float dt, engine* e ) {
 	(void)e;
 	panel*p = pnl;
 	animatorlist* prev = NULL;
-	for ( animatorlist* a = p->animators; a; a = a->tail ) {
+	for ( animatorlist* a = p->animators; a; ) {
+		animatorlist* next = a->tail;
 		if (animate( a->head, dt )) {
-			if (prev) prev->tail = a->tail; // Kill this one
+			if (prev) prev->tail = a->tail; else p->animators = a->tail; // Kill this one
 			animator_delete( a->head );
 			mem_free( a );
 		}
 		prev = a;
+		a = next;
 	}
 }
 
@@ -139,6 +141,14 @@ void panel_fadeIn( panel* p, float overTime ) {
 	property* prop = property_create( 2 );
 	property_addf( prop, 0.f, 0.f );
 	property_addf( prop, overTime, 1.f );
+	animator* a = newAnimator( prop, &p->color.coord.w );
+	panel_addAnimator( p, a );
+}
+
+void panel_fadeOut( panel* p, float overTime ) {
+	property* prop = property_create( 2 );
+	property_addf( prop, 0.f, 1.f );
+	property_addf( prop, overTime, 0.f );
 	animator* a = newAnimator( prop, &p->color.coord.w );
 	panel_addAnimator( p, a );
 }
