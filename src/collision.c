@@ -658,6 +658,7 @@ void heightField_calculateAABB( heightField* h ) {
 	h->aabb.x_min = FLT_MAX;
 	h->aabb.z_max = -FLT_MAX;
 	h->aabb.z_min = FLT_MAX;
+	h->maxHeight = -FLT_MAX;
 	// Only need o do outer edges - the max must be one of them
 	for ( int j = 0; j < h->z_samples; j++ ) {
 		enlargeAABB( &h->aabb, heightField_vertex( h, 0, j ));
@@ -666,6 +667,11 @@ void heightField_calculateAABB( heightField* h ) {
 	for ( int i = 0; i < h->x_samples; i++ ) {
 		enlargeAABB( &h->aabb, heightField_vertex( h, i, 0 ));
 		enlargeAABB( &h->aabb, heightField_vertex( h, i, h->z_samples - 1 ));
+	}
+	for ( int i = 0; i < h->x_samples; i++ ) {
+		for ( int j = 0; j < h->z_samples; j++ ) {
+			h->maxHeight = fmaxf( h->maxHeight, heightField_vertex( h, i, j ).coord.y);
+		}
 	}
 }
 
@@ -676,11 +682,12 @@ bool AABBcontains( aabb2d aabb, float x, float z ) {
 			z >= aabb.z_min;
 }
 
-bool heightField_contains( heightField* h, float x, float z ) {
-	if ( !AABBcontains( h->aabb, x, z ) ) { 
-		//printf( "AABB does not contain point.\n" );
+bool heightField_contains( heightField* h, vector v ) {
+	if ( !AABBcontains( h->aabb, v.coord.x, v.coord.z ))
 		return false;
-	}
+
+	if ( v.coord.y > h->maxHeight )
+		return false;
 	
 	return true;
 }
@@ -749,7 +756,7 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 
 
 	// Check that the sphere is actually over the heightfield
-	if ( !heightField_contains( height_shape->height_field, sphere_position.coord.x, sphere_position.coord.z )) {
+	if ( !heightField_contains( height_shape->height_field, sphere_position )) {
 		return false;
 	}
 

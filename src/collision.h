@@ -39,6 +39,7 @@ typedef struct heightField_s {
 	vector *verts;
 	int vert_count;
 	aabb2d	aabb;
+	float	maxHeight;
 } heightField;
 
 typedef struct shape_s {
