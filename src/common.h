@@ -63,6 +63,10 @@
 #define then ?
 #define otherwise :
 
+// *** Units
+#define KILOBYTES 1024
+#define MEGABYTES 1024*KILOBYTES
+
 // *** Android specific
 #ifdef ANDROID
 // *** Logging

@@ -760,9 +760,9 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 		return false;
 	}
 
-	if ( heightField_collides( height_shape->height_field, sphere_position )) {
-		return true;
-	}
+	//if ( heightField_collides( height_shape->height_field, sphere_position )) {
+		//return true;
+	//}
 
 	return false;
 }

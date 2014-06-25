@@ -121,6 +121,14 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 				//vAssert( (uintptr_t)b < 0x0001000000000000 );
 			//}
 			memcpy( t->blocks, newBlocks, sizeof( canyonTerrainBlock* ) * t->total_block_count );
+			bool vl = true;
+			for ( int v = 0; v < t->v_block_count; v++ ) {
+				for ( int u = 0; u < t->u_block_count; u++ ) {
+					const int i = canyonTerrain_blockIndexFromUV( t, u, v );
+					vl = vl && (uintptr_t)t->blocks[i] < 0x0001000000000000;
+				}
+			}
+			vAssert( vl );
 			t->firstUpdate = false;
 		}
 	} vmutex_unlock( &t->mutex );

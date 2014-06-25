@@ -15,11 +15,10 @@ ui.show_splash_withColor = ( image, w, h, c ) ->
 	vuiPanel_create( engine, image, c, centre.x - w * 0.5, centre.y - h * 0.5, w, h )
 
 ui.splash = ( image, w, h ) ->
-	vprint( "Splash" )
 	f = future\new()
 	centre = x: screen_width * 0.5, y: screen_height * 0.5
 	vuiPanel_create_future( engine, image, color.white(), centre.x - w * 0.5, centre.y - h * 0.5, w, h, f )
-	return f
+	f
 
 ui.hide_splash = ( s ) -> vuiPanel_hide( engine, s )
 ui.show = ( s ) -> vuiPanel_show( engine, s )

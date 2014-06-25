@@ -2,8 +2,8 @@
 
 #pragma once
 
-#define kObjMaxVertices 64 << 10
-#define kObjMaxIndices 128 << 10
+#define kObjMaxVertices 4096
+#define kObjMaxIndices 8192
 
 mesh* mesh_loadObj( const char* filename );
 model* model_load( const char* filename );

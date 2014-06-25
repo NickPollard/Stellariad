@@ -119,16 +119,15 @@ void canyonTerrainBlock_fillTrianglesForVertex( canyonTerrainBlock* b, vector* p
 	int triangles_per_row = ( b->u_samples - 1 ) * 2;
 	
 	for ( int i = 0; i < 6; ++i ) {
-		// Calculate triangle index
-		int row = v_index + ( v_offset[i] );
-		int column = ( 2 * u_index ) + ( u_offset[i] );
-		int triangle_index = triangles_per_row * row + column; 
+		const int row = v_index + ( v_offset[i] );
+		const int column = ( 2 * u_index ) + ( u_offset[i] );
+		const int triangle_index = triangles_per_row * row + column; 
 
 		if ( canyonTerrainBlock_triangleInvalid( b, u_index, v_index, u_offset[i], v_offset[i]) )
 			continue;
 
 		// if it's a valid triangle (not out-of-bounds)
-		int vert_index = triangle_index * 3 + triangle_vert_indices[i];
+		const int vert_index = triangle_index * 3 + triangle_vert_indices[i];
 		vertices[vert_index] = *vert;
 
 		// Cliff coloring
@@ -145,14 +144,9 @@ void canyonTerrainBlock_fillTrianglesForVertex( canyonTerrainBlock* b, vector* p
 		vector normal;
 		float d;
 		plane( vertices[vert_index].position, v_b, v_c, &normal, &d );
-		float angle = acosf( Dot( &normal, &y_axis ));
+		const float angle = acosf( Dot( &normal, &y_axis ));
 		const float cliff_angle = PI / 4.f;
-		bool cliff = angle > cliff_angle;
-		if ( cliff ) {
-			vertices[vert_index].color = Vector( 0.2f, 0.3f, 0.5f, 1.f );
-		} else {
-			vertices[vert_index].color = Vector( 0.8f, 0.9f, 1.0f, 0.f );
-		}
+		vertices[vert_index].color = angle > cliff_angle ? Vector( 0.2f, 0.3f, 0.5f, 1.f ) : Vector( 0.8f, 0.9f, 1.0f, 0.f );
 	}
 }
 #endif
@@ -170,7 +164,7 @@ void* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
 void canyonTerrain_initVertexBuffers( canyonTerrain* t ) {
 	// Init w*h*2 buffers that we can use for vertex_buffers
 	vAssert( t->vertex_buffers == 0 );
-	int count = t->u_block_count * t->v_block_count * 3;
+	const int count = t->u_block_count * t->v_block_count * 2;
 	t->vertex_buffers = mem_alloc( count * sizeof( vertex* ));
 	for ( int i = 0; i < count; i++ ) {
 		t->vertex_buffers[i] = canyonTerrain_allocVertexBuffer( t );

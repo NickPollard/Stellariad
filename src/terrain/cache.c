@@ -18,6 +18,7 @@ IMPLEMENT_LIST(cacheGrid);
 struct terrainCache_s {
 	cacheGridlist* grids;	
 	cacheBlocklist* blocks;	
+	cacheBlocklist* toDelete;
 };
 
 vmutex terrainMutex = kMutexInitialiser;
@@ -34,6 +35,12 @@ void takeRef( cacheBlock* b ) {
 		if (b)
 			++b->refCount; // TODO - CAS instruction?
 	} vmutex_unlock( &blockMutex );
+}
+
+void* takeCacheRef( const void* value, void* args ) {
+	(void)args;
+	takeRef( (cacheBlock*)value ); // URGH const cast?
+	return NULL;
 }
 
 int gridIndex( int i, int grid ) { return (i - grid) / CacheBlockSize; }
@@ -94,7 +101,10 @@ cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
 	if (old && old->lod <= b->lod)
 		mem_free( b );
 	else {
-		mem_free( old );
+		// Is this safe?
+		if (old)
+			printf( "Freeing old cache block " xPTRf "\n", (uintptr_t)old );
+		t->toDelete = cacheBlocklist_cons( old, t->toDelete );
 		g->blocks[u][v] = b;
 		takeRef( b );
 	}
@@ -145,7 +155,6 @@ vector vecSample( vector* array, int w, int h, float u, float v ) {
 }
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
-	//requiredLOD = 0; // TODO - Don't do this
 	++numCaches;
 	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
@@ -180,19 +189,26 @@ void cacheBlockFree( cacheBlock* b ) {
 		if ( b ) {
 			--b->refCount;
 			vAssert( b->refCount >= 0 );
-			if (b->refCount == 0)
+			if (b->refCount == 0) {
+				printf( "Deleting cache block " xPTRf "\n", (uintptr_t)b );
 				mem_free( b );
+			}
 		}
 	} vmutex_unlock( &blockMutex );
 }
 
 void trimCacheGrid( cacheGrid* g, int v ) {
 	const int vMax = clamp( v - g->vMin, 0, GridSize );
+	//printf( "Trimming for V %d (this block: %d)\n", v, vMax );
 	for ( int u = 0; u < GridSize; ++u )
-		for ( int v = 0; v < vMax; ++v ) {
-			cacheBlockFree(g->blocks[u][v]);
-			g->blocks[u][v] = NULL;
-		}
+		for ( int v = 0; v < vMax; ++v )
+			if ( g->blocks[u][v] && g->blocks[u][v]->refCount == 1 ) {
+				// TODO - Need to store a separate RefCount for the co-ord, NOT the block
+				// Allow blocks to be replaced, but not trimmed unless the refcount is 0
+				//printf( "Freeing cache %d %d.\n", g->uMin + u, g->vMin + v );
+				//cacheBlockFree(g->blocks[u][v]);
+				//g->blocks[u][v] = NULL;
+			}
 }
 
 bool gridEmpty( cacheGrid* g ) {
@@ -204,12 +220,12 @@ bool gridEmpty( cacheGrid* g ) {
 }
 
 void terrainCache_trim( terrainCache* t, int v ) {
-	/*
 	vmutex_lock( &terrainMutex ); {
-		cacheGridlist* nw = NULL;
+		//cacheGridlist* nw = NULL;
 		cacheGridlist* g = t->grids;
 		while ( g && g->head ) {
 			trimCacheGrid( g->head, v );
+			/*
 			(void)v;
 			if (gridEmpty(g->head)) {
 				//printf( "Freeing grid list " xPTRf "\n", (uintptr_t)g );
@@ -218,20 +234,28 @@ void terrainCache_trim( terrainCache* t, int v ) {
 				//vAssert( (uintptr_t)g->head < 0x00ffffffffffffff );
 				nw = cacheGridlist_cons( g->head, nw );
 			}
+			*/
 			cacheGridlist* next = g->tail;
-			mem_free( g );
+			//mem_free( g );
 			g = next;
 		}
-		t->grids = nw;
+		//t->grids = nw;
 	} vmutex_unlock( &terrainMutex );
-	*/
 	(void)t;(void)v;
+}
+
+cacheBlocklist* terrainCache_processDeletes( terrainCache* t ) {
+	for (cacheBlocklist* b = t->toDelete; b; b = b->tail ) {
+		mem_free(b->head);
+	}
+	return NULL;
 }
 
 void terrainCache_tick( terrainCache* t, float dt, vector sample ) {
 	(void)dt;
 	(void)t;
 	(void)sample;
+	t->toDelete = terrainCache_processDeletes( t );
 	/*
 	float v = from(sample);
 	for ( int u = uMin; u < uMax; ++u ) {
@@ -292,3 +316,47 @@ bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, f
 	return empty;
 }
 
+void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
+	const int r = 4 / lodRatio(b);
+	const int uReal = b->uMin + r*uRelative;
+	const int vReal = b->vMin + r*vRelative;
+	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
+	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
+	*uCache = uReal - uOffset;
+	*vCache = vReal - vOffset;
+}
+
+cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) {
+
+	const int u = minPeriod( uMin, GridCapacity );
+	const int v = minPeriod( vMin, GridCapacity );
+	const int gu = gridIndex(uMin, u);
+	const int gv = gridIndex(vMin, v);
+	//cacheGrid* g = cachedGrid( cache, uMin, vMin );
+
+	cacheGrid* grid = cachedGrid( cache, uMin, vMin );
+	//if (grid) { // TODO!
+		//const int u = uMin - grid->uMin;
+		//const int v = vMin - grid->vMin;
+		return grid->blocks[gu][gv];
+	//}
+	//return NULL;
+}
+
+cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
+	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
+	cacheBlockFor( b, -1, -1, &cacheMinU, &cacheMinV );
+	cacheBlockFor( b, b->u_samples, b->v_samples, &cacheMaxU, &cacheMaxV );
+	cacheBlocklist* caches = NULL;
+	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
+		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
+			cacheBlock* c = cachedBlock( b->canyon->terrainCache, u, v );
+			takeRef( c );
+			caches = cacheBlocklist_cons( c, caches );
+		}
+	return caches;
+}
+
+bool cacheBlockContains( cacheBlock* b, int u, int v ) {
+	return ( b->uMin == u && b->vMin == v );
+}

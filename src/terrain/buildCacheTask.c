@@ -13,16 +13,6 @@
 #include "mem/allocator.h"
 #include "system/thread.h"
 
-void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
-	const int r = 4 / lodRatio(b);
-	const int uReal = b->uMin + r*uRelative;
-	const int vReal = b->vMin + r*vRelative;
-	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
-	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
-	*uCache = uReal - uOffset;
-	*vCache = vReal - vOffset;
-}
-
 void* buildCacheBlockTask(void* args) {
 	canyonTerrainBlock* b = _1(args);
 	future* f = _2(args);
@@ -31,58 +21,57 @@ void* buildCacheBlockTask(void* args) {
 
 	canyon* c = b->terrain->canyon;
 	// ! only if not exist or lower-lod
-	int found_lod = b->lod_level;
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache) {
-		//printf( "Building lod %d\n.", b->lod_level );
+	if (!cache)
 		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
-	} else if (cache->lod > b->lod_level) {
-		//printf( "upgrading lod from %d to %d\n.", cache->lod, b->lod_level );
+	else if (cache->lod > b->lod_level) {
+		cacheBlockFree( cache );
 		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
 	}
-	else {
-		//printf( "lod %d already exists\n.", cache->lod );
-		found_lod = cache->lod;
-	}
-	//if ( (uintptr_t)b == 0x7fffd9c695ec )
-		//printf( "Requesting cache %d,%d for block 0x" xPTRf " at lod %d.\n", uMin, vMin, (uintptr_t)b, b->lod_level );
 
-	void* lod = (void*)(uintptr_t)min(b->lod_level, found_lod);
-	future_complete( f, lod );
-	//cacheBlockFree( cache );
+	future_complete( f, cache ); // TODO - Should this be tryComplete? hit a segfault here
+	cacheBlockFree( cache );
 	mem_free( args );
 
 	return NULL;
 }
 
-future* generateCache( canyonTerrainBlock* b, int u, int v ) {
+future* requestCache( canyonTerrainBlock* b, int u, int v ) {
 	// If already built, or building, return that future
+	// else start it building
 	future* f = NULL;
-	// TODO - need to check Lod!
 	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, b->lod_level, &f);
 	vAssert( f );
-	// TODO - set required lod
-	// else start it building
 	if (empty) {
 		void* uu = (void*)(uintptr_t)u;
 		void* vv = (void*)(uintptr_t)v;
 		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
+	future_onComplete( f, takeCacheRef, NULL );
+
 	return f;
+}
+
+void releaseAllCaches( cacheBlocklist* caches ) {
+	for( cacheBlocklist* b = caches; b; b = b->tail )
+		cacheBlockFree( b->head );
 }
 
 /* At this point all the terrain caches should be filled,
    so we can just use them safely */
-void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources ) {
+void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBlocklist* caches ) {
 	vector* verts = vertSources->positions;
 	for ( int v = -1; v < b->v_samples + 1; ++v )
 		for ( int u = -1; u < b->u_samples + 1; ++u )
-			verts[indexFromUV(b, u, v)] = terrainPointCached( b->canyon, b, u, v );
+			verts[indexFromUV(b, u, v)] = terrainPointCached( b->canyon, b, caches, u, v );
 
+	releaseAllCaches( caches );
 	worker_addTask( task( canyonTerrain_workerGenerateBlock, Pair( vertSources, b )));
 }
+
 void* worker_generateVerts( void* args ) {
-	generateVerts( _1(args), _2(args) );
+	cacheBlocklist* caches = cachesForBlock( _1(args) );
+	generateVerts( _1(args), _2(args), caches/*_3(args)*/ );
 	mem_free(args);
 	return NULL;
 }
@@ -96,9 +85,7 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	futurelist* fs = NULL;
 	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
 		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
-			if ( (uintptr_t)b == 0x7fffd9c695ec )
-				printf( "Requesting cache %d,%d for block 0x" xPTRf " at lod %d.\n", u, v, (uintptr_t)b, b->lod_level );
-			future* f = generateCache( b, u, v );
+			future* f = requestCache( b, u, v );
 			if ( !f->complete )
 				fs = futurelist_cons( f, fs );
 		}
@@ -131,7 +118,8 @@ void generatePositions( canyonTerrainBlock* b) {
 	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
 
 	future* f = buildCache( b );
-	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
+	cacheBlocklist* caches = NULL;//cachesForBlock( b );
+	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Triple( b, vertSources, caches )));
 }
 
 void* generateVertices_( void* args ) {

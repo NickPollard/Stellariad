@@ -21,7 +21,6 @@ ui.show_splash_withColor = function(image, w, h, c)
   return vuiPanel_create(engine, image, c, centre.x - w * 0.5, centre.y - h * 0.5, w, h)
 end
 ui.splash = function(image, w, h)
-  vprint("Splash")
   local f = future:new()
   local centre = {
     x = screen_width * 0.5,
@@ -64,9 +63,12 @@ ui.skies_splash = function()
   local f = future:new()
   ui.splash("dat/img/splash_skies_modern.tga", screen_width, screen_height):onComplete(function(s)
     ui.panelFadeIn(s, 2.0)
+    if debug_auto_start then
+      ui.hide_splash(s)
+      f:complete(nil)
+    end
     local touch_to_play = createTouchPad(input, 0, 0, screen_width, screen_height)
     return touch_to_play:onTouch(function()
-      vprint("touch")
       ui.hide_splash(s)
       f:complete(nil)
       return removeTicker(touch_to_play)

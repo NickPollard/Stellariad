@@ -52,3 +52,14 @@ void cacheBlockFree( cacheBlock* b );
 void terrainCache_tick( terrainCache* t, float dt, vector sample );
 
 bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, future** f );
+
+// Take a ref to a cache (from a future)
+void* takeCacheRef( const void* value, void* args );
+
+// Return a list of cacheblocks needed for building a given block
+cacheBlocklist* cachesForBlock( canyonTerrainBlock* b );
+
+// Calculate the cacheblock indices for a given point coord
+void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache );
+
+bool cacheBlockContains( cacheBlock* b, int u, int v );

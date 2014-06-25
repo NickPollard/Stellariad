@@ -14,7 +14,7 @@ void validateFreeList( heapAllocator* heap );
 int countFree( heapAllocator* heap );
 int printFree( heapAllocator* heap );
 
-#define static_heap_size (480 * 1024 * 1024) // In MegaBytes
+#define static_heap_size (480*MEGABYTES)
 heapAllocator* static_heap = NULL;
 vmutex allocator_mutex = kMutexInitialiser;
 #define kMaxAlignmentSpace 8
@@ -98,18 +98,17 @@ void setPrevFree( block* b, block* prev ) { if (b) b->prevFree = prev; }
 void setNextFree( block* b, block* next ) { if (b) b->nextFree = next; }
 
 void addToFreeList( heapAllocator* heap, block* b ) {
-	b->free = false;
-	//validateFreeList( heap );
 	b->free = true;
 
 	block* oldFree = heap->free;
+	vAssert( oldFree != b );
 	setNextFree( b, oldFree );
+	vAssert( oldFree != b );
 	vAssert( oldFree == NULL || prevFree( oldFree ) == NULL ); // It should have been first in the list
 	setPrevFree( oldFree, b );
 
 	heap->free = b;
 	setPrevFree( b, NULL );
-	//validateFreeList( heap );
 }
 
 void removeFromFreeList( heapAllocator* heap, block* b ) {
@@ -177,7 +176,6 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	vAssert( b->free );
 	vAssert( !b->next || b->next == b->data + b->size );
 
-	//validateFreeList( heap );
 	removeFromFreeList( heap, b );
 	b->free = false;
 
@@ -188,11 +186,10 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 		b->size = size;
 		heap->total_allocated += sizeof( block );
 		heap->total_free -= sizeof( block );
+		vAssert( b->next == b->data + b->size );
 	}
-	//validateFreeList( heap );
 
-	vAssert( b->next == b->data + b->size );
-	//validateFreeList( heap );
+	vAssert( !b->next || b->next == b->data + b->size );
 
 	// Move the data pointer on enough to force alignment
 	uintptr_t offset = alignment - (((uintptr_t)b->data - 1) % alignment + 1);
@@ -227,7 +224,7 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	//printf( "heap->free " xPTRf "\n", (uintptr_t)heap->free );
 	//printFree( heap );
 	//validateFreeList( heap );
-	vAssert( b->next == b->data + b->size );
+	vAssert( b->next == NULL || b->next == b->data + b->size );
 
 	heap->total_allocated += size;
 	heap->total_free -= size;
@@ -401,6 +398,7 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 	block* b = (block*)((uint8_t*)data - sizeof( block ));
 	// Check it's in the right heap!
 	//heapContains( heap, b );
+	vAssert( !b->free );
 
 #ifdef MEM_GUARD_BLOCK
 	vAssert( b->guard == kGuardValue );

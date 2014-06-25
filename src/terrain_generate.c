@@ -15,38 +15,37 @@ int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_sa
 // Adjusted as we have a 1-vert margin for normal calculation at edges
 int indexFromUV( canyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
-vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uRelative, int vRelative ) {
+cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int uMin, int vMin ) {
+	for ( cacheBlocklist* b = blist; b; b = b->tail ) {
+		if ( b && cacheBlockContains( b->head, uMin, vMin ) )
+			return b->head;
+	}
+	return NULL;
+}
+
+vector terrainPointCached( canyon* c, canyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
+	(void)c;
+	(void)caches;
 	const int r = 4 / lodRatio(b);
 	const int uReal = b->uMin + r*uRelative;
 	const int vReal = b->vMin + r*vRelative;
 	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
 	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
-	//const int uOffset = minPeriod( uReal, CacheBlockSize ); // TODO - fix this
-	//const int vOffset = minPeriod( vReal, CacheBlockSize );
 	const int uMin = uReal - uOffset;
 	const int vMin = vReal - vOffset;
 
-	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache || cache->lod > b->lod_level) {
-		vAssert( 0 );
-		cache = terrainCacheAdd( c->terrainCache, terrainCacheBlock( c, b->terrain, uMin, vMin, b->lod_level ));
-	}
+	cacheBlock* cache = terrainCachedFromList( caches, uMin, vMin );
+	if ( !cache ) printf( "Missing cache block %d %d.\n", uMin, vMin );
+	vAssert( cache && cache->lod <= b->lod_level );
 	vector p = cache->positions[uOffset][vOffset];
-	cacheBlockFree( cache );
+	//cacheBlockFree( cache ); // TODO - this now happens after all
 	return p;
 }
 
+// if it's in p, return the cached version
 vector pointForUV( vertPositions* p, int u, int v ) {
-	// if it's in p, return the cached version
-	if (u >= p->uMin && u < p->uMin + p->uCount && v >= p->vMin && v < p->vMin + p->vCount ) {
-		const int u_ = u - p->uMin;
-		const int v_ = v - p->vMin;
-		return p->positions[u_ + v_ * p->uCount];
-	} else { // re-calculate
-		printf( "recalcing point.\n" );
-		vAssert( 0 );
-		return Vector(0.f, 0.f, 0.f, 1.f);
-	}
+	vAssert(u >= p->uMin && u < p->uMin + p->uCount && v >= p->vMin && v < p->vMin + p->vCount );
+	return p->positions[u - p->uMin + (v - p->vMin) * p->uCount];
 }
 
 void vertPositions_delete( vertPositions* vs ) {
@@ -72,20 +71,18 @@ vector lodU( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio )
 	return vector_lerp( &verts[previous], &verts[next], (float)( v % lod_ratio ) / (float)lod_ratio );
 }
 
-void lodVectors( canyonTerrainBlock* b, vector* vectors) {
+void lodVectors( canyonTerrainBlock* b, vector* vectors ) {
 	const int lod_ratio = lodRatio( b );
-	for ( int v = 0; v < b->v_samples; ++v ) {
+	for ( int v = 0; v < b->v_samples; ++v )
 		if ( v % lod_ratio != 0 ) {
 			vectors[indexFromUV( b, 0, v)] = lodV( b, vectors, 0, v, lod_ratio );
 			vectors[indexFromUV( b, b->u_samples-1, v)] = lodV( b, vectors, b->u_samples-1, v, lod_ratio );
 		}
-	}
-	for ( int u = 0; u < b->u_samples; ++u ) {
+	for ( int u = 0; u < b->u_samples; ++u )
 		if ( u % lod_ratio != 0 ) {
 			vectors[indexFromUV( b, u, 0)] = lodU( b, vectors, u, 0, lod_ratio );
 			vectors[indexFromUV( b, u, b->v_samples-1)] = lodU( b, vectors, u, b->v_samples-1, lod_ratio );
 		}
-	}
 }
 
 // Generate Normals
@@ -140,11 +137,9 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 	vector* verts = stackArray( vector, vertCount( b ));
 	vector* normals = stackArray( vector, vertCount( b ));
 
-	// These could be parallelised ???
 	generatePoints( b, vertSources, verts );
 	lodVectors( b, verts );
 
-	//generateNormals();
 	generateNormals( b, vertCount( b ), verts, normals );
 	lodVectors( b, normals );
 
@@ -152,10 +147,10 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 }
 
 void* setBlock( const void* data, void* args ) {
-		(void)data;
-		canyonTerrainBlock* b = args;
-		terrain_setBlock( b->terrain, b->u, b->v, b );
-		return NULL;
+	(void)data;
+	canyonTerrainBlock* b = args;
+	terrain_setBlock( b->terrain, b->u, b->v, b );
+	return NULL;
 }
 
 void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {

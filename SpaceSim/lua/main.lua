@@ -17,7 +17,7 @@ C and only controlled remotely by Lua
 	local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
 
 -- Debug settings
-	debug_spawning_disabled	= false
+	debug_spawning_disabled	= true
 	debug_doodads_disabled	= true
 	debug_player_immortal	= true
 	debug_player_autofly	= true

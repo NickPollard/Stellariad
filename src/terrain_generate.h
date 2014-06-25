@@ -1,5 +1,6 @@
 // terrain_generate.h
 #include "canyon_terrain.h"
+#include "terrain/cache.h"
 
 struct vertPositions_s {
 	int uMin;
@@ -10,7 +11,7 @@ struct vertPositions_s {
 };
 
 void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources );
-vector terrainPointCached( canyon* c, canyonTerrainBlock* b, int uIndex, int vIndex );
+vector terrainPointCached( canyon* c, canyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative );
 
 // Total number of real (not rendered) verts in this block
 int vertCount( canyonTerrainBlock* b );

@@ -15,7 +15,7 @@
 
 #define RENDER_USE_MIPMAPPING
 #define RENDER_TEXTURE_LOAD_ASYNC
-#define kTextureHeapSize 1024*1024*48
+#define kTextureHeapSize 48*MEGABYTES
 
 // *** Forward Declarations
 uint8_t* read_tga( const char* file, int* w, int* h );
