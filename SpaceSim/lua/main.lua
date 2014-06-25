@@ -20,8 +20,9 @@ C and only controlled remotely by Lua
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 	debug_player_immobile	= false
+	debug_auto_start		= true
 
 -- Load Modules
 	--package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
@@ -481,17 +482,6 @@ function player_ship_collisionHandler( ship, collider )
 
 		-- queue a restart
 		inTime( 2.0, function ()
-			--[[
-				After 2 seconds, we want to start listening for a button press
-				we also want to display a frametint until we hit that
-
-				something like:
-
-				Future f = new Promise()
-				f.onComplete():() -> restart()
-				onKeyPress( key.space ).restart()
-
-			--]]
 			local alpha = 0.3	
 			restartFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
 			onKeyPress( input, key.space ):onComplete( function ()

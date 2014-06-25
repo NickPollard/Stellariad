@@ -13,11 +13,12 @@ end
 
 function future:complete( v )
 	self.value = v
+	self.completed = true
 	self.onCompleteHandlers:foreach( applyTo( v )) 
 end
 
 function future:onComplete( func )
-	if self.value then
+	if self.completed then
 		func( self.value )
 	else
 		self.onCompleteHandlers = list:cons( func, self.onCompleteHandlers )
@@ -31,7 +32,7 @@ function future:map( func )
 end
 
 function future:new()
-	local f = { value = nil, onCompleteHandlers = list:empty() }
+	local f = { value = nil, completed = false, onCompleteHandlers = list:empty() }
 	setmetatable(f, self)
 	self.__index = self
 	return f

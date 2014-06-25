@@ -33,6 +33,9 @@ end
 ui.hide_splash = function(s)
   return vuiPanel_hide(engine, s)
 end
+ui.show = function(s)
+  return vuiPanel_show(engine, s)
+end
 ui.create_crosshair = function()
   local w = 128
   local h = 128

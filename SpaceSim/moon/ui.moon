@@ -44,9 +44,11 @@ ui.skies_splash = () ->
 	f = future\new()
 	ui.splash( "dat/img/splash_skies_modern.tga", screen_width, screen_height )\onComplete( ( s ) ->
 			ui.panelFadeIn( s, 2.0 )
+			if debug_auto_start
+				ui.hide_splash( s )
+				f\complete( nil )
 			touch_to_play = createTouchPad( input, 0, 0, screen_width, screen_height )
 			touch_to_play\onTouch( ()->
-				vprint( "touch" )
 				ui.hide_splash( s )
 				f\complete( nil )
 				removeTicker( touch_to_play )))
