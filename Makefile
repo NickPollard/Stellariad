@@ -5,7 +5,7 @@ CFLAGS = -Wall -Wextra -Werror -fno-diagnostics-show-option $(ARCH) -std=gnu99 -
 LFLAGS = $(ARCH) -pg
 #PLATFORM_LIBS = -L/usr/lib/i386-linux-gnu -L/usr/local/lib/i386-linux-gnu
 PLATFORM_LIBS = -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu
-LIBS = -L/usr/lib -L/usr/local/lib $(PLATFORM_LIBS) -lGL -lGLU -lEGL -llua -lm -lX11 -lpthread -ldl
+LIBS = -L/usr/lib -L/usr/local/lib $(PLATFORM_LIBS) -lGL -lGLU -lEGL -llua5.1 -lm -lX11 -lpthread -ldl
 EXECUTABLE = vitae
 include Makelist
 OBJS = $(SRCS:src/%.c=bin/release/%.o)
