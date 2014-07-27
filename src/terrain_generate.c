@@ -15,11 +15,10 @@ int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_sa
 // Adjusted as we have a 1-vert margin for normal calculation at edges
 int indexFromUV( canyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
-cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int uMin, int vMin ) {
-	for ( cacheBlocklist* b = blist; b; b = b->tail ) {
-		if ( b && cacheBlockContains( b->head, uMin, vMin ) )
+cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
+	for ( cacheBlocklist* b = blist; b; b = b->tail )
+		if ( b && cacheBlockContains( b->head, u, v ) )
 			return b->head;
-	}
 	return NULL;
 }
 

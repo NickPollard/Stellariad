@@ -90,7 +90,12 @@ cacheGrid* terrainCacheAddGrid( terrainCache* t, cacheGrid* g ) {
 	return g;
 }
 
+void terrain_deleteBlock( terrainCache* cache, cacheBlock* b ) {
+	cache->toDelete = cacheBlocklist_cons( b, cache->toDelete );
+}
+
 cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
+	//printf( "Adding cache block: %d %d (" xPTRf ")\n", b->uMin, b->vMin, (uintptr_t)b );
 	cacheGrid* g = cachedGrid( t, b->uMin, b->vMin );
 	if (!g)
 		g = terrainCacheAddGrid( t, cacheGrid_create( minPeriod( b->uMin, GridCapacity ), minPeriod( b->vMin, GridCapacity )));
@@ -101,10 +106,10 @@ cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
 	if (old && old->lod <= b->lod)
 		mem_free( b );
 	else {
-		// Is this safe?
-		if (old)
-			printf( "Freeing old cache block " xPTRf "\n", (uintptr_t)old );
-		t->toDelete = cacheBlocklist_cons( old, t->toDelete );
+		if (old) {
+			//printf( "Freeing old cache block " xPTRf "\n", (uintptr_t)old );
+			terrain_deleteBlock( t, old );
+		}
 		g->blocks[u][v] = b;
 		takeRef( b );
 	}
@@ -124,7 +129,7 @@ cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int 
 	cacheBlock* b = NULL;
 	vmutex_lock( &terrainMutex ); {
 		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod ); // TODO - Get this from the cache, in case we need a higher lod than we thought
-		//const int highestLodNeeded = min( lod, lod ); // TODO - Get this from the cache, in case we need a higher lod than we thought
+		// TODO - terrainCacheBlock should NOT be inside the mutex - this is disrupting parallelism
 		b =	terrainCacheAddInternal( c->terrainCache, terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded ));
 	} vmutex_unlock( &terrainMutex );
 	return b;
@@ -190,8 +195,10 @@ void cacheBlockFree( cacheBlock* b ) {
 			--b->refCount;
 			vAssert( b->refCount >= 0 );
 			if (b->refCount == 0) {
-				printf( "Deleting cache block " xPTRf "\n", (uintptr_t)b );
-				mem_free( b );
+				printf( "Deleting cache block %d %d (" xPTRf ")\n", b->uMin, b->vMin, (uintptr_t)b );
+				//mem_free( b );
+				// TODO - we need to have access to the terrain cache here!
+				//terrain_deleteBlock( cache, b );
 			}
 		}
 	} vmutex_unlock( &blockMutex );
@@ -212,11 +219,11 @@ void trimCacheGrid( cacheGrid* g, int v ) {
 }
 
 bool gridEmpty( cacheGrid* g ) {
-	bool b = true;
-	for ( int u = 0; b && u < GridSize; ++u )
-		for ( int v = 0; b && v < GridSize; ++v )
-			b = b && g->blocks[u][v] == NULL;
-	return b;
+	bool empty = true;
+	for ( int u = 0; empty && u < GridSize; ++u )
+		for ( int v = 0; empty && v < GridSize; ++v )
+			empty = empty && g->blocks[u][v] == NULL;
+	return empty;
 }
 
 void terrainCache_trim( terrainCache* t, int v ) {
@@ -244,8 +251,12 @@ void terrainCache_trim( terrainCache* t, int v ) {
 	(void)t;(void)v;
 }
 
+// TODO - check this! Could be not clearing/not emptying list correctly
 cacheBlocklist* terrainCache_processDeletes( terrainCache* t ) {
+	//printf( "Deleting toDeletes.\n" );
 	for (cacheBlocklist* b = t->toDelete; b; b = b->tail ) {
+		if ( b->head )
+			//printf( "Freeing block: %d %d (" xPTRf ")\n", b->head->uMin, b->head->vMin, (uintptr_t)b->head );
 		mem_free(b->head);
 	}
 	return NULL;
@@ -255,7 +266,9 @@ void terrainCache_tick( terrainCache* t, float dt, vector sample ) {
 	(void)dt;
 	(void)t;
 	(void)sample;
-	t->toDelete = terrainCache_processDeletes( t );
+	vmutex_lock( &terrainMutex ); {
+		t->toDelete = terrainCache_processDeletes( t );
+	} vmutex_unlock( &terrainMutex );
 	/*
 	float v = from(sample);
 	for ( int u = uMin; u < uMax; ++u ) {
