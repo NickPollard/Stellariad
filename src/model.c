@@ -158,6 +158,9 @@ void mesh_render( mesh* m ) {
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
 		//drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		drawCall* drawDepth = drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		drawDepth->vertex_VBO = *m->vertex_VBO;
+		drawDepth->element_VBO = *m->element_VBO;
 	}
 }
 
@@ -172,10 +175,8 @@ void model_addMesh( model* m, int i, mesh* msh ) {
 
 // Draw each submesh of a model
 void model_draw( model* m ) {
-	glDepthMask( GL_TRUE );
-	for (int i = 0; i < m->meshCount; i++) {
+	for (int i = 0; i < m->meshCount; i++)
 		mesh_render( model_getMesh( m, i ));
-	}
 }
 
 void model_initModelStorage() {

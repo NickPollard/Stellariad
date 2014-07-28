@@ -14,12 +14,14 @@ varying vec4 frag_position;
 varying vec4 cameraSpace_frag_normal;
 varying vec2 texcoord;
 varying float fog;
+varying vec2 screenCoord;
 
 uniform	mat4 projection;
 uniform	mat4 modelview;
 
 void main() {
 	gl_Position = projection * modelview * position;
+	screenCoord = gl_Position.xy / gl_Position.w;
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	texcoord = uv.xy;

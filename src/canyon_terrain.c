@@ -67,6 +67,7 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 		canyonTerrain_calculateBounds( c, bounds, t, &t->sample_point );
 
 		const int vTrim = ((float)bounds[0][1] - 0.5f) * ((2 * t->v_radius) / (float)t->v_block_count);
+		//printf( "Trimming up to %d.\n", vTrim );
 		terrainCache_trim( c->terrainCache, vTrim );
 
 		if (t->firstUpdate || !boundsEqual( bounds, t->bounds )) {

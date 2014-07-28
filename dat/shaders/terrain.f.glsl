@@ -15,6 +15,7 @@ varying vec4 vert_color;
 varying float fog;
 varying vec4 local_fog_color;
 varying float cliff;
+varying vec2 screenCoord;
 #ifdef NORMAL_MAPPING
 #else
 varying float specular;
@@ -25,6 +26,7 @@ uniform sampler2D tex;
 uniform sampler2D tex_b;
 uniform sampler2D tex_c;
 uniform sampler2D tex_d;
+uniform sampler2D ssao_tex;
 
 uniform sampler2D tex_normal;
 uniform sampler2D tex_b_normal;
@@ -42,7 +44,12 @@ vec4 directional_light_specular = vec4( 0.4, 0.4, 0.4, 1.0 );
 void main() {
 #if 1
 	// light-invariant calculations
-	vec4 total_light_color = light_ambient;
+	//vec2 screenCoord = vec2( 0.0, 0.0 );
+	vec4 ssao = texture2D( ssao_tex, screenCoord * 0.5 + vec2( 0.5, 0.5 ) );
+	if (screenCoord.x < 0.0)
+		ssao.x = 1.0;
+	//vec4 ssao = texture2D( ssao_tex, screenCoord.xy );
+	vec4 total_light_color = light_ambient * ssao.x;
 	vec4 view_direction = normalize( frag_position );
 
 #ifdef NORMAL_MAPPING
@@ -72,7 +79,7 @@ void main() {
 		// TODO: Can this be done in the vertex shader?
 		// how does dot( -light_direction, normal ) vary accross a poly?
 		float diffuse = max( 0.0, dot( -directional_light_direction, normal ));
-		total_light_color += directional_light_diffuse * diffuse;
+		total_light_color += directional_light_diffuse * diffuse * ssao.x; 
 		
 		//total_light_color += directional_light_specular * pow( specular, shininess );
 #ifdef NORMAL_MAPPING
@@ -108,4 +115,7 @@ void main() {
 	gl_FragColor = vec4( texcoord.x, texcoord.y, 0.0, 1.0 );
 #endif
 
+	//gl_FragColor = light_ambient * ssao.x;
+	//gl_FragColor = vec4( screenCoord.x + 0.5, screenCoord.y + 0.5, 0.0, 1.0 );
+	//gl_FragColor = texture2D( tex, screenCoord + vec2( 0.5, 0.5 ) );
 }

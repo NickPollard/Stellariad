@@ -18,7 +18,7 @@ C and only controlled remotely by Lua
 
 -- Debug settings
 	debug_spawning_disabled	= true
-	debug_doodads_disabled	= true
+	debug_doodads_disabled	= false
 	debug_player_immortal	= true
 	debug_player_autofly	= true
 	debug_player_immobile	= false

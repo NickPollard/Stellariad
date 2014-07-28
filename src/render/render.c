@@ -102,6 +102,7 @@ void render_buildShaders() {
 	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
 	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
 	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
+	resources.shader_ssao			= shader_load( "dat/shaders/ssao.v.glsl",			"dat/shaders/ssao.f.glsl" );
 
 #define GET_UNIFORM_LOCATION( var ) \
 	resources.uniforms.var = shader_findConstant( mhash( #var )); \
@@ -204,6 +205,7 @@ typedef struct frameBuffer_s {
 
 #define kRenderBufferCount 4
 FrameBuffer* render_buffers[kRenderBufferCount];
+FrameBuffer* ssaoBuffer = NULL;
 
 /*
 FrameBuffer* render_first_buffer	= nullptr;
@@ -297,7 +299,8 @@ void render_init( void* app ) {
 	int w = window_main.width / downscale;
 	int h = window_main.height / downscale;
 	render_buffers[0] = newFrameBuffer( window_main.width, window_main.height );
-	for ( int i = 1; i < kRenderBufferCount; ++i ) render_buffers[i] = newFrameBuffer( w, h );
+	ssaoBuffer = newFrameBuffer( window_main.width, window_main.height );
+	for ( int i = 1; i < kRenderBufferCount; ++i ) render_buffers[i] = newFrameBuffer( w, h ); // TODO - fix this! SSAO buffer
 
 #ifdef GRAPH_GPU_FPS
 	gpu_fpsdata = graphData_new( kMaxGpuFPSFrames );
@@ -305,14 +308,6 @@ void render_init( void* app ) {
 	gpu_fpsgraph = graph_new( gpu_fpsdata, 100, 100, 480, 240, (float)kMaxGpuFPSFrames, 0.033f, graph_blue );
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
-
-	/*
-	renderPass_depth = RenderPass( false, false, true );
-	renderPass_main = RenderPass( false, true, true );
-	renderPass_alpha = RenderPass( true, true, false );
-	renderPass_ui = RenderPass( true, true, false );
-	renderPass_debug = RenderPass( true, true, false );
-	*/
 
 	renderPass_depth.alphaBlend = false;
 	renderPass_depth.colorMask = false;
@@ -553,6 +548,7 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 				render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
 				render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
 				render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
+				render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 			}
 			render_drawTextureBatch( &sorted[i] );
 		}
@@ -637,22 +633,105 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	}
 }
 
+void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
+	shader_activate( s );
+	render_setUniform_texture( *resources.uniforms.tex,	buffer->depth_texture );
+	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+
+	vertex vertex_buffer[4];
+	float width = w->width;
+	float height = w->height;
+	vertex_buffer[0].position = Vector(0.f, 0.f, 0.f, 1.f);
+	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
+	vertex_buffer[2].position = Vector(0.f, height, 0.f, 1.f);
+	vertex_buffer[3].position = Vector(width, height, 0.f, 1.f);
+	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
+	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
+	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
+	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
+	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
+	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
+	const int element_count = 6;
+	if ( !postProcess_VBO ) {
+		postProcess_VBO = mem_alloc(sizeof(GLuint));
+		*postProcess_VBO = resources.vertex_buffer[0];
+	}
+	if ( !postProcess_EBO ) postProcess_EBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
+	if ( *postProcess_VBO != kInvalidBuffer && *postProcess_EBO != kInvalidBuffer ) {
+		glBindBuffer( GL_ARRAY_BUFFER, *postProcess_VBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, *postProcess_EBO );
+		GLsizei vertex_buffer_size	= element_count * sizeof( vertex );
+		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
+		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
+		render_current_VBO = *postProcess_VBO;
+	}
+}
+
 void render_draw( window* w, engine* e ) {
 	(void)e;
 	render_set3D( w->width, w->height );
 	render_clear();
 
+	// Attach depth target
+	// render_drawPass( w, &renderPass_depth );
+	// attach default target
+	// render depth-texture
+
+	// Draw to 0 first
 	attachFrameBuffer( render_buffers[0] ); {
 		render_clear();
 		render_drawPass( w, &renderPass_depth );
+	} detachFrameBuffer();
+
+	// Then use 0 to draw ssao_buffer
+	attachFrameBuffer( ssaoBuffer ); {
+		// TEMP - draw color
+		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+		render_colorMask = true;
+		render_clear();
+
+		render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
+	} detachFrameBuffer();
+
+	attachFrameBuffer( render_buffers[0] ); {
+		render_clear();
+		// TODO - don't redepth here, draw the initial texture instead?
+		render_drawPass( w, &renderPass_depth );
+
+		//ssao_texture = ssaoBuffer.depth_texture;
+		//render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->depth_texture );
+
 		render_drawPass( w, &renderPass_main );
 		render_drawPass( w, &renderPass_alpha );
 	} detachFrameBuffer();
 	glViewport(0, 0, w->width, w->height);
+
 	render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
 
 	// No depth-test for ui
 	glDisable( GL_DEPTH_TEST );
+
+	// using depth-texture, render SSAO pass to the screen
+	if ( render_bloom_enabled ) {
+		//render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
+		/*
+		attachFrameBuffer( ssaoBuffer ); {
+			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+			render_colorMask = true;
+			render_clear();
+			render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
+		} detachFrameBuffer();
+		*/
+
+		//render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
+	}
 
 	if ( render_bloom_enabled ) {
 		render_current_texture_unit = 0;

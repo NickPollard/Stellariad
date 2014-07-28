@@ -16,6 +16,7 @@ varying vec4 fragPosition;
 varying vec4 fragNormal;
 varying vec2 texcoord;
 varying float fog;
+varying vec2 screenCoord;
 
 // Uniform
 uniform	mat4 projection;

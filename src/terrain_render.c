@@ -250,6 +250,10 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 		draw->texture_d = b->canyon->zones[second].texture_cliff->gl_tex;
 		draw->vertex_VBO = *r->vertex_VBO;
 		draw->element_VBO = *r->element_VBO;
+
+		drawCall* drawDepth = drawCall_create( &renderPass_depth, resources.shader_depth, r->element_count_render, r->element_buffer, r->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
+		drawDepth->vertex_VBO = *r->vertex_VBO;
+		drawDepth->element_VBO = *r->element_VBO;
 	}
 	return true;
 }

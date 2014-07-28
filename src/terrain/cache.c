@@ -208,14 +208,16 @@ void trimCacheGrid( cacheGrid* g, int v ) {
 	const int vMax = clamp( v - g->vMin, 0, GridSize );
 	//printf( "Trimming for V %d (this block: %d)\n", v, vMax );
 	for ( int u = 0; u < GridSize; ++u )
-		for ( int v = 0; v < vMax; ++v )
+		for ( int v = 0; v < vMax; ++v ) {
+			vAssert( !(g->blocks[u][v] && g->blocks[u][v]->refCount < 1))
 			if ( g->blocks[u][v] && g->blocks[u][v]->refCount == 1 ) {
 				// TODO - Need to store a separate RefCount for the co-ord, NOT the block
 				// Allow blocks to be replaced, but not trimmed unless the refcount is 0
 				//printf( "Freeing cache %d %d.\n", g->uMin + u, g->vMin + v );
-				//cacheBlockFree(g->blocks[u][v]);
-				//g->blocks[u][v] = NULL;
+				cacheBlockFree(g->blocks[u][v]);
+				g->blocks[u][v] = NULL;
 			}
+		}
 }
 
 bool gridEmpty( cacheGrid* g ) {

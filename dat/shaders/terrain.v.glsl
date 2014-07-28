@@ -22,6 +22,7 @@ varying vec4 vert_color;
 varying float fog;
 varying vec4 local_fog_color;
 varying float cliff;
+varying vec2 screenCoord;
 #ifdef NORMAL_MAPPING
 #else
 varying float specular;
@@ -58,6 +59,7 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 
 void main() {
 	gl_Position = projection * modelview * position;
+	screenCoord = gl_Position.xy / gl_Position.w;
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	frag_normal = normal;

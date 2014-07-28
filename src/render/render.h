@@ -26,6 +26,7 @@ typedef struct sceneParams_s sceneParams;
 	f( tex_d ) \
 	f( tex_normal ) \
 	f( tex_b_normal ) \
+	f( ssao_tex ) \
 	f( fog_color ) \
 	f( sky_color_top ) \
 	f( sky_color_bottom ) \
@@ -82,6 +83,7 @@ typedef struct gl_resources_s {
 	shader* shader_debug;
 	shader* shader_debug_2d;
 	shader* shader_depth;
+	shader* shader_ssao;
 } RenderResources;
 
 struct vertex_s {
