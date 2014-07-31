@@ -34,9 +34,11 @@
 
 #ifdef RENDER_OPENGL 
 	#define kGlTextureUnits GL_MAX_TEXTURE_UNITS
+	#define kGlMaxVaryingParams GL_MAX_VARYING_VECTORS
 #endif
 #ifdef RENDER_OPENGL_ES
 	#define kGlTextureUnits GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+	#define kGlMaxVaryingParams GL_MAX_VARYING_VECTORS
 #endif
 
 // Rendering API declaration
@@ -70,6 +72,7 @@ bool	render_bloom_enabled = true;
 // *** Properties of the GL implementation
 	typedef struct GraphicsSystem_s {
 		GLint maxTextureUnits;
+		GLint maxVaryingParams;
 	} GraphicsSystem;
 
 	GraphicsSystem graphicsSystem = { 0 };
@@ -281,6 +284,9 @@ void render_init( void* app ) {
 	glEnable( GL_CULL_FACE );
 
 	glGetIntegerv( kGlTextureUnits, &graphicsSystem.maxTextureUnits );
+	glGetIntegerv( kGlMaxVaryingParams, &graphicsSystem.maxVaryingParams );
+	printf( "Max texture units: %d.\n", graphicsSystem.maxTextureUnits );
+	printf( "Max varying params: %d.\n", graphicsSystem.maxVaryingParams );
 
 	texture_staticInit();
 	shader_init();

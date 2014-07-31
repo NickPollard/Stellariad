@@ -41,13 +41,6 @@ float sun_fog( vec4 local_sun_dir, vec4 view_direction ) {
 	return clamp( dot( local_sun_dir, view_direction ), 0.0, 1.0 );
 }
 
-//float sun( vec4 local_sun_dir, vec4 fragment_position ) {
-	//float g = max(0.1, smoothstep( 0.50, 1.0, abs(normalize(local_sun_dir).z)));
-	//float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( local_sun_dir, normalize( fragment_position )), 0.0, 1.0 ));
-	//vec3 v = cross(normalize(fragment_position.xyz), local_sun_dir.xyz);
-	//return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
-//}
-
 float sun( vec4 sunDir, vec4 fragPosition ) {
 	vec4 sun = normalize( sunDir );
 	vec4 dir = normalize( fragPosition );
@@ -59,7 +52,7 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 
 void main() {
 	gl_Position = projection * modelview * position;
-	screenCoord = gl_Position.xy / gl_Position.w;
+	screenCoord = (gl_Position.xy / gl_Position.w) * 0.5 + vec2(0.5, 0.5);
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	frag_normal = normal;

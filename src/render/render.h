@@ -25,7 +25,6 @@ typedef struct sceneParams_s sceneParams;
 	f( tex_c ) \
 	f( tex_d ) \
 	f( tex_normal ) \
-	f( tex_b_normal ) \
 	f( ssao_tex ) \
 	f( fog_color ) \
 	f( sky_color_top ) \

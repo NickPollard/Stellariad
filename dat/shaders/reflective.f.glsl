@@ -32,8 +32,6 @@ float sun_fog( vec4 local_sun_dir, vec4 view_direction ) {
 
 void main() {
 	vec4 ssao = texture2D( ssao_tex, screenCoord * 0.5 + vec2( 0.5, 0.5 ) );
-	if (screenCoord.x < 0.0)
-		ssao.x = 1.0;
 	// light-invariant calculations
 	vec4 view_direction = vec4( normalize( frag_position ).xyz, 0.0 );
 	vec4 material_diffuse = texture2D( tex, texcoord );
