@@ -228,7 +228,7 @@ void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBl
 	vAssert( (uintptr_t)b < 0x0001000000000000 );
 	vmutex_lock( &t->mutex ); {
 		int i = canyonTerrain_blockIndexFromAbsoluteUV( t, u, v );
-		if ( i >= 0 && i <= t->total_block_count ) { // We might not still need this block when it finishes
+		if ( i >= 0 && i < t->total_block_count ) { // We might not still need this block when it finishes
 			if ( t->blocks[i] )
 				deleteBlock( t->blocks[i] );
 			t->blocks[i] = b;
