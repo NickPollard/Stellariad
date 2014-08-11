@@ -28,7 +28,7 @@ int body_count;
 ringQueue* collision_dead_body_queue = NULL;
 ringQueue* collision_new_body_queue = NULL;
 
-vmutex collision_add_mutex = kMutexInitialiser;
+vmutex collision_mutex = kMutexInitialiser;
 
 // Forward Declarations
 bool body_colliding( body* a, body* b );
@@ -61,11 +61,9 @@ void collision_event( body* a, body* b ) {
 }
 
 void collision_addBody( body* b ) {
-	vmutex_lock( &collision_add_mutex );
-	{
+	vmutex_lock( &collision_mutex ); {
 		ringQueue_push( collision_new_body_queue, b );
-	}
-	vmutex_unlock( &collision_add_mutex );
+	} vmutex_unlock( &collision_mutex );
 }
 
 void collision_addNewBody( body* b ) {
@@ -74,9 +72,10 @@ void collision_addNewBody( body* b ) {
 }
 
 void collision_addNewBodies() {
-	while ( ringQueue_count( collision_new_body_queue ) > 0 ) {
-		collision_addNewBody( ringQueue_pop( collision_new_body_queue ));
-	}
+	vmutex_lock( &collision_mutex ); {
+		while ( ringQueue_count( collision_new_body_queue ) > 0 )
+			collision_addNewBody( ringQueue_pop( collision_new_body_queue ));
+	} vmutex_unlock( &collision_mutex );
 }
 
 #define kMaxDeadBodies 128
@@ -99,9 +98,10 @@ void collision_removeDeadBody( body* b ) {
 }
 
 void collision_removeDeadBodies( ) {
-	while ( ringQueue_count( collision_dead_body_queue ) > 0 ) {
-		collision_removeDeadBody( ringQueue_pop( collision_dead_body_queue ));
-	}
+	vmutex_lock( &collision_mutex ); {
+		while ( ringQueue_count( collision_dead_body_queue ) > 0 )
+			collision_removeDeadBody( ringQueue_pop( collision_dead_body_queue ));
+	} vmutex_unlock( &collision_mutex );
 }
 
 void collision_callback( body* a, body* b ) {
@@ -119,6 +119,7 @@ void collision_runCallbacks() {
 void collision_generateEvents() {
 	// for every body, check every other body
 	// TODO - keep separate lists for layers; iterate those instead
+	/*
 	for ( int i = 0; i < body_count; ++i )
 		for ( int j = i + 1; j < body_count; j++ ) {
 			vAssert( bodies[i] )
@@ -126,6 +127,7 @@ void collision_generateEvents() {
 			if ( !bodies[i]->disabled && !bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
 				collision_event( bodies[i], bodies[j] );
 		}
+		*/
 }
 
 void collisionMesh_drawWireframe( collisionMesh* m, matrix trans, vector color ) {

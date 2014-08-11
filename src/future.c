@@ -54,6 +54,10 @@ future* future_create() {
 	f->complete = false;
 	f->execute = false;
 	f->on_complete = NULL;
+	f->hl.head = NULL;
+	f->hl.tail = NULL;
+	f->h.func = NULL;
+	f->h.args = NULL;
 	vmutex_lock( &futuresMutex ); {
 		vAssert( futureCount + 1 < MaxFutures );
 		arrayAdd(&futures, &futureCount, f );

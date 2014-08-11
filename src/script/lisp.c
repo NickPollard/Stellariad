@@ -8,6 +8,7 @@
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "mem/passthrough.h"
 #include "render/texture.h"
 #include "system/hash.h"
 #include "system/file.h"

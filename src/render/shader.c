@@ -10,7 +10,7 @@
 #include "system/string.h"
 #include "system/hash.h"
 
-#define SHADER_DEBUG 1
+#define SHADER_DEBUG 0
 #if SHADER_DEBUG
 #define SHADER_DEBUGPRINT( ... ) printf( __VA_ARGS__ )
 #else
@@ -157,15 +157,10 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 	GLint program_ok;
 
 	GLuint program = glCreateProgram();
-	printf( "1\n" );
 	glAttachShader( program, vertex_shader );
-	printf( "2\n" );
 	glAttachShader( program, fragment_shader );
-	printf( "3\n" );
 	glLinkProgram( program );
-	printf( "4\n" );
 	glValidateProgram( program );
-	printf( "5\n" );
 
 	glGetProgramiv( program, GL_LINK_STATUS, &program_ok );
 	if ( !program_ok ) {
@@ -179,13 +174,9 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 
 // Build a GLSL shader program from given vertex and fragment shader source pathnames
 GLuint	shader_build( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
-	printf( "compiling vertex\n" );
 	GLuint vertex_shader = shader_compile( GL_VERTEX_SHADER, vertex_path, vertex_file );
-	printf( "compiling fragment\n" );
 	GLuint fragment_shader = shader_compile( GL_FRAGMENT_SHADER, fragment_path, fragment_file );
-	printf( "linking\n" );
 	GLuint program = shader_link( vertex_shader, fragment_shader );
-	printf( "Finished linking\n");
 	return program;
 }
 

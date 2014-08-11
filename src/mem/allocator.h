@@ -68,11 +68,6 @@ struct block_s {
 #endif
 }__attribute__ ((aligned (8)));
 
-typedef struct passthroughAllocator_s {
-	heapAllocator* heap;
-	size_t total_allocated;	// in bytes, currently allocated
-	size_t allocations;
-} passthroughAllocator;
 
 typedef struct empty_s {
 	block* nextFree;
@@ -130,17 +125,6 @@ void block_insertAfter( block* before, block* after );
 
 // Create and initialise a block in a given piece of memory of *size* bytes
 block* block_create( heapAllocator* heap, void* data, size_t size );
-
-// Create a new passthrough allocator using the given HEAP
-passthroughAllocator* passthrough_create( heapAllocator* heap );
-
-// Allocate SIZE memory through the passthroughAllocator P
-// (The allocation is actually in p->heap)
-void* passthrough_allocate( passthroughAllocator* p, size_t size, const char* source );
-
-// Deallocate allocation MEM from passthroughAllocator P
-// (The allocation is actually in p->heap)
-void passthrough_deallocate( passthroughAllocator* p, void* mem );
 
 void heap_dumpBlocks( heapAllocator* heap );
 void heap_dumpUsedBlocks( heapAllocator* heap );

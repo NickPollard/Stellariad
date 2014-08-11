@@ -302,10 +302,11 @@ void render_init( void* app ) {
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
 	const int downscale = 8;
-	int w = window_main.width / downscale;
-	int h = window_main.height / downscale;
+	const int w = window_main.width / downscale;
+	const int h = window_main.height / downscale;
+	const int ssaoScale = 2;
 	render_buffers[0] = newFrameBuffer( window_main.width, window_main.height );
-	ssaoBuffer = newFrameBuffer( window_main.width, window_main.height );
+	ssaoBuffer = newFrameBuffer( window_main.width / ssaoScale, window_main.height / ssaoScale );
 	for ( int i = 1; i < kRenderBufferCount; ++i ) render_buffers[i] = newFrameBuffer( w, h ); // TODO - fix this! SSAO buffer
 
 #ifdef GRAPH_GPU_FPS
@@ -711,9 +712,6 @@ void render_draw( window* w, engine* e ) {
 		// TODO - don't redepth here, draw the initial texture instead?
 		render_drawPass( w, &renderPass_depth );
 
-		//ssao_texture = ssaoBuffer.depth_texture;
-		//render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->depth_texture );
-
 		render_drawPass( w, &renderPass_main );
 		render_drawPass( w, &renderPass_alpha );
 	} detachFrameBuffer();
@@ -727,14 +725,12 @@ void render_draw( window* w, engine* e ) {
 	// using depth-texture, render SSAO pass to the screen
 	if ( render_bloom_enabled ) {
 		//render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
-		/*
 		attachFrameBuffer( ssaoBuffer ); {
 			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 			render_colorMask = true;
 			render_clear();
 			render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
 		} detachFrameBuffer();
-		*/
 
 		//render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
 	}

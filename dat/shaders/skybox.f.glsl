@@ -39,6 +39,7 @@ float sun( vec4 local_sun_dir, vec4 fragment_position ) {
 }
 
 void main() {
+#if 1
 	vec4 material_diffuse = texture2D( tex, texcoord );
 
 	// color = top * blue
@@ -77,5 +78,8 @@ void main() {
 	//} else {
 		//gl_FragColor = normalize( f );
 	//}
+#else
+	gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+#endif
 }
 

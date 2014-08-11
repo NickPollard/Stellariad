@@ -215,6 +215,7 @@ int terrainCanyon_segmentAtDistance( float v ) {
 
 // Convert canyon-space U and V coords into world space X and Z
 void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float* z ) {
+	vmutex_lock( &terrainMutex ); {
 	int i = max(0, terrainCanyon_segmentAtDistance( v ));
 	float segment_position = ( v - (float)i * CanyonSegmentLength ) / CanyonSegmentLength; 
 	
@@ -257,7 +258,8 @@ void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float*
 	u_offset.coord.x += perpendicular_u - u;
 	vector position = vector_add( canyon_position, u_offset);
 	*x = position.coord.x;
-	*z = position.coord.z;
+	*z = position.coord.z; 
+	} vmutex_unlock( &terrainMutex );
 }
 
 vector terrain_newCanyonPoint( vector current, vector previous ) {

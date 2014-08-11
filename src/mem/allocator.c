@@ -179,6 +179,8 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	removeFromFreeList( heap, b );
 	b->free = false;
 
+	vAssert( !b->next || b->next == b->data + b->size );
+
 	if ( b->size > ( size + sizeof( block ) + sizeof( block* ) * 2) ) {
 		void* new_ptr = ((uint8_t*)b->data) + size;
 		block* remaining = block_create( heap, new_ptr, b->size - size );
@@ -187,6 +189,7 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 		heap->total_allocated += sizeof( block );
 		heap->total_free -= sizeof( block );
 		vAssert( b->next == b->data + b->size );
+		vAssert( !remaining->next || remaining->next == remaining->data + remaining->size );
 	}
 
 	vAssert( !b->next || b->next == b->data + b->size );
@@ -219,6 +222,8 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 		heap->first = b;
 	if ( b->next )
 		b->next->prev = b;
+	vAssert( !b->next || b->next == b->data + b->size );
+	vAssert( !b->prev || b->prev->next == b->prev->data + b->prev->size );
 	//////////////////////////////////////////////////////
 	//printf( "heap " xPTRf " after : %d free blocks\n", (uintptr_t)heap, countFree( heap ));
 	//printf( "heap->free " xPTRf "\n", (uintptr_t)heap->free );
@@ -469,15 +474,10 @@ void validateFreeList( heapAllocator* heap ) {
 void block_merge( heapAllocator* heap, block* first, block* second ) {
 	//printf( "Allocator: Merging Blocks 0x" xPTRf " and 0x " xPTRf "\n", (uintptr_t)first, (uintptr_t)second );
 
-	vAssert( first );
-	vAssert( second );
+	vAssert( first && second );
 	vAssert( first->free && second->free );								// Both must be empty
 	vAssert( ((char*)second - ((char*)first->data + first->size)) < kMaxAlignmentSpace );	// Contiguous
-	vAssert( first->next == second );
-	//if ( second->prev != first ) {
-		//printf( "Second: 0x" xPTRf ", first: 0x" xPTRf ", second->prev: 0x" xPTRf "\n", (uintptr_t)second, (uintptr_t)first, (uintptr_t)second->prev );
-	//}
-	vAssert( second->prev == first );
+	vAssert( first->next == second && second->prev == first );
 
 	vAssert( !first->next || first->next == first->data + first->size );
 	vAssert( !second->next || second->next == second->data + second->size );
@@ -492,7 +492,7 @@ void block_merge( heapAllocator* heap, block* first, block* second ) {
 
 	// We can't just add sizes, as there may be alignment padding.
 	size_t true_size = second->size + ( (size_t)second->data - (size_t)second );
-	first->size = first->size + true_size;
+	first->size += true_size;
 	first->next = second->next;
 	if ( second->next )
 		second->next->prev = first;
@@ -533,9 +533,7 @@ heapAllocator* heap_create( int heap_size ) {
 // Both *before* and *after* must be valid
 void block_insertAfter( block* before, block* after ) {
 	vAssert( before );
-	//vAssert( before->free );
 	vAssert( after );
-	//vAssert( after->free );
 
 	after->next = before->next;
 	after->prev = before;
@@ -630,33 +628,6 @@ void test_allocator() {
 }
 #endif // UNIT_TEST
 
-passthroughAllocator* passthrough_create( heapAllocator* heap ) {
-	passthroughAllocator* p = mem_alloc( sizeof( passthroughAllocator ));
-	p->heap = heap;
-	p->total_allocated = 0;
-	p->allocations = 0;
-	return p;
-	}
-
-void* passthrough_allocate( passthroughAllocator* p, size_t size, const char* source ) {
-	int before = p->heap->total_allocated;
-	void* mem = heap_allocate( p->heap, size, source );
-	int after = p->heap->total_allocated;
-	int delta = after - before;
-	p->total_allocated = (size_t)((int)p->total_allocated + delta);	
-	++p->allocations;
-	return mem;
-	}
-	
-void passthrough_deallocate( passthroughAllocator* p, void* mem ) {
-	int before = p->heap->total_allocated;
-	heap_deallocate( p->heap, mem );
-	int after = p->heap->total_allocated;
-	int delta = after - before;
-	p->total_allocated = (size_t)((int)p->total_allocated + delta);	
-	--p->allocations;
-	}
-	
 void mem_pushStackString( const char* string ) {
 	vAssert( mem_stack_string == NULL );
 	mem_stack_string = string;

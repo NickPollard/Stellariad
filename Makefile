@@ -60,7 +60,7 @@ android_release :
 	@cp android/bin/vitae-release-unsigned.apk android/bin/vitae-release-unaligned.apk
 	@jarsigner -verbose -sigalg MD5withRSA -digestalg SHA1 -keystore android-release-key.keystore android/bin/vitae-release-unaligned.apk vitae
 	@echo "--- running zipalign ---"
-	@rm android/bin/vitae-release.apk
+	@rm -f android/bin/vitae-release.apk
 	@zipalign -v 4 android/bin/vitae-release-unaligned.apk android/bin/vitae-release.apk
 	@echo "--- Installing APK to device ---"
 	@android/install_release.sh

@@ -126,11 +126,12 @@ int cacheGetNeededLod( terrainCache* cache, int uMin, int vMin ) {
 }
 
 cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod ) {
-	cacheBlock* b = NULL;
+	vmutex_lock( &terrainMutex );
+		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod );
+	vmutex_unlock( &terrainMutex );
+	cacheBlock* b = terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded );
 	vmutex_lock( &terrainMutex ); {
-		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod ); // TODO - Get this from the cache, in case we need a higher lod than we thought
-		// TODO - terrainCacheBlock should NOT be inside the mutex - this is disrupting parallelism
-		b =	terrainCacheAddInternal( c->terrainCache, terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded ));
+		terrainCacheAddInternal( c->terrainCache, b );
 	} vmutex_unlock( &terrainMutex );
 	return b;
 }
@@ -166,21 +167,23 @@ cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, 
 	b->vMin = vMin;
 	b->lod = requiredLOD;
 	int lod = max( 1, 2 * requiredLOD );
-#define LodVerts (CacheBlockSize / 4 + 1)
+#define canyonSampleInterval 4
+#define LodVerts ((CacheBlockSize / canyonSampleInterval) + 1)
 	vector worldSpace[LodVerts][LodVerts];
 	for ( int vOffset = 0; vOffset < LodVerts; ++vOffset ) {
 		for ( int uOffset = 0; uOffset < LodVerts; ++uOffset ) {
 			float u, v, x, z;
-			terrain_positionsFromUV( t, uMin + uOffset*4, vMin + vOffset*4, &u, &v );
+			terrain_positionsFromUV( t, uMin + uOffset*canyonSampleInterval, vMin + vOffset*canyonSampleInterval, &u, &v );
 			terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 			worldSpace[uOffset][vOffset] = Vector(x, 0.f, z, 0.f);
 		}
 	}
+	float f = (float)canyonSampleInterval;
 	for ( int vOffset = 0; vOffset < CacheBlockSize; vOffset+=lod ) {
 		for ( int uOffset = 0; uOffset < CacheBlockSize; uOffset+=lod ) {
 			float u, v;
 			terrain_positionsFromUV( t, uMin + uOffset, vMin + vOffset, &u, &v );
-			vector vec = vecSample( (vector*)worldSpace, LodVerts, LodVerts, ((float)uOffset) / 4.f, ((float)vOffset) / 4.f );
+			vector vec = vecSample( (vector*)worldSpace, LodVerts, LodVerts, ((float)uOffset) / f, ((float)vOffset) / f );
 			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyonTerrain_sampleUV( u, v ), vec.coord.z, 1.f );
 		}
 	}
@@ -233,7 +236,7 @@ void terrainCache_trim( terrainCache* t, int v ) {
 		//cacheGridlist* nw = NULL;
 		cacheGridlist* g = t->grids;
 		while ( g && g->head ) {
-			trimCacheGrid( g->head, v );
+			//trimCacheGrid( g->head, v );
 			/*
 			(void)v;
 			if (gridEmpty(g->head)) {
@@ -253,14 +256,9 @@ void terrainCache_trim( terrainCache* t, int v ) {
 	(void)t;(void)v;
 }
 
-// TODO - check this! Could be not clearing/not emptying list correctly
 cacheBlocklist* terrainCache_processDeletes( terrainCache* t ) {
-	//printf( "Deleting toDeletes.\n" );
-	for (cacheBlocklist* b = t->toDelete; b; b = b->tail ) {
-		if ( b->head )
-			//printf( "Freeing block: %d %d (" xPTRf ")\n", b->head->uMin, b->head->vMin, (uintptr_t)b->head );
+	for (cacheBlocklist* b = t->toDelete; b; b = b->tail )
 		mem_free(b->head);
-	}
 	return NULL;
 }
 

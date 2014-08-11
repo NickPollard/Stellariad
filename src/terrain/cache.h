@@ -2,6 +2,7 @@
 #pragma once
 #include "maths/vector.h"
 #include "base/list.h"
+#include "system/thread.h"
 
 #define CacheBlockSize 32
 #define GridSize 16
@@ -26,6 +27,8 @@ typedef struct cacheGrid_s {
 	future* futures[GridSize][GridSize];
 	int neededLods[GridSize][GridSize];
 } cacheGrid;
+
+extern vmutex terrainMutex;
 
 // *** Terrain Cache
 terrainCache* terrainCache_create();

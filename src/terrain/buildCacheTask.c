@@ -61,9 +61,13 @@ void releaseAllCaches( cacheBlocklist* caches ) {
    so we can just use them safely */
 void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBlocklist* caches ) {
 	vector* verts = vertSources->positions;
+	const int max = vertCount( b );
 	for ( int v = -1; v < b->v_samples + 1; ++v )
-		for ( int u = -1; u < b->u_samples + 1; ++u )
-			verts[indexFromUV(b, u, v)] = terrainPointCached( b->canyon, b, caches, u, v );
+		for ( int u = -1; u < b->u_samples + 1; ++u ) {
+			const int index = indexFromUV(b, u, v);
+			vAssert( index >= 0 && index < max );
+			verts[index] = terrainPointCached( b->canyon, b, caches, u, v );
+		}
 
 	releaseAllCaches( caches );
 	worker_addTask( task( canyonTerrain_workerGenerateBlock, Pair( vertSources, b )));

@@ -49,6 +49,7 @@ SRCS =	src/bounds.c \
 		src/maths/vector.c \
 		src/maths/quaternion.c \
 		src/mem/allocator.c \
+		src/mem/passthrough.c \
 		src/mem/bitpool.c \
 		src/render/debugdraw.c \
 		src/render/graphicsbuffer.c \
