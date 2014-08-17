@@ -4,6 +4,7 @@
 struct actor_s;
 struct actorSystem_s;
 struct body_s;
+struct cacheBlock_s;
 struct camera_s;
 struct canyon_s;
 struct canyonData_s;
@@ -46,6 +47,7 @@ union vector_u;
 typedef struct actor_s actor;
 typedef struct actorSystem_s actorSystem;
 typedef struct body_s body;
+typedef struct cacheBlock_s cacheBlock;
 typedef struct camera_s camera;
 typedef struct canyon_s canyon;
 typedef struct canyonData_s canyonData;

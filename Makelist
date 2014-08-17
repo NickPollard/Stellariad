@@ -70,5 +70,6 @@ SRCS =	src/bounds.c \
 		src/system/thread.c \
 		src/terrain/buildCacheTask.c \
 		src/terrain/cache.c \
+		src/terrain/grid.c \
 		src/ui/panel.c \
 		src/external/murmur.c

@@ -186,9 +186,12 @@ int canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, absolute u, abs
 	int block[2];
 	canyonTerrain_blockContaining( c, block, t, &t->sample_point );
 	vAssert( t->lod_interval_u > 0 && t->lod_interval_v > 0 );
-//	return min( LowestLod, ( abs( u.coord - block[0] ) / t->lod_interval_u ) + ( abs( v.coord - block[1]) / t->lod_interval_v ));
+#if 1
+	return min( LowestLod, ( abs( u.coord - block[0] ) / t->lod_interval_u ) + ( abs( v.coord - block[1]) / t->lod_interval_v ));
+#else
 	(void)u;(void)v;
 	return 2;
+#endif
 }
 
 void canyonTerrainBlock_calculateSamplesForLoD( canyon* c, canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v ) {

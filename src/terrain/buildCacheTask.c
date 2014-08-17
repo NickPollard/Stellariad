@@ -22,12 +22,11 @@ void* buildCacheBlockTask(void* args) {
 	canyon* c = b->terrain->canyon;
 	// ! only if not exist or lower-lod
 	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
-	if (!cache)
-		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
-	else if (cache->lod > b->lod_level) {
-		cacheBlockFree( cache );
-		terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
-	}
+	bool rebuild = cache && cache->lod > b->lod_level;
+	if (rebuild)
+		cacheBlockFree( cache ); // Release the cache we don't want
+	if (!cache || rebuild)
+		cache = terrainCacheBuildAndAdd( c, b->terrain, uMin, vMin, b->lod_level );
 
 	future_complete( f, cache ); // TODO - Should this be tryComplete? hit a segfault here
 	cacheBlockFree( cache );
@@ -36,19 +35,18 @@ void* buildCacheBlockTask(void* args) {
 	return NULL;
 }
 
+// Request a cacheBlock of at least the required Lod for (U,V)
 future* requestCache( canyonTerrainBlock* b, int u, int v ) {
-	// If already built, or building, return that future
-	// else start it building
+	// If already built, or building, return that future, else start it building
 	future* f = NULL;
-	bool empty = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, b->lod_level, &f);
+	bool needCreating = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, b->lod_level, &f);
 	vAssert( f );
-	if (empty) {
+	if (needCreating) {
 		void* uu = (void*)(uintptr_t)u;
 		void* vv = (void*)(uintptr_t)v;
 		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
 	future_onComplete( f, takeCacheRef, NULL );
-
 	return f;
 }
 
@@ -80,7 +78,6 @@ void* worker_generateVerts( void* args ) {
 	return NULL;
 }
 
-
 futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	cacheBlockFor( b, -1, -1, &cacheMinU, &cacheMinV );
@@ -100,7 +97,6 @@ void* buildCacheTask( void* args ) {
 	futurelist* fs = generateAllCaches( _1( args ));
 	future_completeWith( _2(args), futures_sequence( fs ));
 	futurelist_delete( fs );
-	//future_completeWith( _2(args), futures_sequence( generateAllCaches( _1(args) )));
 	mem_free(args);
 	return NULL;
 }
