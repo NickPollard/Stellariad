@@ -122,13 +122,21 @@ cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int 
 		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod );
 	vmutex_unlock( &terrainMutex );
 
-//	vAssert( highestLodNeeded == lod );
-	// TODO - don't always do this, we're doing (potential) duplicate work
-	cacheBlock* b = terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded );
-
+	// Only add it if we need to!
 	vmutex_lock( &terrainMutex );
-		cacheBlock* cache = terrainCacheAddInternal( c->terrainCache, b );
+		cacheGrid* g = gridGetOrAdd( c->terrainCache, uMin, vMin );
+		cacheBlock* cache = gridBlock( g, uMin, vMin );
 	vmutex_unlock( &terrainMutex );
+	if (cache && cache->lod <= lod ) {
+		//skip
+		printf( "Skipping building block, already have one.\n" );
+	} else {
+		cacheBlock* b = terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded );
+		vmutex_lock( &terrainMutex );
+			cache = terrainCacheAddInternal( c->terrainCache, b );
+		vmutex_unlock( &terrainMutex );
+	}
+
 	return cache;
 }
 
