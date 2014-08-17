@@ -32,7 +32,6 @@ float canyonZone_distance( float v ) {
 // See-saws back and forth between 1.f and 0.f to deal with our texture building
 float canyonZone_terrainBlend( float v ) {
 	int zone = canyon_zone( v );
-	if (zone < 1 ) return 0.f;
 	float this = (float)(zone % 2);
 	float next = 1.f - this;
 	return (zone < 0) ? 0.f : lerp( this, next, canyonZone_blend( v ));
