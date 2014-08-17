@@ -4,8 +4,9 @@
       android:versionCode="1"
 	  android:versionName="1.0">
 
-	  <!-- Min target is 14 - ICS -->
-	<uses-sdk android:minSdkVersion="14" />
+	  <!-- Min target is 16 - JellyBean (4.1) -->
+	  <!-- (14 is ICS - 4.0) -->
+	<uses-sdk android:minSdkVersion="19" android:targetSdkVersion="19" />
 
 	<!-- Required for profiling -->
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

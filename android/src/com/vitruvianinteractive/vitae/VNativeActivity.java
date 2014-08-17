@@ -6,6 +6,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.content.pm.*;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.view.View;
+import android.view.View.*;
+import android.app.ActionBar;
 
 public class VNativeActivity extends NativeActivity
 {
@@ -30,6 +33,16 @@ public class VNativeActivity extends NativeActivity
         System.loadLibrary( "vitae" );
 		setApkPath( apkFilePath );
 
+		hideStatusBar();
+
         super.onCreate(savedInstanceState);
+	}
+
+	// TODO Android 4.1 and above - 4.0 or below requires different code
+	void hideStatusBar() {
+		int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
+		 				| View.SYSTEM_UI_FLAG_IMMERSIVE
+		 				| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+		getWindow().getDecorView().setSystemUiVisibility(uiOptions);
 	}
 }
