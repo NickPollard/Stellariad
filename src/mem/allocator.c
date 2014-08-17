@@ -8,6 +8,23 @@
 #include <stdio.h>
 #include <stdint.h>
 
+// *** Forward Declarations
+void block_insertAfter( block* before, block* after );
+block* block_create( heapAllocator* heap, void* data, size_t size );
+
+// Merge two continous blocks, *first* and *second*
+// Afterwards, only *first* will remain valid
+// but will have size equal to both plus sizeof( block )
+void blockMerge( heapAllocator* heap, block* first, block* second );
+
+// Find a block of at least *min_size* bytes
+// First version will naively use first found block meeting the criteria
+block* heap_findEmptyBlock( heapAllocator* heap, size_t min_size );
+
+// Find a block with a given data pointer to *mem_addr*
+// Returns NULL if no such block is found
+block* heap_findBlock( heapAllocator* heap, void* mem_addr );
+
 #define kGuardValue 0xdeadbeef
 
 void validateFreeList( heapAllocator* heap );
@@ -73,13 +90,10 @@ bitpool* heap_findBitpool( heapAllocator* h, size_t size ) {
 }
 
 bitpool* heap_findBitpoolForData( heapAllocator* h, void* data ) {
-	bitpool* b = NULL;
-	for ( int i = 0; i < h->bitpool_count && !b; ++i ) {
-		if ( bitpool_contains( &h->bitpools[i], data )) {
-			b = &h->bitpools[i];
-		}
-	}
-	return b;
+	for ( int i = 0; i < h->bitpool_count; ++i )
+		if ( bitpool_contains( &h->bitpools[i], data ))
+			return &h->bitpools[i];
+	return NULL;
 }
 
 // Allocates *size* bytes from the given heapAllocator *heap*
@@ -144,55 +158,65 @@ void removeFromFreeList( heapAllocator* heap, block* b ) {
 	b->free = true;
 }
 
+void assertBlockInvariants( block* b ) {
+#ifdef MEM_GUARD_BLOCK
+	vAssert( b->guard == kGuardValue );
+#endif // MEM_GUARD_BLOCK
+	vAssert( b );
+	vAssert( !b->next || b->next->prev == b );
+	vAssert( !b->prev || b->prev->next == b );
+	vAssert( !b->next || b->next == b->data + b->size );
+	vAssert( !b->prev || b->prev->next == b->prev->data + b->prev->size );
+}
+
 // Allocates *size* bytes from the given heapAllocator *heap*
 // Will crash if out of memory
 // NEEDS TO BE THREADSAFE
-void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment, const char* source ) {
+void* heap_allocate_aligned( heapAllocator* heap, size_t toAllocate, size_t alignment, const char* source ) {
 	(void)source;
 	vmutex_lock( &allocator_mutex );
-	//validateFreeList( heap );
 #ifdef MEM_DEBUG_VERBOSE
-	printf( "HeapAllocator request for " dPTRf " bytes, " dPTRf " byte aligned.\n", size, alignment );
+	printf( "HeapAllocator request for " dPTRf " bytes, " dPTRf " byte aligned.\n", toAllocate, alignment );
 #endif
-	bitpool* bit_pool = heap_findBitpool( heap, size );
+	bitpool* bit_pool = heap_findBitpool( heap, toAllocate );
 	if ( bit_pool ) {
-		void* data = bitpool_allocate( bit_pool, size );
+		void* data = bitpool_allocate( bit_pool, toAllocate );
 		if ( data ) {
 			vmutex_unlock( &allocator_mutex );
 			return data;
 		}
 	}
 
-	size_t size_original = size;
-	size += alignment;	// Make sure we have enough space to align
-	block* b = heap_findEmptyBlock( heap, size );
+	size_t size_original = toAllocate;
+	toAllocate += alignment;	// Make sure we have enough space to align
+	block* b = heap_findEmptyBlock( heap, toAllocate );
 
 	if ( !b ) {
 		heap_dumpBlocks( heap );
-		printError( "HeapAllocator out of memory on request for " dPTRf " bytes. Total size: " dPTRf " bytes, Used size: " dPTRf " bytes\n", size, heap->total_size, heap->total_allocated );
+		printError( "HeapAllocator out of memory on request for " dPTRf " bytes. Total size: " dPTRf " bytes, Used size: " dPTRf " bytes\n", toAllocate, heap->total_size, heap->total_allocated );
 		vAssert( 0 );
 	}
 
 	vAssert( b->free );
-	vAssert( !b->next || b->next == b->data + b->size );
+	assertBlockInvariants( b );
 
 	removeFromFreeList( heap, b );
 	b->free = false;
 
-	vAssert( !b->next || b->next == b->data + b->size );
+	assertBlockInvariants( b );
 
-	if ( b->size > ( size + sizeof( block ) + sizeof( block* ) * 2) ) {
-		void* new_ptr = ((uint8_t*)b->data) + size;
-		block* remaining = block_create( heap, new_ptr, b->size - size );
+	if ( b->size > ( toAllocate + sizeof( block ) + sizeof( block* ) * 2) ) {
+		void* new_ptr = ((uint8_t*)b->data) + toAllocate;
+		block* remaining = block_create( heap, new_ptr, b->size - toAllocate );
 		block_insertAfter( b, remaining );
-		b->size = size;
+		b->size = toAllocate;
 		heap->total_allocated += sizeof( block );
 		heap->total_free -= sizeof( block );
 		vAssert( b->next == b->data + b->size );
 		vAssert( !remaining->next || remaining->next == remaining->data + remaining->size );
 	}
 
-	vAssert( !b->next || b->next == b->data + b->size );
+	assertBlockInvariants( b );
 
 	// Move the data pointer on enough to force alignment
 	uintptr_t offset = alignment - (((uintptr_t)b->data - 1) % alignment + 1);
@@ -203,10 +227,6 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	// Force alignment for this so we can memcpy (on Android, even memcpy requires alignments when dealing with structs)
 	block block_temp;
 	memcpy( &block_temp, b, sizeof( block ));
-	//validateFreeList( heap );
-	//printf( "heap " xPTRf " before : %d free blocks\n", (uintptr_t)heap, countFree( heap ));
-	//printf( "heap->free " xPTRf "\n", (uintptr_t)heap->free );
-	//printFree( heap );
 	//////////////////////////////////////////////////////
 	vAssert( b->prevFree == NULL );
 	vAssert( b->nextFree == NULL );
@@ -215,24 +235,20 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	// Fix up pointers to this block, for the new location
 	if ( b->prev ) {
 		b->prev->next = b;
-		// Increment previous block size by what we've moved the block
-		b->prev->size += offset;
+		b->prev->size += offset; // Increment previous block size by what we've moved the block
 	}
 	else
 		heap->first = b;
 	if ( b->next )
 		b->next->prev = b;
-	vAssert( !b->next || b->next == b->data + b->size );
-	vAssert( !b->prev || b->prev->next == b->prev->data + b->prev->size );
+
+	assertBlockInvariants( b );
 	//////////////////////////////////////////////////////
-	//printf( "heap " xPTRf " after : %d free blocks\n", (uintptr_t)heap, countFree( heap ));
-	//printf( "heap->free " xPTRf "\n", (uintptr_t)heap->free );
-	//printFree( heap );
-	//validateFreeList( heap );
 	vAssert( b->next == NULL || b->next == b->data + b->size );
 
-	heap->total_allocated += size;
-	heap->total_free -= size;
+	heap->total_allocated += toAllocate;
+	heap->total_free -= toAllocate;
+	++heap->allocations;
 
 	// Ensure we have met our requirements
 	uintptr_t align_offset = ((uintptr_t)b->data) % alignment;
@@ -243,14 +259,11 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment,
 	printf("Allocator returned address: " xPTRf ".\n", (uintptr_t)b->data );
 #endif
 
-	++heap->allocations;
-
 #ifdef MEM_STACK_TRACE
 	block_recordAlloc( b, mem_stack_string );
 #endif // MEM_STACK_TRACE
 
-	vAssert( !b->next || b->next->prev == b );
-	vAssert( !b->prev || b->prev->next == b );
+	assertBlockInvariants( b );
 
 #ifdef TRACK_ALLOCATIONS
 	if (source)
@@ -391,7 +404,6 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 		return;
 	vmutex_lock( &allocator_mutex );
 
-	//validateFreeList( heap );
 	// Check if it's in a bitpool
 	bitpool* bit_pool = heap_findBitpoolForData( heap, data );
 	if ( bit_pool ) {
@@ -401,20 +413,11 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 	}
 
 	block* b = (block*)((uint8_t*)data - sizeof( block ));
-	// Check it's in the right heap!
-	//heapContains( heap, b );
 	vAssert( !b->free );
-
-#ifdef MEM_GUARD_BLOCK
-	vAssert( b->guard == kGuardValue );
-#endif // MEM_GUARD_BLOCK
-	vAssert( b );
-	vAssert( !b->next || b->next->prev == b );
-	vAssert( !b->prev || b->prev->next == b );
+	assertBlockInvariants( b );
 #ifdef MEM_DEBUG_VERBOSE
 	printf("Allocator freed address: " xPTRf ".\n", (uintptr_t)b->data );
 #endif
-	//validateFreeList( heap );
 	b->free = true;
 	addToFreeList( heap, b );
 	heap->total_free += b->size;
@@ -424,15 +427,14 @@ void heap_deallocate( heapAllocator* heap, void* data ) {
 	// Try to merge blocks
 	if ( b->next && b->next->free ) {
 		checkFree( heap, b->next );
-		block_merge( heap, b, b->next );
+		blockMerge( heap, b, b->next );
 	}
 
 	if ( b->prev && b->prev->free ) {
 		checkFree( heap, b->prev );
-		block_merge( heap, b->prev, b );
+		blockMerge( heap, b->prev, b );
 	}
 
-	//validateFreeList( heap );
 	--heap->allocations;
 	vmutex_unlock( &allocator_mutex );
 }
@@ -471,7 +473,7 @@ void validateFreeList( heapAllocator* heap ) {
 // Both *first* and *second* must be valid
 // Afterwards, only *first* will remain valid
 // but will have size equal to both plus sizeof( block )
-void block_merge( heapAllocator* heap, block* first, block* second ) {
+void blockMerge( heapAllocator* heap, block* first, block* second ) {
 	//printf( "Allocator: Merging Blocks 0x" xPTRf " and 0x " xPTRf "\n", (uintptr_t)first, (uintptr_t)second );
 
 	vAssert( first && second );

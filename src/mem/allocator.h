@@ -68,7 +68,6 @@ struct block_s {
 #endif
 }__attribute__ ((aligned (8)));
 
-
 typedef struct empty_s {
 	block* nextFree;
 	block* prevFree;
@@ -94,21 +93,8 @@ void mem_init(int argc, char** argv);
 void* heap_allocate( heapAllocator* heap, int size, const char* source );
 void* heap_allocate_aligned( heapAllocator* heap, size_t size, size_t alignment, const char* source );
 
-// Find a block of at least *min_size* bytes
-// First version will naively use first found block meeting the criteria
-block* heap_findEmptyBlock( heapAllocator* heap, size_t min_size );
-
-// Find a block with a given data pointer to *mem_addr*
-// Returns NULL if no such block is found
-block* heap_findBlock( heapAllocator* heap, void* mem_addr );
-
 // Release a block from the heapAllocator
 void heap_deallocate( heapAllocator* heap, void* data );
-
-// Merge two continous blocks, *first* and *second*
-// Afterwards, only *first* will remain valid
-// but will have size equal to both plus sizeof( block )
-void block_merge( heapAllocator* heap, block* first, block* second );
 
 // Create a heapAllocator of *size* bytes
 // Initialised with one block pointing to the whole memory
@@ -118,13 +104,6 @@ heapAllocator* heap_create( int heap_size );
 // The bitpool storage is taken from the heaps storage, so there must be enough space
 // for the bitpool arena
 void heap_addBitpool( heapAllocator* h, size_t size, size_t count );
-
-// Insert a block *after* into a linked-list after the block *before*
-// Both *before* and *after* must be valid
-void block_insertAfter( block* before, block* after );
-
-// Create and initialise a block in a given piece of memory of *size* bytes
-block* block_create( heapAllocator* heap, void* data, size_t size );
 
 void heap_dumpBlocks( heapAllocator* heap );
 void heap_dumpUsedBlocks( heapAllocator* heap );
