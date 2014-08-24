@@ -267,6 +267,8 @@ bool vfile_modifiedSinceLast( const char* file ) {
 	time_t time_new, time_old;
 	struct stat file_stat;
 	int error = stat( file, &file_stat );
+	if ( error != 0 )
+		return false;
 	vAssert( error == 0 );
 
 	time_old = vfile_lastModifiedTime( file );

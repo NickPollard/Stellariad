@@ -707,51 +707,43 @@ void render_draw( window* w, engine* e ) {
 		render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
 	} detachFrameBuffer();
 
-	attachFrameBuffer( render_buffers[0] ); {
-		render_clear();
-		// TODO - don't redepth here, draw the initial texture instead?
-		render_drawPass( w, &renderPass_depth );
-
-		render_drawPass( w, &renderPass_main );
-		render_drawPass( w, &renderPass_alpha );
-	} detachFrameBuffer();
-	glViewport(0, 0, w->width, w->height);
-
-	render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
-
-	// No depth-test for ui
-	glDisable( GL_DEPTH_TEST );
-
-	// using depth-texture, render SSAO pass to the screen
-	if ( render_bloom_enabled ) {
-		//render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
-		attachFrameBuffer( ssaoBuffer ); {
-			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-			render_colorMask = true;
+	const bool drawSsao = !render_bloom_enabled;
+	if ( drawSsao ) {
+		render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
+	} else {
+		attachFrameBuffer( render_buffers[0] ); {
 			render_clear();
-			render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
-		} detachFrameBuffer();
+			// TODO - don't redepth here, draw the initial texture instead?
+			render_drawPass( w, &renderPass_depth );
 
-		//render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
-	}
-
-	if ( render_bloom_enabled ) {
-		render_current_texture_unit = 0;
-		// downscale pass
-		attachFrameBuffer( render_buffers[1] ); {
-	   		render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+			render_drawPass( w, &renderPass_main );
+			render_drawPass( w, &renderPass_alpha );
 		} detachFrameBuffer();
-		// horizontal pass
-		attachFrameBuffer( render_buffers[2] ); {
-	   		render_drawFrameBuffer( w, render_buffers[1], resources.shader_gaussian, 1.f );
-		} detachFrameBuffer();
-		// vertical pass
-		attachFrameBuffer( render_buffers[3] ); {
-	   		render_drawFrameBuffer( w, render_buffers[2], resources.shader_gaussian_vert, 1.f );
-		} detachFrameBuffer();
-
 		glViewport(0, 0, w->width, w->height);
-	   	render_drawFrameBuffer( w, render_buffers[3], resources.shader_ui, 0.3f );
+
+		render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+
+		// No depth-test for ui
+		glDisable( GL_DEPTH_TEST );
+
+		if ( render_bloom_enabled ) {
+			render_current_texture_unit = 0;
+			// downscale pass
+			attachFrameBuffer( render_buffers[1] ); {
+				render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+			} detachFrameBuffer();
+			// horizontal pass
+			attachFrameBuffer( render_buffers[2] ); {
+				render_drawFrameBuffer( w, render_buffers[1], resources.shader_gaussian, 1.f );
+			} detachFrameBuffer();
+			// vertical pass
+			attachFrameBuffer( render_buffers[3] ); {
+				render_drawFrameBuffer( w, render_buffers[2], resources.shader_gaussian_vert, 1.f );
+			} detachFrameBuffer();
+
+			glViewport(0, 0, w->width, w->height);
+			render_drawFrameBuffer( w, render_buffers[3], resources.shader_ui, 0.3f );
+		}
 	}
 	render_drawPass( w, &renderPass_ui );
 
@@ -766,9 +758,16 @@ void render_waitForEngineThread() {
 	vthread_waitCondition( start_render );
 }
 
+void reloadShaders() {
+	if (vfile_modifiedSinceLast( "dat/shaders/ssao.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/ssao.v.glsl" )) {
+		resources.shader_ssao = shader_load( "dat/shaders/ssao.v.glsl",	"dat/shaders/ssao.f.glsl" );
+	}
+}
+
 void render_renderThreadTick( engine* e ) {
 	PROFILE_BEGIN( PROFILE_RENDER_TICK );
 	texture_tick();
+	reloadShaders();
 	render_resetModelView();
 #ifdef GRAPH_GPU_FPS
 	graph_render( gpu_fpsgraph );
