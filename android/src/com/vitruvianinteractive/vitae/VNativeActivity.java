@@ -38,10 +38,17 @@ public class VNativeActivity extends NativeActivity
         super.onCreate(savedInstanceState);
 	}
 
+	public void onResume() {
+		hideStatusBar();
+
+		super.onResume();
+	}
+
 	// TODO Android 4.1 and above - 4.0 or below requires different code
 	void hideStatusBar() {
 		int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
 		 				| View.SYSTEM_UI_FLAG_IMMERSIVE
+		 				| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 		 				| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
 		getWindow().getDecorView().setSystemUiVisibility(uiOptions);
 	}
