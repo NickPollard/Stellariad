@@ -1,5 +1,6 @@
 local list = require("list")
 local option = require("option")
+local proc = require("proc")
 local doodads = { }
 doodads.spawn_distance = 900.0
 doodads.random = vrand_newSeq()
@@ -86,14 +87,18 @@ doodads.spawnBunker = function(canyon, u, v, model)
   return doodad
 end
 doodads.spawnSkyscraper = function(canyon, u, v)
+  local p = proc.skyscraper()
+  vprint("Block length " .. p:length())
+  p:foreach(function(p)
+    return vprint(p)
+  end)
   local r = vrand(doodads.random, 0.0, 1.0)
   local doodad
-  local _exp_0 = r
-  if (r < 0.2) == _exp_0 then
+  if r < 0.2 then
     doodad = option:some("dat/model/skyscraper_blocks.s")
-  elseif (r < 0.4) == _exp_0 then
+  elseif r < 0.4 then
     doodad = option:some("dat/model/skyscraper_slant.s")
-  elseif (r < 0.6) == _exp_0 then
+  elseif r < 0.6 then
     doodad = option:some("dat/model/skyscraper_towers.s")
   else
     doodad = option:none()
@@ -108,12 +113,8 @@ doodads.spawnRange = function(canyon, near, far)
   local u_offset = 130.0
   local model = "dat/model/tree_fir.s"
   while library.contains(v, near, far) do
-    doodads.spawnDoodad(canyon, u_offset, v, model)
-    doodads.spawnDoodad(canyon, u_offset + 30.0, v, model)
-    doodads.spawnDoodad(canyon, u_offset + 60.0, v, model)
-    doodads.spawnDoodad(canyon, -u_offset, v, model)
-    doodads.spawnDoodad(canyon, -u_offset - 30.0, v, model)
-    doodads.spawnDoodad(canyon, -u_offset - 60.0, v, model)
+    doodads.spawnSkyscraper(canyon, u_offset, v)
+    doodads.spawnSkyscraper(canyon, -u_offset, v)
     nxt = nxt + 1
     v = nxt * doodads.interval
   end

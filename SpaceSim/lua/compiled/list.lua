@@ -47,7 +47,7 @@ list.isEmpty = function(self)
   return self == list.empty_
 end
 list.length = function(self)
-  if selftail and self.tail ~= list.empty_ then
+  if self.tail and self.tail ~= list.empty_ then
     return 1 + self.tail:length()
   else
     return 1
@@ -128,5 +128,15 @@ list.contains = function(self, e)
       return false
     end
   end
+end
+list.reverse = function(self)
+  return self:fold(list.empty(), function(l, i)
+    return list:cons(i, l)
+  end)
+end
+list.append = function(self, otherList)
+  return self:reverse():fold(otherList, function(l, i)
+    return l:prepend(i)
+  end)
 end
 return list
