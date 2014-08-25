@@ -24,6 +24,7 @@ uniform	mat4 modelview;
 
 void main() {
 	gl_Position = projection * modelview * position;
+	screenCoord = gl_Position.xy / gl_Position.w;
 	fragPosition = modelview * position;
 	fragNormal = modelview * normal;
 	texcoord = uv.xy;

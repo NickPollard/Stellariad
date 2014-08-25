@@ -26,7 +26,7 @@ list.cons = ( h, t ) =>
 list.isEmpty = () => self == list.empty_
 
 list.length = () =>
-	if selftail and self.tail != list.empty_ then 1 + self.tail\length() else 1
+	if self.tail and self.tail != list.empty_ then 1 + self.tail\length() else 1
 
 list.remove = (r) => list\filter( (el) -> el != r )
 
@@ -73,5 +73,11 @@ list.prepend = ( h ) => list\cons( h, self )
 list.contains = ( e ) =>
 	if self.head and self.head == e then true
 	else if self.tail and self.tail != list.empty_ then self.tail\contains( e ) else false
+
+list.reverse = () =>
+	self\fold( list.empty(), (l, i) -> list\cons(i, l) )
+
+list.append = ( otherList ) =>
+	self\reverse()\fold( otherList, (l, i) -> l\prepend(i))
 
 list

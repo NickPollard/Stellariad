@@ -3,6 +3,7 @@
 --package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
 list = require "list"
 option = require "option"
+proc = require "proc"
 
 doodads = {}
 
@@ -75,13 +76,16 @@ doodads.spawnBunker = ( canyon, u, v, model ) ->
 	doodad
 
 doodads.spawnSkyscraper = (canyon, u, v) ->
+	p = proc.skyscraper()
+	vprint( "Block length " .. p\length() )
+	p\foreach( (p) -> vprint(p) )
+
 	r = vrand( doodads.random, 0.0, 1.0 )
-	doodad = switch r
-		when r < 0.2 then option\some("dat/model/skyscraper_blocks.s")
-		when r < 0.4 then option\some("dat/model/skyscraper_slant.s")
-		when r < 0.6 then option\some("dat/model/skyscraper_towers.s")
-		else option\none()
-	doodad\foreach (d) -> doodads.spawnDoodad( canyon, u, v, d )
+	doodad = if r < 0.2 then option\some("dat/model/skyscraper_blocks.s")
+			elseif r < 0.4 then option\some("dat/model/skyscraper_slant.s")
+			elseif r < 0.6 then option\some("dat/model/skyscraper_towers.s")
+			else option\none()
+	doodad\foreach( (d) -> doodads.spawnDoodad( canyon, u, v, d ))
 		
 doodads.spawnRange = ( canyon, near, far ) ->
 	nxt = doodads.spawnIndex( near ) + 1
@@ -89,12 +93,15 @@ doodads.spawnRange = ( canyon, near, far ) ->
 	u_offset = 130.0
 	model = "dat/model/tree_fir.s"
 	while library.contains( v, near, far ) do
-		doodads.spawnDoodad( canyon, u_offset, v, model )
-		doodads.spawnDoodad( canyon, u_offset + 30.0, v, model )
-		doodads.spawnDoodad( canyon, u_offset + 60.0, v, model )
-		doodads.spawnDoodad( canyon, -u_offset, v, model )
-		doodads.spawnDoodad( canyon, -u_offset - 30.0, v, model )
-		doodads.spawnDoodad( canyon, -u_offset - 60.0, v, model )
+		doodads.spawnSkyscraper( canyon, u_offset, v )
+		doodads.spawnSkyscraper( canyon, -u_offset, v )
+		--doodads.spawnDoodad( canyon, u_offset, v, "dat/model/skyscraper_blocks.s" )
+		--doodads.spawnDoodad( canyon, u_offset, v, model )
+		--doodads.spawnDoodad( canyon, u_offset + 30.0, v, model )
+		--doodads.spawnDoodad( canyon, u_offset + 60.0, v, model )
+		--doodads.spawnDoodad( canyon, -u_offset, v, model )
+		--doodads.spawnDoodad( canyon, -u_offset - 30.0, v, model )
+		--doodads.spawnDoodad( canyon, -u_offset - 60.0, v, model )
 		nxt += 1
 		v = nxt * doodads.interval
 
