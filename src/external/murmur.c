@@ -19,6 +19,7 @@
 // 1. It will not work incrementally.
 // 2. It will not produce the same results on little-endian and big-endian
 //    machines.
+#include "string.h" // For Memcpy
 
 unsigned int MurmurHash2 ( const void * key, int len, unsigned int seed )
 {
@@ -28,13 +29,17 @@ unsigned int MurmurHash2 ( const void * key, int len, unsigned int seed )
 	const unsigned int m = 0x5bd1e995;
 	const int r = 24;
 
+	// NP - force alignment for Android
+	char localBuffer[256];
+	memcpy( localBuffer, key, len );
+
 	// Initialize the hash to a 'random' value
 
 	unsigned int h = seed ^ len;
 
 	// Mix 4 bytes at a time into the hash
 
-	const unsigned char * data = (const unsigned char *)key;
+	const unsigned char * data = (const unsigned char *)localBuffer;
 
 	while(len >= 4)
 	{
