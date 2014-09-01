@@ -94,4 +94,4 @@ void lua_setConstant_bool( lua_State* l, const char* name, bool b );
 void lua_setGameLuaPath( const char* path );
 
 // Dump the lua call stack
-void lua_stacktrace( lua_State* l );
+int lua_stacktrace( lua_State* l );

@@ -43,7 +43,7 @@ void skybox_init( ) {
 
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
-	skybox_model->meshes[0]->shader = resources.shader_skybox;
+	skybox_model->meshes[0]->shader = &resources.shader_skybox;
 }
 
 #define SKYBOX_VERTEX_ATTRIB_POINTER( attrib ) \

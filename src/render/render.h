@@ -71,7 +71,7 @@ typedef struct gl_resources_s {
 
 	shader* shader_default;
 	shader* shader_reflective;
-	shader* shader_refl_normal;
+//	shader* shader_refl_normal;
 	shader* shader_particle;
 	shader* shader_terrain;
 	shader* shader_skybox;
@@ -214,4 +214,4 @@ void* render_renderThreadFunc( void* args );
 void render_destroyWindow( window* w );
 
 // Find a shader by it's name
-shader* render_shaderByName( const char* name );
+shader** render_shaderByName( const char* name );

@@ -6,7 +6,8 @@
 
 unsigned int mhash( const char* src ) {
 	unsigned int seed = 0x0;
-	return MurmurHash2( src, strlen( src ), seed );
+	int len = strlen( src );
+	return MurmurHash2( src, len, seed );
 }
 /*
 void* hashtable_findOrAdd( hashtable, key ) {

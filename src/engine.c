@@ -154,11 +154,12 @@ void engine_tick( engine* e ) {
 #if DEBUG_LUA
 		printf("Calling engine::onTick handler: %s\n", e->onTick->func);
 #endif
+		lua_pushcfunction( e->lua, lua_stacktrace );
 		lua_getglobal( e->lua, e->onTick->func );				
 		lua_pushnumber( e->lua, dt );
 		int err = lua_pcall( e->lua,	/* args */			1,
 				/* returns */		0,
-				/* error handler */ 0);
+				/* error handler */ -3); // TODO - call an error handler!
 
 		if ( err != 0 ) {
 			printError( "LUA ERROR: ErrorNum: %d.", err );

@@ -1,0 +1,12 @@
+# Blender MTL File: 'block2.blend'
+# Material Count: 1
+
+newmtl Cube
+Ns 88.235294
+Ka 0.000000 0.000000 0.000000
+Kd 0.422758 0.412472 0.456376
+Ks 0.651507 0.641577 0.678899
+Ni 1.000000
+d 0.000000
+illum 2
+map_Kd /home/nick/Projects/Vitae/assets/img/test64rgb.tga

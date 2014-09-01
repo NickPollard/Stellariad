@@ -45,6 +45,10 @@ GLuint shader_compile( GLenum type, const char* path, const char* source );
 
 // Load a shader from GLSL files
 shader* shader_load( const char* vertex_name, const char* fragment_name );
+// * NEW
+shader** shaderGet( const char* shaderName );
+void shaderLoad( const char* shader );
+void shadersReloadAll();
 
 // Find the program location for a named Uniform variable in the given program
 GLint shader_getUniformLocation( GLuint program, const char* name );

@@ -13,7 +13,7 @@
 #include "transform.h"
 
 #define MAX_TRANSFORMS 1024
-#define MAX_MODELS 512
+#define MAX_MODELS 2048
 #define MAX_LIGHTS 512
 #define MAX_EMITTERS 512
 

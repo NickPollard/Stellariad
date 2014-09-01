@@ -1,0 +1,12 @@
+# Blender MTL File: 'pyramid2.blend'
+# Material Count: 1
+
+newmtl Cube
+Ns 88.235294
+Ka 0.000000 0.000000 0.000000
+Kd 0.080953 0.640000 0.092727
+Ks 0.651507 0.641577 0.678899
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd /home/nick/Projects/Vitae/assets/img/test64rgb.tga

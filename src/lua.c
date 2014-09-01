@@ -312,7 +312,7 @@ void lua_setGameLuaPath( const char* path ) {
 	game_lua_path = string_createCopy( path );
 }
 
-void lua_stacktrace( lua_State* l ) {
+int lua_stacktrace( lua_State* l ) {
 	printf( "#### Lua Stacktrace ####\n" );
 	if ( l ) {
 		lua_Debug debug_entry;
@@ -325,6 +325,7 @@ void lua_stacktrace( lua_State* l ) {
 		}
 	}
 	printf( "########################\n" );
+	return 0;
 }
 
 void lua_activeStateStack() {

@@ -9,6 +9,7 @@
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/render.h"
+#include "render/shader.h"
 #include "render/texture.h"
 #include "system/hash.h"
 #include "system/file.h"
@@ -328,13 +329,23 @@ model* sexpr_loadModel( sexpr* s ) {
 	return m;
 }
 
+shader* sexpr_loadShader( sexpr* s ) {
+	sexpr* fragTerm = sexpr_findChildNamed( "fragment", s );
+	vAssert( fragTerm->child );
+	const char* fragment = fragTerm->child->value;
+	sexpr* vertTerm = sexpr_findChildNamed( "vertex", s );
+	vAssert( vertTerm->child );
+	const char* vertex = vertTerm->child->value;
+	return shader_load( vertex, fragment );
+}
+
 void* sexpr_load( sexpr* s ) {
-	if ( sexpr_named( "model", s )) {
+	if ( sexpr_named( "model", s ))
 		return sexpr_loadModel( s );
-	}
-	if ( sexpr_named( "ribbonEmitterDef", s )) {
+	if ( sexpr_named( "ribbonEmitterDef", s ))
 		return sexpr_loadRibbonEmitterDef( s );
-	}
+	if ( sexpr_named( "shader", s ))
+		return sexpr_loadShader( s );
 	return NULL;
 }
 

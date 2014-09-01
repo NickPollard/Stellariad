@@ -5,6 +5,7 @@
 //---------------------
 #include "mem/allocator.h"
 #include "render/render.h"
+#include "script/sexpr.h"
 #include "system/file.h"
 #include "system/inputstream.h"
 #include "system/string.h"
@@ -22,24 +23,10 @@ map* shader_constants = NULL;
 #define kShaderMaxLogLength (16 << 10)
 
 // Find the program location for a named Uniform variable in the given program
-GLint shader_getUniformLocation( GLuint program, const char* name ) {
-	GLint location = glGetUniformLocation( program, name );
-/*
-   if ( location == -1 ) {
-		printf( "Error finding Uniform Location for shader uniform variable \"%s\".\n", name );
-	}
-	assert( location != -1 );
-*/
-//	printf( "SHADER: Uniform \"%s\" location: 0x%x\n", name, location );
-	return location;
-}
+GLint shader_getUniformLocation( GLuint program, const char* name ) { return glGetUniformLocation( program, name ); }
 
 // Find the program location for a named Attribute variable in the given program
-GLint shader_getAttributeLocation( GLuint program, const char* name ) {
-	GLint location = glGetAttribLocation( program, name );
-//	printf( "SHADER: Attribute \"%s\" location: 0x%x\n", name, location );
-	return location;
-}
+GLint shader_getAttributeLocation( GLuint program, const char* name ) { return glGetAttribLocation( program, name ); }
 
 // Create a binding for the given variable within the given program
 shaderConstantBinding shader_createBinding( GLuint shader_program, const char* variable_type, const char* variable_name ) {
@@ -83,11 +70,9 @@ void shader_buildDictionary( shaderDictionary* dict, GLuint shader_program, cons
 			char type[kMaxVariableLength];
 			char name[kMaxVariableLength];
 			string_trimCopy( type, token );
-//			const char* type = string_trim( token );
 			inputStream_freeToken( stream, token );
 			token = inputStream_nextToken( stream );
 			string_trimCopy( name, token );
-//			const char* name = string_trim( token );
 			// If it's an array remove the array specification
 			char* c = (char*)name;
 			int length = strlen(name );
@@ -98,9 +83,6 @@ void shader_buildDictionary( shaderDictionary* dict, GLuint shader_program, cons
 			}
 
 			shaderDictionary_addBinding( dict, shader_createBinding( shader_program, type, name ));
-
-//			mem_free( (void*)name );
-//			mem_free( (void*)type );
 		}
 		inputStream_freeToken( stream, token );
 	}
@@ -134,7 +116,7 @@ GLuint shader_compile( GLenum type, const char* path, const char* source ) {
 	GLint shader_ok;
 
 	if ( !source ) {
-		printf( "Error: Cannot create Shader. File %s not found.\n", path );
+		printError( "Cannot create Shader. File %s not found.\n", path );
 		assert( 0 );
 	}
 
@@ -173,11 +155,10 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 }
 
 // Build a GLSL shader program from given vertex and fragment shader source pathnames
-GLuint	shader_build( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
+GLuint	buildShader( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
 	GLuint vertex_shader = shader_compile( GL_VERTEX_SHADER, vertex_path, vertex_file );
 	GLuint fragment_shader = shader_compile( GL_FRAGMENT_SHADER, fragment_path, fragment_file );
-	GLuint program = shader_link( vertex_shader, fragment_shader );
-	return program;
+	return shader_link( vertex_shader, fragment_shader );
 }
 
 void shader_init() {
@@ -201,20 +182,61 @@ void shader_clearConstants() {
 
 void shader_bindConstants( shader* s ) {
 	assert( s->dict.count < kMaxShaderConstantBindings );
-	for ( int i = 0; i < s->dict.count; i++ ) {
+	for ( int i = 0; i < s->dict.count; i++ )
 		shader_bindConstant( s->dict.bindings[i] );
-	}
 }
 
 // Activate the shader for use in rendering
 void shader_activate( shader* s ) {
 	vAssert( s );
-	// Bind the shader program for use
 	glUseProgram( s->program );
 
-	// Set up shader constants ( GLSL Uniform variables )
 	shader_clearConstants();
 	shader_bindConstants( s );
+}
+
+map* shaderMap = NULL;
+
+shader** shaderGet( const char* shaderName ) {
+	void* s = map_find(shaderMap, mhash(shaderName));
+	if (s) return (shader**)s;
+	else return nullptr;
+}
+
+struct shaderInfo_s {
+	const char* name;
+	const char* fragment;
+	const char* vertex;
+};
+
+typedef struct shaderInfo_s shaderInfo;
+
+DEF_LIST(shaderInfo);
+IMPLEMENT_LIST(shaderInfo);
+
+shaderInfolist* shadersLoaded = nullptr;
+
+void shaderLoad( const char* shaderName ) {
+	if (shaderMap == NULL)
+		shaderMap = map_create(128, sizeof( shader* ) );
+	shader* s = sexpr_loadFile( shaderName );
+	map_add(shaderMap, mhash(shaderName), &s);
+
+	// Add to loaded list
+	// if no already in it
+	/*
+	shaderInfo* sInfo = mem_alloc(sizeof(shaderInfo));
+	sInfo->name = shaderName;
+	sInfo->vertex = string_createCopy("");
+	sInfo->fragment = string_createCopy("");
+	shadersLoaded = shaderInfolist_cons( sInfo, shadersLoaded );
+	*/
+}
+
+void shadersReloadAll() {
+	for ( shaderInfolist* l = shadersLoaded; l && l->head; l = l->tail )
+		if (vfile_modifiedSinceLast( l->head->fragment) || vfile_modifiedSinceLast( l->head->vertex) || vfile_modifiedSinceLast( l->head->name ))
+			shaderLoad( l->head->name );
 }
 
 // Load a shader from GLSL files
@@ -229,14 +251,11 @@ shader* shader_load( const char* vertex_name, const char* fragment_name ) {
 	const char* vertex_file = vfile_contents( vertex_name, &length );
 	const char* fragment_file = vfile_contents( fragment_name, &length );
 
-	// Build the shader program
-	s->program = shader_build( vertex_name, fragment_name, vertex_file, fragment_file );
+	s->program = buildShader( vertex_name, fragment_name, vertex_file, fragment_file );
 
-	// Build our dictionaries
 	shader_buildDictionary( &s->dict, s->program, vertex_file );
 	shader_buildDictionary( &s->dict, s->program, fragment_file );
 
-	// Clear up memory
 	mem_free( (void*)vertex_file );			// Cast away const to free, we allocated this ourselves
 	mem_free( (void*)fragment_file	);		// Cast away const to free, "
 

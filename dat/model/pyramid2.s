@@ -1,5 +1,5 @@
-(model (mesh	(filename "dat/model/textured_cube.obj") 
+(model (mesh	(filename "dat/model/pyramid2.obj") 
 				(diffuse_texture "dat/img/metal_test.tga")
 				(normal_texture "dat/img/metal_test_normal.tga")
-				(shader "refl_normal"))
+				(shader "dat/shaders/refl_normal.s"))
 )

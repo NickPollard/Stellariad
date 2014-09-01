@@ -92,9 +92,13 @@ bool	render_bloom_enabled = true;
 
 void render_buildShaders() {
 	// Load Shaders					Vertex												Fragment
+	shaderLoad( "dat/shaders/default.s" );
+	shaderLoad( "dat/shaders/refl_normal.s" );
+
+	//
 	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
 	resources.shader_reflective		= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
-	resources.shader_refl_normal	= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
+//	resources.shader_refl_normal	= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
 	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
 	resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
@@ -115,11 +119,15 @@ void render_buildShaders() {
 }
 
 // TODO - hashmap
-shader* render_shaderByName( const char* name ) {
-	if (string_equal(name, "phong")) return resources.shader_default;
-	else if (string_equal(name, "reflective")) return resources.shader_reflective;
-	else if (string_equal(name, "refl_normal")) return resources.shader_refl_normal;
-	else return resources.shader_default;
+shader** render_shaderByName( const char* name ) {
+	if (string_equal(name, "phong")) return &resources.shader_default;
+	else if (string_equal(name, "reflective")) return &resources.shader_reflective;
+	//else if (string_equal(name, "refl_normal")) return &resources.shader_refl_normal;
+	else {
+		shader** s = shaderGet( name );
+		if (s) return s;
+		else return &resources.shader_default;
+	}
 }
 
 #define kMaxDrawCalls 2048
@@ -759,9 +767,21 @@ void render_waitForEngineThread() {
 }
 
 void reloadShaders() {
+	// Reload everything from the shaderMap
+	shadersReloadAll();
+
 	if (vfile_modifiedSinceLast( "dat/shaders/ssao.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/ssao.v.glsl" )) {
 		resources.shader_ssao = shader_load( "dat/shaders/ssao.v.glsl",	"dat/shaders/ssao.f.glsl" );
 	}
+	if (vfile_modifiedSinceLast( "dat/shaders/phong.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/phong.v.glsl" )) {
+		resources.shader_default = shader_load( "dat/shaders/phong.v.glsl", "dat/shaders/phong.f.glsl" );
+	}
+	if (vfile_modifiedSinceLast( "dat/shaders/reflective.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/reflective.v.glsl" )) {
+		resources.shader_reflective	= shader_load( "dat/shaders/reflective.v.glsl",	"dat/shaders/reflective.f.glsl" );
+	}
+//	if (vfile_modifiedSinceLast( "dat/shaders/refl_normal.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/refl_normal.v.glsl" )) {
+//		resources.shader_refl_normal = shader_load( "dat/shaders/refl_normal.v.glsl", "dat/shaders/refl_normal.f.glsl" );
+//	}
 }
 
 void render_renderThreadTick( engine* e ) {

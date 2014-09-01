@@ -3,6 +3,12 @@ list.__index = list
 list.empty_ = head: nil, tail: nil
 setmetatable(list.empty_, list)
 
+listmeta = {}
+listmeta.__call = (_, item) ->
+	list\cons( item, list.empty() )
+
+setmetatable(list, listmeta)
+
 list.fold = ( v, f ) =>
 	if self.tail and self.tail != list.empty_ then
 		if self.head then
@@ -16,7 +22,7 @@ list.map = ( f ) => self\fold( list\empty(), ( l, v ) -> list:cons( l, f( v )))
 
 list.foreach = ( f ) => self\fold( nil, ( l, v ) -> f( v ) )
 
-list.empty = () => list.empty_
+list.empty = () -> list.empty_
 
 list.cons = ( h, t ) =>
 	l = head: h, tail: t
@@ -26,7 +32,7 @@ list.cons = ( h, t ) =>
 list.isEmpty = () => self == list.empty_
 
 list.length = () =>
-	if self.tail and self.tail != list.empty_ then 1 + self.tail\length() else 1
+	if self.tail and self.tail != list.empty_ then 1 + self.tail\length() elseif self.head then 1 else 0
 
 list.remove = (r) => list\filter( (el) -> el != r )
 
@@ -50,23 +56,23 @@ list.take = (count) =>
 		list\empty()
 
 list.zipWith = (l) =>
-	h = _1: self.head, _2: l.tail
-	if self.tail and self.tail != list.empty_ and l.tail and l.tail != list.empty_ then
-		list\cons( h, self.tail\zipWith( l.tail ))
+	if self.head then
+		h = _1: self.head, _2: l.head
+		if self.tail and self.tail != list.empty_ and l.tail and l.tail != list.empty_ then
+			list\cons( h, self.tail\zipWith( l.tail ))
+		else
+			list\cons( h, list.empty())
 	else
-		list\cons( h, list\empty())
+		list.empty()
 
 numberListInternal = ( n, i ) ->
-	if i <= n then
-		list\cons( i, numberListInternal( n, i+1 ))
-	else
-		list\empty()
+	if i < n then list\cons( i, numberListInternal( n, i+1 ))
+	else list.empty()
 
-listOfNumbers = ( n ) ->
-	numberListInternal( n, 1 )
+listOfNumbers = ( n ) -> numberListInternal( n, 0 )
 
 list.zipWithIndex = () =>
-	self:zipWith( listOfNumbers( self\length() ))
+	self\zipWith( listOfNumbers( self\length() ))
 		
 list.prepend = ( h ) => list\cons( h, self )
 
