@@ -115,7 +115,6 @@ int LUA_createTransform( lua_State* l ) {
 
 LUA_CREATE_( physic, physic_create )
 
-
 int LUA_createModelInstance( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
 		const char* filename = lua_tostring( l, 1 );
@@ -124,6 +123,18 @@ int LUA_createModelInstance( lua_State* l ) {
 		return 1;
 	} else {
 		printf( "Error: LUA: No filename specified for vcreateModelInstance().\n" );
+		return 0;
+	}
+}
+
+int LUA_modelInstanceSetStatic( lua_State* l ) {
+	if ( lua_isstring( l, 1 ) ) {
+		modelInstance* m = lua_toptr( l, 1 );
+		modelInstance_setStatic( m );
+		lua_pushptr( l, m );
+		return 1;
+	} else {
+		vAssert( 0 );
 		return 0;
 	}
 }
@@ -1219,6 +1230,7 @@ void luaLibrary_import( lua_State* l ) {
 
 	// *** Scene
 	lua_registerFunction( l, LUA_createModelInstance, "vcreateModelInstance" );
+	lua_registerFunction( l, LUA_modelInstanceSetStatic, "vmodelInstanceSetStatic" );
 	lua_registerFunction( l, LUA_modelPreload, "vmodel_preload" );
 	lua_registerFunction( l, LUA_deleteModelInstance, "vdeleteModelInstance" );
 	lua_registerFunction( l, LUA_model_setTransform, "vmodel_setTransform" );

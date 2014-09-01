@@ -40,6 +40,7 @@ doodads.spawnIndex = ( pos ) -> math.floor( (pos - spawn_offset) / doodads.inter
 doodads.create = ( model_file ) ->
 	g = model: vcreateModelInstance( model_file ), transform: vcreateTransform()
 	vmodel_setTransform( g.model, g.transform )
+	vmodelInstanceSetStatic( g.model )
 	vscene_addModel( scene, g.model )
 	g
 

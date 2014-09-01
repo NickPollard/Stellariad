@@ -25,6 +25,7 @@ void modelInstance_initPool() {
 modelInstance* modelInstance_createEmpty( ) {
 	modelInstance* i = pool_modelInstance_allocate( static_modelInstance_pool );
 	memset( i, 0, sizeof( modelInstance ));
+	i->isStatic = false;
 	return i;
 }
 
@@ -130,10 +131,15 @@ void modelInstance_calculateBoundingBox( modelInstance* instance ) {
 	instance->bb = aabb_calculate( m->obb, instance->trans->world );
 }
 
+void modelInstance_setStatic( modelInstance* m ) {
+	m->isStatic = true;
+	modelInstance_calculateBoundingBox( m );
+}
 
 void modelInstance_draw( modelInstance* instance, camera* cam ) {
 	// Bounding box cull
-	modelInstance_calculateBoundingBox( instance );
+	if (!instance->isStatic)
+		modelInstance_calculateBoundingBox( instance );
 	//debugdraw_aabb( instance->bb );
 
 	if ( frustum_cull( &instance->bb, cam->frustum ) )

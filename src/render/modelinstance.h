@@ -26,6 +26,7 @@ struct modelInstance_s {
 	particleEmitter*	emitters[kMaxSubEmitters];
 	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
 	aabb	bb;
+	bool	isStatic;
 };
 
 DECLARE_POOL( modelInstance )
@@ -37,5 +38,6 @@ modelInstance* modelInstance_create( modelHandle m );
 void modelInstance_delete( modelInstance* t );
 
 void modelInstance_draw( modelInstance* instance, camera* cam );
+void modelInstance_setStatic( modelInstance* m );
 
 void test_aabb_calculate();
