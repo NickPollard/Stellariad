@@ -94,6 +94,7 @@ void render_buildShaders() {
 	// Load Shaders					Vertex												Fragment
 	shaderLoad( "dat/shaders/default.s" );
 	shaderLoad( "dat/shaders/refl_normal.s" );
+	shaderLoad( "dat/shaders/terrain.s" );
 
 	//
 	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
@@ -131,7 +132,7 @@ shader** render_shaderByName( const char* name ) {
 }
 
 #define kMaxDrawCalls 2048
-#define kCallBufferCount 12		// Needs to be at least as many as we have shaders
+#define kCallBufferCount 24		// Needs to be at least as many as we have shaders
 // Each shader has it's own buffer for drawcalls
 // This means drawcalls get batched by shader
 drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
@@ -449,6 +450,41 @@ int render_findDrawCallBuffer( shader* vshader ) {
 		index = *found;
 
 	return index;
+}
+
+drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
+	vAssert( pass );
+	vAssert( vshader );
+
+	drawCall* draw = mem_alloc( sizeof( drawCall ));
+	draw->vitae_shader = vshader;
+	draw->element_buffer = elements;
+	draw->vertex_buffer = verts;
+	draw->element_count = count;
+	draw->texture = tex;
+	draw->element_buffer_offset = 0;
+	draw->vertex_VBO	= resources.vertex_buffer[0];
+	draw->element_VBO	= resources.element_buffer[0];
+	draw->depth_mask = GL_TRUE;
+	draw->elements_mode = GL_TRIANGLES;
+
+	matrix_cpy( draw->modelview, mv );
+	return draw;
+}
+
+drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix mv ) {
+	vAssert( pass );
+	vAssert( vshader );
+
+	int buffer = render_findDrawCallBuffer( vshader ); // TODO - optimize findDrawCallBuffer - better hashing
+	int call = pass->next_call_index[buffer]++;
+	vAssert( call < kMaxDrawCalls );
+
+	drawCall* draw = &pass->call_buffer[buffer][call];
+	memcpy( draw, cached, sizeof( drawCall ));
+
+	matrix_cpy( draw->modelview, mv );
+	return draw;
 }
 
 drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {

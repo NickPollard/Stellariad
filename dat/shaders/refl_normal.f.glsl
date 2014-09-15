@@ -89,4 +89,5 @@ void main() {
 	float fogSun = sun_fog( camera_space_sun_direction, view_direction );
 	vec4 local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
+	//gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
 }

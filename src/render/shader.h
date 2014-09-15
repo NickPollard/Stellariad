@@ -33,6 +33,14 @@ struct shader_s {
 	shaderDictionary	dict;	// Dictionary of shader constant lookups
 };
 
+struct shaderInfo_s {
+	const char* name;
+	const char* fragment;
+	const char* vertex;
+};
+
+typedef struct shaderInfo_s shaderInfo;
+
 // *** Static
 
 void shader_init();

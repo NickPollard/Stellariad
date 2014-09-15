@@ -329,14 +329,19 @@ model* sexpr_loadModel( sexpr* s ) {
 	return m;
 }
 
-shader* sexpr_loadShader( sexpr* s ) {
+shaderInfo* sexpr_loadShader( sexpr* s ) {
 	sexpr* fragTerm = sexpr_findChildNamed( "fragment", s );
 	vAssert( fragTerm->child );
 	const char* fragment = fragTerm->child->value;
 	sexpr* vertTerm = sexpr_findChildNamed( "vertex", s );
 	vAssert( vertTerm->child );
 	const char* vertex = vertTerm->child->value;
-	return shader_load( vertex, fragment );
+	//return shader_load( vertex, fragment );
+	shaderInfo* i = mem_alloc( sizeof( shaderInfo ));
+	i->name = NULL;
+	i->fragment = string_createCopy(fragment);
+	i->vertex = string_createCopy(vertex);
+	return i;
 }
 
 void* sexpr_load( sexpr* s ) {

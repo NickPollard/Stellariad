@@ -203,34 +203,36 @@ shader** shaderGet( const char* shaderName ) {
 	else return nullptr;
 }
 
-struct shaderInfo_s {
-	const char* name;
-	const char* fragment;
-	const char* vertex;
-};
-
-typedef struct shaderInfo_s shaderInfo;
-
 DEF_LIST(shaderInfo);
 IMPLEMENT_LIST(shaderInfo);
 
 shaderInfolist* shadersLoaded = nullptr;
 
+bool shaderAlreadyLoaded( const char* shaderName ) {
+	(void)shaderName;
+	return false;
+}
+
 void shaderLoad( const char* shaderName ) {
+	printf( "loading shader %s.\n", shaderName );
 	if (shaderMap == NULL)
 		shaderMap = map_create(128, sizeof( shader* ) );
-	shader* s = sexpr_loadFile( shaderName );
-	map_add(shaderMap, mhash(shaderName), &s);
+	shaderInfo* sInfo = sexpr_loadFile( shaderName );
+	sInfo->name = shaderName;
+	shader* s = shader_load( sInfo->vertex, sInfo->fragment );
+	map_addOverride(shaderMap, mhash(shaderName), &s);
 
 	// Add to loaded list
 	// if no already in it
-	/*
-	shaderInfo* sInfo = mem_alloc(sizeof(shaderInfo));
-	sInfo->name = shaderName;
-	sInfo->vertex = string_createCopy("");
-	sInfo->fragment = string_createCopy("");
-	shadersLoaded = shaderInfolist_cons( sInfo, shadersLoaded );
-	*/
+	if (!shaderAlreadyLoaded(shaderName)) {
+		/*
+		shaderInfo* sInfo = mem_alloc(sizeof(shaderInfo));
+		sInfo->name = shaderName;
+		sInfo->vertex = string_createCopy(shaderName);
+		sInfo->fragment = string_createCopy(shaderName);
+		*/
+		shadersLoaded = shaderInfolist_cons( sInfo, shadersLoaded );
+	}
 }
 
 void shadersReloadAll() {

@@ -66,6 +66,8 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->normal_count = normal_count;
 	m->vertex_buffer = NULL;
 	m->element_buffer = NULL;
+	m->cachedDraw = NULL;
+	m->cachedDepthDraw = NULL;
 
 	m->texture_diffuse = static_texture_default;
 	m->texture_normal = texture_load( "dat/img/terrain/cliff_normal.tga" ); // TODO - from model file
@@ -147,20 +149,21 @@ void mesh_buildBuffers( mesh* m ) {
 
 // Draw the verts of a mesh to the openGL buffer
 void mesh_render( mesh* m ) {
-	//printf( "Vertex vbo: %u\n", *m->vertex_VBO );
-	//printf( "Element vbo: %u\n", *m->element_VBO );
 	if (( *m->vertex_VBO != kInvalidBuffer ) && ( *m->element_VBO != kInvalidBuffer )) {
-		vAssert( *m->vertex_VBO != 0 );
-		vAssert( *m->element_VBO != 0 );
-		drawCall* draw = drawCall_create( &renderPass_main, *m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
-		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
-		draw->vertex_VBO = *m->vertex_VBO;
-		draw->element_VBO = *m->element_VBO;
-		//drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		drawCall* drawDepth = drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		drawDepth->vertex_VBO = *m->vertex_VBO;
-		drawDepth->element_VBO = *m->element_VBO;
+		if (!m->cachedDraw) {
+			drawCall* draw = drawCall_createCached( &renderPass_main, *m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+			draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
+			draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
+			draw->vertex_VBO = *m->vertex_VBO;
+			draw->element_VBO = *m->element_VBO;
+			m->cachedDraw = draw;
+			drawCall* drawDepth = drawCall_createCached( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+			drawDepth->vertex_VBO = *m->vertex_VBO;
+			drawDepth->element_VBO = *m->element_VBO;
+			m->cachedDepthDraw = drawDepth;
+		}
+		drawCall_callCached( &renderPass_main, *m->shader, m->cachedDraw, modelview );
+		drawCall_callCached( &renderPass_depth, resources.shader_depth, m->cachedDepthDraw, modelview );
 	}
 }
 
