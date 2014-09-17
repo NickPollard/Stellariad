@@ -21,7 +21,7 @@ bool isLineComment( const char* token ) {
 }
 
 sexpr* sexpr_create( enum sexprType type, const char* name ) {
-	sexpr* s = mem_alloc( sizeof( sexpr ));
+	sexpr* s = (sexpr*)mem_alloc( sizeof( sexpr ));
 	s->type = type;
 	s->value = name;
 	s->child = NULL;
@@ -74,7 +74,7 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 	else if ( isListStart( *token ) ) {
 		inputStream_freeToken( stream, token ); // It's a bracket, discard it
 		token = sexpr_nextToken( stream );
-		sexpr* parent = sexpr_create( sexprTypeAtom, (void*)string_createCopy( token ));
+		sexpr* parent = sexpr_create( sexprTypeAtom, (char*)string_createCopy( token ));
 		//printf( "Sexpr parse: %s%s\n", spacing, token );
 		parent->child = NULL;
 		sexpr* last_child = NULL;
@@ -94,7 +94,7 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 	else if ( token_isString( token )) {
 		// When it's an atom, we keep the token, don't free it
 		//printf( "Adding child %s%s\n", spacing, token );
-		return sexpr_create( sexprTypeString, (void*)sstring_create( token ));
+		return sexpr_create( sexprTypeString, (char*)sstring_create( token ));
 	}
 	else if ( token_isFloat( token )) {
 		//printf( "Adding child %s%2f (float )\n", spacing, strtof( token, NULL ));
@@ -103,7 +103,7 @@ sexpr* sexpr_parseStream( inputStream* stream, int depth ) {
 	else {
 		// When it's an atom, we keep the token, don't free it
 		//printf( "Adding child %s%s\n", spacing, token );
-		return sexpr_create( sexprTypeAtom, (void*)string_createCopy( token ));
+		return sexpr_create( sexprTypeAtom, (char*)string_createCopy( token ));
 	}
 }
 
@@ -116,7 +116,7 @@ sexpr* sexpr_parse( const char* string ) {
 
 sexpr* sexpr_parseFile( const char* filename ) {
 	size_t length;
-	return sexpr_parse( vfile_contents( filename, &length ));
+	return sexpr_parse( (char*)vfile_contents( filename, &length ));
 }
 
 bool sexpr_named( const char* name, sexpr* s ) {
@@ -172,7 +172,7 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 	sexpr* shader_term = sexpr_findChildNamed( "shader", s );
 	if ( shader_term ) {
 		vAssert( shader_term->child );
-		m->shader = render_shaderByName( shader_term->child->value );
+		m->_shader = render_shaderByName( shader_term->child->value );
 	}
 	
 	return m;
@@ -256,7 +256,7 @@ ribbonEmitterDef* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 	sexpr* diffuse_term = sexpr_findChildNamed( "diffuse_texture", s );
 	if ( diffuse_term ) {
 		const char* texture_path = diffuse_term->child->value;
-		textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+		textureProperties* properties = (textureProperties*)mem_alloc( sizeof( textureProperties ));
 		if ( !def->static_texture ) {
 			properties->wrap_s = GL_CLAMP_TO_EDGE;
 			properties->wrap_t = GL_CLAMP_TO_EDGE;
@@ -337,7 +337,7 @@ shaderInfo* sexpr_loadShader( sexpr* s ) {
 	vAssert( vertTerm->child );
 	const char* vertex = vertTerm->child->value;
 	//return shader_load( vertex, fragment );
-	shaderInfo* i = mem_alloc( sizeof( shaderInfo ));
+	shaderInfo* i = (shaderInfo*)mem_alloc( sizeof( shaderInfo ));
 	i->name = NULL;
 	i->fragment = string_createCopy(fragment);
 	i->vertex = string_createCopy(vertex);

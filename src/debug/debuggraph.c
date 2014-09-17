@@ -36,7 +36,7 @@ void graph_render( graph* g ) {
 }
 
 graph* graph_new( graphData* g_data, int x, int y, int width, int height, float x_scale, float y_scale, vector color ) {
-	graph* g = mem_alloc( sizeof( graph ));
+	graph* g = (graph*)mem_alloc( sizeof( graph ));
 	memset( g, 0, sizeof( graph ));
 	g->data = g_data;
 	g->x = x;
@@ -50,8 +50,8 @@ graph* graph_new( graphData* g_data, int x, int y, int width, int height, float 
 }
 
 graphData* graphData_new( int count ) {
-	graphData* g = mem_alloc( sizeof( graphData ));
-	g->data = mem_alloc( sizeof( PAIR(float,float) ) * 2 * count );
+	graphData* g = (graphData*)mem_alloc( sizeof( graphData ));
+	g->data = (PAIR(float,float)*)mem_alloc( sizeof( PAIR(float,float) ) * 2 * count );
 	g->count = count;
 	for ( int i = 0; i < count; ++i ) {
 		g->data[i]._1 = 0.f;

@@ -25,7 +25,7 @@ vmutex terrainMutex = kMutexInitialiser;
 vmutex blockMutex = kMutexInitialiser;
 
 terrainCache* terrainCache_create() {
-	terrainCache* t = mem_alloc(sizeof(terrainCache));
+	terrainCache* t = (terrainCache*)mem_alloc(sizeof(terrainCache));
 	t->blocks = cacheBlocklist_create();
 	t->toDelete = NULL;
 	t->grids = NULL;
@@ -119,12 +119,12 @@ int cacheGetNeededLod( terrainCache* cache, int u, int v ) {
 
 cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod ) {
 	vmutex_lock( &terrainMutex );
-		const int highestLodNeeded = min( cacheGetNeededLod( c->terrainCache, uMin, vMin), lod );
+		const int highestLodNeeded = min( cacheGetNeededLod( c->cache, uMin, vMin), lod );
 	vmutex_unlock( &terrainMutex );
 
 	// Only add it if we need to!
 	vmutex_lock( &terrainMutex );
-		cacheGrid* g = gridGetOrAdd( c->terrainCache, uMin, vMin );
+		cacheGrid* g = gridGetOrAdd( c->cache, uMin, vMin );
 		cacheBlock* cache = gridBlock( g, uMin, vMin );
 	vmutex_unlock( &terrainMutex );
 	if (cache && cache->lod <= lod ) {
@@ -133,7 +133,7 @@ cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int 
 	} else {
 		cacheBlock* b = terrainCacheBlock( c, t, uMin, vMin, highestLodNeeded );
 		vmutex_lock( &terrainMutex );
-			cache = terrainCacheAddInternal( c->terrainCache, b );
+			cache = terrainCacheAddInternal( c->cache, b );
 		vmutex_unlock( &terrainMutex );
 	}
 
@@ -159,7 +159,7 @@ vector vecSample( vector* array, int w, int h, float u, float v ) {
 
 cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
 	++numCaches;
-	cacheBlock* b = mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
+	cacheBlock* b = (cacheBlock*)mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
 	b->vMin = vMin;
 	b->lod = requiredLOD;
@@ -315,7 +315,7 @@ cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
 	cacheBlocklist* caches = NULL;
 	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
 		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
-			cacheBlock* c = cachedBlock( b->canyon->terrainCache, u, v );
+			cacheBlock* c = cachedBlock( b->_canyon->cache, u, v );
 			takeRef( c );
 			caches = cacheBlocklist_cons( c, caches );
 		}

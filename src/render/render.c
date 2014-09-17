@@ -41,6 +41,23 @@
 	#define kGlMaxVaryingParams GL_MAX_VARYING_VECTORS
 #endif
 
+#define kMaxDrawCalls 2048
+#define kCallBufferCount 24		// Needs to be at least as many as we have shaders
+// Each shader has it's own buffer for drawcalls
+// This means drawcalls get batched by shader
+drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
+// We store a list of the nextfree index for each buffer, so we can append new calls to the correct place
+// This gets zeroed on each frame
+int			next_call_index[kCallBufferCount];
+
+struct renderPass_s {
+	GLuint		alphaBlend;
+	GLuint		colorMask;
+	GLuint		depthMask;
+	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
+	int			next_call_index[ kCallBufferCount ];
+};
+
 // Rendering API declaration
 bool	render_initialised = false;
 bool	render_bloom_enabled = true;
@@ -75,7 +92,7 @@ bool	render_bloom_enabled = true;
 		GLint maxVaryingParams;
 	} GraphicsSystem;
 
-	GraphicsSystem graphicsSystem = { 0 };
+	GraphicsSystem graphicsSystem = { 0, 0 };
 
 // *** RenderPasses
 	renderPass renderPass_main;
@@ -123,22 +140,6 @@ shader** render_shaderByName( const char* name ) {
 	if (s) return s; else return &resources.shader_default;
 }
 
-#define kMaxDrawCalls 2048
-#define kCallBufferCount 24		// Needs to be at least as many as we have shaders
-// Each shader has it's own buffer for drawcalls
-// This means drawcalls get batched by shader
-drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
-// We store a list of the nextfree index for each buffer, so we can append new calls to the correct place
-// This gets zeroed on each frame
-int			next_call_index[kCallBufferCount];
-
-struct renderPass_s {
-	GLuint		alphaBlend;
-	GLuint		colorMask;
-	GLuint		depthMask;
-	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
-	int			next_call_index[ kCallBufferCount ];
-};
 
 GLuint render_colorMask = GL_INVALID_ENUM;
 GLuint render_depthMask = GL_INVALID_ENUM;
@@ -226,7 +227,7 @@ GLuint frameBuffer() {
 }
 
 FrameBuffer* newFrameBuffer( int width, int height ) {
-	FrameBuffer* buffer = mem_alloc(sizeof( FrameBuffer ));
+	FrameBuffer* buffer = (FrameBuffer*)mem_alloc(sizeof( FrameBuffer ));
 	buffer->width = width;
 	buffer->height = height;
 	buffer->frame_buffer = frameBuffer();
@@ -432,7 +433,7 @@ void render_sceneParams( sceneParams* params ) {
 
 int render_findDrawCallBuffer( shader* vshader ) {
 	uintptr_t key = (uintptr_t)vshader;
-	int* found = map_find( callbatch_map, key );
+	int* found = (int*)map_find( callbatch_map, key );
 	int index;
 	if ( !found ) {
 		vAssert( callbatch_count < kCallBufferCount );
@@ -448,7 +449,7 @@ drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, G
 	vAssert( pass );
 	vAssert( vshader );
 
-	drawCall* draw = mem_alloc( sizeof( drawCall ));
+	drawCall* draw = (drawCall*)mem_alloc( sizeof( drawCall ));
 	draw->vitae_shader = vshader;
 	draw->element_buffer = elements;
 	draw->vertex_buffer = verts;
@@ -552,8 +553,8 @@ void render_drawTextureBatch( drawCall* draw ) {
 }
 
 int compareTexture( const void* a_, const void* b_ ) {
-	const drawCall* a = a_;
-	const drawCall* b = b_;
+	const drawCall* a = (drawCall*)a_;
+	const drawCall* b = (drawCall*)b_;
 	return ((int)a->texture) - ((int)b->texture);
 }
 
@@ -570,7 +571,7 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 	render_sceneParams( &sceneParams_main );
 
-	drawCall* sorted = alloca( sizeof(drawCall) * count );
+	drawCall* sorted = (drawCall*)alloca( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
 	bool ui_shader = calls[0].vitae_shader == resources.shader_ui;
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
@@ -657,7 +658,7 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
-		postProcess_VBO = mem_alloc(sizeof(GLuint));
+		postProcess_VBO = (GLuint*)mem_alloc(sizeof(GLuint));
 		*postProcess_VBO = resources.vertex_buffer[0];
 	}
 	if ( !postProcess_EBO ) postProcess_EBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
@@ -698,7 +699,7 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
-		postProcess_VBO = mem_alloc(sizeof(GLuint));
+		postProcess_VBO = (GLuint*)mem_alloc(sizeof(GLuint));
 		*postProcess_VBO = resources.vertex_buffer[0];
 	}
 	if ( !postProcess_EBO ) postProcess_EBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
@@ -827,7 +828,7 @@ void* render_renderThreadFunc( void* args ) {
 	struct android_app* app = args;
 	e = app->userData;
 #else
-	e = args;
+	e = (engine*)args;
 	void* app = NULL;
 #endif
 

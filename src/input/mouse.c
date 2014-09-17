@@ -6,11 +6,11 @@
 
 // *** Mouse Accessors
 bool input_mouseHeld( input* in, int button ) {
-	return in->data[in->active].mouse.buttons & (0x1 << button);
+	return in->data[in->active]._mouse.buttons & (0x1 << button);
 }
 
 bool input_mouseWasHeld( input* in, int button ) {
-	return in->data[in->active].mouse.buttons & (0x1 << button);
+	return in->data[in->active]._mouse.buttons & (0x1 << button);
 }
 
 bool input_mousePressed( input* in, int button ) {
@@ -22,13 +22,13 @@ bool input_mouseReleased( input* in, int button ) {
 }
 
 void input_mousePosition( input* in, int* x, int* y ) {
-	*x = in->data[in->active].mouse.x;
-	*y = in->data[in->active].mouse.y;
+	*x = in->data[in->active]._mouse.x;
+	*y = in->data[in->active]._mouse.y;
 }
 
 void input_mouseMove( input* in, int* x, int* y ) {
-	*x = in->data[in->active].mouse.x - in->data[1 - in->active].mouse.x;
-	*y = in->data[in->active].mouse.y - in->data[1 - in->active].mouse.y;
+	*x = in->data[in->active]._mouse.x - in->data[1 - in->active]._mouse.x;
+	*y = in->data[in->active]._mouse.y - in->data[1 - in->active]._mouse.y;
 }
 
 void input_mouseDrag( input* in, int button, int* x, int* y ) {
@@ -58,11 +58,11 @@ void getMousePos( int* x, int* y ) {
 void input_mouseTick( input* in, float dt ) {
 #ifndef ANDROID
 	// Store current state of mouse
-	in->data[in->active].mouse.buttons = 0x0;
+	in->data[in->active]._mouse.buttons = 0x0;
 	for ( int i = 0; i < 2; i++ )
-		in->data[in->active].mouse.buttons |= ( 0x1 & getMouseButton( i )) << i;
+		in->data[in->active]._mouse.buttons |= ( 0x1 & getMouseButton( i )) << i;
 
-	getMousePos( &in->data[in->active].mouse.x, &in->data[in->active].mouse.y );
+	getMousePos( &in->data[in->active]._mouse.x, &in->data[in->active]._mouse.y );
 #endif // ANDROID
 	(void)in;
 	(void)dt;

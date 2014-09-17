@@ -43,7 +43,7 @@ void skybox_init( ) {
 
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
-	skybox_model->meshes[0]->shader = &resources.shader_skybox;
+	skybox_model->meshes[0]->_shader = &resources.shader_skybox;
 	skybox_model->meshes[0]->cachedDraw = NULL;
 }
 
@@ -111,7 +111,7 @@ uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top, u
 	int w = skybox_width;
 	int h = skybox_height;
 	static const int stride = 4;
-	uint8_t* dst_image = mem_alloc( sizeof( uint8_t ) * w * h * stride );
+	uint8_t* dst_image = (uint8_t*)mem_alloc( sizeof( uint8_t ) * w * h * stride );
 	memset( dst_image, 0, sizeof( uint8_t ) * stride * w * h );
 	skybox_shadeSkybox( w, h, image, dst_image, sky_color_bottom, sky_color_top );
 	return dst_image;

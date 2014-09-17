@@ -74,7 +74,7 @@ void collision_addNewBody( body* b ) {
 void collision_addNewBodies() {
 	vmutex_lock( &collision_mutex ); {
 		while ( ringQueue_count( collision_new_body_queue ) > 0 )
-			collision_addNewBody( ringQueue_pop( collision_new_body_queue ));
+			collision_addNewBody( (body*)ringQueue_pop( collision_new_body_queue ));
 	} vmutex_unlock( &collision_mutex );
 }
 
@@ -92,15 +92,15 @@ void collision_removeBody( body* b ) {
 void collision_removeDeadBody( body* b ) {
 	array_remove( (void**)bodies, &body_count, b );
 	vAssert( b );
-	vAssert( b->shape );
-	shape_delete( b->shape );
+	vAssert( b->_shape );
+	shape_delete( b->_shape );
 	body_delete( b );
 }
 
 void collision_removeDeadBodies( ) {
 	vmutex_lock( &collision_mutex ); {
 		while ( ringQueue_count( collision_dead_body_queue ) > 0 )
-			collision_removeDeadBody( ringQueue_pop( collision_dead_body_queue ));
+			collision_removeDeadBody( (body*)ringQueue_pop( collision_dead_body_queue ));
 	} vmutex_unlock( &collision_mutex );
 }
 
@@ -153,20 +153,20 @@ void heightfield_drawWireframe( heightField* h, matrix trans, vector color ) {
 }
 
 void body_debugdraw( body* b ) {
-	switch ( b->shape->type ) {
+	switch ( b->_shape->type ) {
 		case shapeInvalid:
 			break;
 		case shapeSphere:
 			{
 				const vector* position = transform_getWorldPosition( b->trans );
-				debugdraw_sphere( *position, b->shape->radius, color_green );
+				debugdraw_sphere( *position, b->_shape->radius, color_green );
 			}
 			break;
 		case shapeMesh:
-			collisionMesh_drawWireframe( b->shape->collision_mesh, b->trans->world, color_green );
+			collisionMesh_drawWireframe( b->_shape->collision_mesh, b->trans->world, color_green );
 			break;
 		case shapeHeightField:
-			//heightfield_drawWireframe( b->shape->height_field, b->trans->world, color_green );
+			//heightfield_drawWireframe( b->_shape->height_field, b->trans->world, color_green );
 			break;
 	}
 }
@@ -229,14 +229,14 @@ collisionArgs collision_args;
 
 void* collision_workerTick( void* args ) {
 	//printf( "Worker collision.\n" );
-	collisionArgs* a = args;
+	collisionArgs* a = (collisionArgs*)args;
 	collision_tick( a->frame_counter, a->dt );
 	//mem_free( args );
 	return NULL;
 }
 
 void collision_queueWorkerTick( int frame_counter, float dt ) {
-	//collisionArgs* args = mem_alloc( sizeof( collisionArgs ));
+	//collisionArgs* args = (collisionArgs*)mem_alloc( sizeof( collisionArgs ));
 	collision_args.dt = dt;
 	collision_args.frame_counter = frame_counter;
 	worker_addImmediateTask( task( collision_workerTick, &collision_args ));
@@ -509,7 +509,7 @@ bool body_colliding( body* a, body* b ) {
 	//vAssert( b->trans );
 	bool test_collision =	( a->collide_with & b->layers ) |
 	   						( a->layers & b->collide_with );
-	return test_collision && shape_colliding( a->shape, b->shape, a->trans->world, b->trans->world );
+	return test_collision && shape_colliding( a->_shape, b->_shape, a->trans->world, b->trans->world );
 }
 
 bool body_collided( body* b ) {
@@ -526,7 +526,7 @@ bool body_collidedBody( body* a, body* b ) {
 }
 
 shape* sphere_create( float radius ) {
-	shape* s = mem_alloc( sizeof( shape ));
+	shape* s = (shape*)mem_alloc( sizeof( shape ));
 	s->type = shapeSphere;
 	s->radius = radius;
 	s->origin = Vector( 0.f, 0.f, 0.f, 1.f );
@@ -542,13 +542,13 @@ void vertexBuffer_asPositionsOnly( vector* verts, vertex* src_verts, int vert_co
 */
 
 collisionMesh* collisionMesh_fromRenderMesh( mesh* render_mesh ) {
-	collisionMesh* m = mem_alloc( sizeof( collisionMesh ));
+	collisionMesh* m = (collisionMesh*)mem_alloc( sizeof( collisionMesh ));
 	m->vert_count = render_mesh->vert_count;
 	m->index_count = render_mesh->index_count;
 
 	// Allocate our buffers
-	m->verts = mem_alloc( sizeof( vector ) * m->vert_count );
-	m->indices = mem_alloc( sizeof( m->indices[0] ) * m->index_count );
+	m->verts = (vector*)mem_alloc( sizeof( vector ) * m->vert_count );
+	m->indices = (uint16_t*)mem_alloc( sizeof( m->indices[0] ) * m->index_count );
 	
 	// Now fill them
 	memcpy( m->indices, render_mesh->indices, sizeof( m->indices[0] ) * m->index_count );
@@ -558,7 +558,7 @@ collisionMesh* collisionMesh_fromRenderMesh( mesh* render_mesh ) {
 
 
 shape* mesh_createFromRenderMesh( mesh* render_mesh ) {
-	shape* s = mem_alloc( sizeof( shape ));
+	shape* s = (shape*)mem_alloc( sizeof( shape ));
 	s->type = shapeMesh;
 	s->collision_mesh = collisionMesh_fromRenderMesh( render_mesh );
 	return s;
@@ -774,21 +774,21 @@ bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, 
 }
 
 shape* shape_heightField_create( heightField* h ) {
-	shape* s = mem_alloc( sizeof( shape ));
+	shape* s = (shape*)mem_alloc( sizeof( shape ));
 	s->type = shapeHeightField;
 	s->height_field = h;
 	return s;
 }
 
 heightField* heightField_create( float width, float length, int x_samples, int z_samples) {
-	heightField* h = mem_alloc( sizeof( heightField ));
+	heightField* h = (heightField*)mem_alloc( sizeof( heightField ));
 	memset( h, 0, sizeof( heightField ));
 	h->width = width;
 	h->length = length;
 	h->x_samples = x_samples;
 	h->z_samples = z_samples;
 	h->vert_count = x_samples * z_samples;
-	h->verts =  mem_alloc( sizeof( h->verts[0] ) * h->vert_count );
+	h->verts = (vector*)mem_alloc( sizeof( h->verts[0] ) * h->vert_count );
 	return h;
 }
 
@@ -853,9 +853,9 @@ void test_heightField() {
 
 // TODO - make a body pool to save on mem_alloc
 body* body_create( shape* s, transform* t ) {
-	body* b = mem_alloc( sizeof( body ));
+	body* b = (body*)mem_alloc( sizeof( body ));
 	memset( b, 0, sizeof( body ));
-	b->shape = s;
+	b->_shape = s;
 	b->trans = t;
 	b->disabled = false;
 	return b;

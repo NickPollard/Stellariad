@@ -53,7 +53,7 @@ future* gridFuture( cacheGrid* g, int u, int v ) {
 }
 
 cacheGrid* cacheGrid_create( int u, int v ) {
-	cacheGrid* g = mem_alloc( sizeof( cacheGrid ));
+	cacheGrid* g = (cacheGrid*)mem_alloc( sizeof( cacheGrid ));
 	memset( g->blocks, 0, sizeof( cacheBlock* ) * GridSize * GridSize );
 	memset( g->futures, 0, sizeof( future* ) * GridSize * GridSize );
 	memset( g->neededLods, 0, sizeof( int ) * GridSize * GridSize );

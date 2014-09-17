@@ -30,7 +30,7 @@ void ribbon_initPool() {
 }
 
 ribbonEmitterDef* ribbonEmitterDef_create() {
-	ribbonEmitterDef* r = mem_alloc( sizeof( ribbonEmitterDef ));
+	ribbonEmitterDef* r = (ribbonEmitterDef*)mem_alloc( sizeof( ribbonEmitterDef ));
 	memset( r, 0, sizeof( ribbonEmitterDef ));
 	r->billboard = true;
 	r->radius = 0.5f;
@@ -73,7 +73,7 @@ void ribbonEmitter_tickTimes( ribbonEmitter* r, float dt ) {
 }
 
 void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
-	ribbonEmitter* r = emitter;
+	ribbonEmitter* r = (ribbonEmitter*)emitter;
 	if ( !eng->paused ) {
 		// Emit a new ribbon vertex pair
 		int vertex_last = ( r->pair_first + r->pair_count ) % kMaxRibbonPairs;
@@ -104,7 +104,7 @@ void ribbonEmitter_tick( void* emitter, float dt, engine* eng ) {
 
 void ribbonEmitter_staticInit() {
 	ribbon_initPool();
-	ribbon_element_buffer = mem_alloc( sizeof( GLushort ) * ( kMaxRibbonPairs - 1 ) * 6 );
+	ribbon_element_buffer = (GLushort*)mem_alloc( sizeof( GLushort ) * ( kMaxRibbonPairs - 1 ) * 6 );
 	for ( int i = 1; i < kMaxRibbonPairs; ++i ) {
 		ribbon_element_buffer[i*6-6] = i * 2 - 2;
 		ribbon_element_buffer[i*6-5] = i * 2 - 1;
@@ -119,15 +119,15 @@ void ribbonEmitter_staticInit() {
 
 void ribbonEmitter_render( void* emitter, scene* s ) {
 	(void)s;
-	ribbonEmitter* r = emitter;
+	ribbonEmitter* r = (ribbonEmitter*)emitter;
 	
 	// Build render arrays
 	int render_pair_count = 0;
 
 	for ( int i = 0; i < r->pair_count; ++i ) {
 		for ( ; i < r->pair_count && r->vertex_ages[(i+r->pair_first) % kMaxRibbonPairs] >= r->definition->lifetime; ++i ) { }
-		const int this = ( i + r->pair_first ) % kMaxRibbonPairs;
-		if ( r->vertex_ages[this] < r->definition->lifetime ) ++render_pair_count; else break;
+		const int ths = ( i + r->pair_first ) % kMaxRibbonPairs;
+		if ( r->vertex_ages[ths] < r->definition->lifetime ) ++render_pair_count; else break;
 	}
 
 	const vector* camera = matrix_getTranslation( camera_mtx );
@@ -137,29 +137,29 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 	float v_delta = 1.f / (float)( render_pair_count - 1 );
 	for ( int i = 0; i < r->pair_count; ++i ) {
 		for ( ; i < r->pair_count && r->vertex_ages[(i+r->pair_first) % kMaxRibbonPairs] >= r->definition->lifetime; ++i ) { }
-		int this = ( i + r->pair_first ) % kMaxRibbonPairs;
+		int ths = ( i + r->pair_first ) % kMaxRibbonPairs;
 		const int left = j * 2;
 		const int right = left + 1;
 
-		if ( r->vertex_ages[this] < r->definition->lifetime ) {
-			r->vertex_buffer[left].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
+		if ( r->vertex_ages[ths] < r->definition->lifetime ) {
+			r->vertex_buffer[left].uv.coord.y = ( r->definition->static_texture ? r->tex_v[ths] : v );
 			r->vertex_buffer[left].color = property_samplev( r->definition->color, v );
 			r->vertex_buffer[right].uv.coord.y = r->vertex_buffer[left].uv.coord.y;
 			r->vertex_buffer[right].color = r->vertex_buffer[j*2+0].color;
 
 			if ( !r->definition->billboard ) {
-				r->vertex_buffer[left].position = r->vertex_array[this][0];
-				r->vertex_buffer[right].position = r->vertex_array[this][1];
+				r->vertex_buffer[left].position = r->vertex_array[ths][0];
+				r->vertex_buffer[right].position = r->vertex_array[ths][1];
 			} else {
 				vector last_pos, current_pos;
 				if ( i > 0 ) {
-					int last = ( this + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
+					int last = ( ths + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
 					last_pos = r->vertex_array[last][0];
-					current_pos = r->vertex_array[this][0];
+					current_pos = r->vertex_array[ths][0];
 				}
 				else {
-					int next = ( this + 1 ) % kMaxRibbonPairs;
-					last_pos = r->vertex_array[this][0];
+					int next = ( ths + 1 ) % kMaxRibbonPairs;
+					last_pos = r->vertex_array[ths][0];
 					current_pos = r->vertex_array[next][0];
 				}
 
@@ -172,8 +172,8 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 				const vector normal = vector_cross( view_dir, ribbon_dir );
 				float normalization = 1.f / vector_length( &normal );
 				const vector offset = vector_scaled( normal, normalization * r->definition->radius );
-				r->vertex_buffer[j*2+0].position = vector_sub( r->vertex_array[this][0], offset );
-				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], offset );
+				r->vertex_buffer[j*2+0].position = vector_sub( r->vertex_array[ths][0], offset );
+				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[ths][1], offset );
 			}
 
 			v += v_delta;
@@ -202,22 +202,22 @@ void ribbonEmitterDef_setColor( ribbonEmitterDef* r, property* color ) {
 ribbonEmitterDef* ribbon_loadAsset( const char* filename ) {
 	int key = mhash( filename );
 	// try to find it if it's already loaded
-	void** result = map_find( ribbonEmitterAssets, key );
+	void** result = (void**)map_find( ribbonEmitterAssets, key );
 	if ( result ) {
 		ribbonEmitterDef* def = *((ribbonEmitterDef**)result);
-		// If the file has changed, we want to update this (live-reloading)
+		// If the file has changed, we want to update ths (live-reloading)
 		if ( vfile_modifiedSinceLast( filename )) {
 			// Load the new file
 			// Save over the old
-			ribbonEmitterDef* new = sexpr_loadFile( filename );
+			ribbonEmitterDef* neo = (ribbonEmitterDef*)sexpr_loadFile( filename );
 			ribbonEmitterDef_deInit( def );
-			*def = *new;
+			*def = *neo;
 		}
 		return def;
 	}
 	
 	// otherwise load it and add it
-	ribbonEmitterDef* def = sexpr_loadFile( filename );
+	ribbonEmitterDef* def = (ribbonEmitterDef*)sexpr_loadFile( filename );
 	map_add( ribbonEmitterAssets, key, &def );
 	return def;
 }

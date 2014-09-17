@@ -10,7 +10,7 @@
 
 // Flycam constructor
 flycam* flycam_create() {
-	flycam* f = mem_alloc( sizeof( flycam ));
+	flycam* f = (flycam*)mem_alloc( sizeof( flycam ));
 
 	f->pan_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
 	f->track_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
@@ -27,7 +27,7 @@ flycam* flycam_create() {
 void flycam_process( flycam* cam, flycamInput* in );
 
 void flycam_input( void* data, input* in  ) {
-	flycam* cam = data;
+	flycam* cam = (flycam*)data;
 	flycamInput fly_in;
 	fly_in.pan = Vector( 0.f, 0.f, 0.f, 0.f );
 	fly_in.track = Vector( 0.f, 0.f, 0.f, 0.f );
@@ -94,6 +94,6 @@ void flycam_setTarget( flycam* f, camera* c ) {
 void flycam_tick( void* data, float dt, engine* eng ) {
 	(void)eng;
 	(void)dt;
-	flycam* f = data;
+	flycam* f = (flycam*)data;
 	transform_setWorldSpace( f->camera_target.trans, f->transform );
 }

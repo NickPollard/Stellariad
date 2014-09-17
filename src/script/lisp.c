@@ -176,7 +176,7 @@ term* term_create( enum termType type, void* value ) {
 
 	mem_popStack();
 	t->type = type;
-	t->head = value;
+	t->head = (term*)value;
 	if (( type == typeList ) && value ) {
 		term_takeRef( (term*)value );
 	}
@@ -342,7 +342,7 @@ term* lisp_parse( inputStream* stream ) {
 		return term_create( typeString, (char*)string );
 		}
 	if ( token_isFloat( token )) {
-		float* f = value_create( sizeof( float ));
+		float* f = (float*)value_create( sizeof( float ));
 		*f = strtof( token, NULL );
 		inputStream_freeToken( stream, token );
 		return term_create( typeFloat, f );
@@ -376,7 +376,7 @@ term* lisp_parse_exprList( inputStream* stream ) {
 term* lisp_parse_file( const char* filename ) {
 	//printf( "FILE: Loading File \"%s\" for parsing.\n", filename );
 	size_t length = 0;
-	char* contents = vfile_contents( filename, &length );
+	char* contents = (char*)vfile_contents( filename, &length );
 	vAssert( (contents) );
 	vAssert( (length != 0) );
 	
@@ -581,7 +581,7 @@ term* eval( term* expr, void* _context ) {
 	term* result = NULL;
 	// Eval arguments, then pass arguments to the binding of the first element and run
 	if ( isType( expr, typeAtom )) {
-		term* value = context_lookup( _context, mhash( expr->string ));
+		term* value = (term*)context_lookup( (context*)_context, mhash( expr->string ));
 		if ( !value )
 		{
 			printf( "## ERROR ## LISP: Cannot find binding for atom \"%s\"\n", expr->string );
@@ -609,7 +609,7 @@ term* eval( term* expr, void* _context ) {
 				term_debugPrint( expr );
 				printf( "\n" );
 				*/
-			result = exec( _context, h, tail( expr ));
+			result = (term*)exec( (context*)_context, h, tail( expr ));
 		}
 		// If it's a macro (the head evals to a list whos first element is typeMacro), then peel of the typeMacro
 		// term and just use the rest as the func to eval, but dont eval the args first
@@ -619,7 +619,7 @@ term* eval( term* expr, void* _context ) {
 			term_debugPrint( expr );
 			printf( "\n" );
 			*/
-			result = exec( _context, tail( h ), tail( expr ));
+			result = (term*)exec( (context*)_context, tail( h ), tail( expr ));
 		}
 		else {
 //#ifdef DEBUG_LISP_VERBOSE
@@ -632,7 +632,7 @@ term* eval( term* expr, void* _context ) {
 			}
 //#endif // DEBUG_LISP_VERBOSE
 
-			result = exec( _context, h, tail( expr ));
+			result = (term*)exec( (context*)_context, h, tail( expr ));
 		}
 	}
 	term_deref( expr );
@@ -644,7 +644,7 @@ term* eval( term* expr, void* _context ) {
 	}
 
 context* context_create( context* parent ) {
-	context* c = passthrough_allocate( context_heap, sizeof( context ), NULL );
+	context* c = (context*)passthrough_allocate( context_heap, sizeof( context ), NULL );
 	//int max = 128, stride = sizeof( term* );
 	//c->lookup = map_create( max, stride );
 	c->lookup = NULL;
@@ -717,7 +717,7 @@ void zip1( term* a_list, term* b_list, zip1_func func, void* arg ) {
 	}
 
 void define_arg( term* symbol, term* value, void* _context ) {
-	context* c = _context;
+	context* c = (context*)_context;
 	context_add( c, symbol->string, value );
 #ifdef DEBUG_LISP_VERBOSE
 	printf( "Defining arg \"%s\":\n", symbol->string );
@@ -756,7 +756,7 @@ term* term_deepCopy( term* expr ) {
 
 void arg_replace( term* expr, context* args ) {
 	if ( isType( expr, typeAtom )) {
-		term* lookup = context_lookup( args, mhash( expr->string ));
+		term* lookup = (term*)context_lookup( args, mhash( expr->string ));
 		if ( lookup ) {
 #ifdef DEBUG_LISP_VERBOSE
 			printf( "Replacing argument \"%s\": ", expr->string );
@@ -864,7 +864,7 @@ void* exec( context* c, term* func, term* args ) {
 	}
 
 	if ( isType( func, typeIntrinsic )) {
-		lisp_func f = func->data;
+		lisp_func f = (lisp_func)func->data;
 		ret = f( c, args );
 		term_validate( ret );
 	}
@@ -889,7 +889,7 @@ void lisp_defineFunction( context* c, const char* name, term* func ) {
 }
 
 void define_cfunction( context* c, const char* name, lisp_func implementation ) {
-	term* func = term_create( typeIntrinsic, implementation );
+	term* func = term_create( typeIntrinsic, (void*)implementation );
 	context_add( c, name, func );
 	}
 
@@ -897,7 +897,7 @@ void define_cfunction( context* c, const char* name, lisp_func implementation ) 
 #define ATTR_FUNCTION_VECTOR( OBJECT, PARAM ) \
 void attr_##OBJECT##_##PARAM ( term* object_term, term* attr ) { \
 	lisp_assert( isType( attr, typeVector )); \
-	OBJECT* o = object_term->data; \
+	OBJECT* o = (OBJECT*)object_term->data; \
 	lisp_assert( o ); \
 	o->PARAM = *(vector*)( attr->data ); \
 }
@@ -940,7 +940,7 @@ term* lisp_func_add( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
+	float* result = (float*)heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a + b;
 	term* ret = term_create( typeFloat, result );
@@ -958,7 +958,7 @@ term* lisp_func_sub( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
+	float* result = (float*)heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a - b;
 	term* ret = term_create( typeFloat, result );
@@ -976,7 +976,7 @@ term* lisp_func_mul( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
+	float* result = (float*)heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a * b;
 	term* ret = term_create( typeFloat, result );
@@ -994,7 +994,7 @@ term* lisp_func_div( context* c, term* raw_args ) {
 	float a = *(float*)head( args )->head;
 	float b = *(float*)head( tail( args ))->head;
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
+	float* result = (float*)heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = a / b;
 	term* ret = term_create( typeFloat, result );
@@ -1026,7 +1026,7 @@ term* lisp_func_length( context* c, term* raw_args ) {
 	int len = list_length( head( args ));
 
 	mem_pushStack( kLispValueAllocString );
-	float* result = heap_allocate( lisp_heap, sizeof( float ), NULL );
+	float* result = (float*)heap_allocate( lisp_heap, sizeof( float ), NULL );
 	mem_popStack( );
 	*result = (float)len;
 
@@ -1051,7 +1051,7 @@ term* lisp_func_vector( context* c, term* raw_args ) {
 	term* args = fmap_1( eval, c, raw_args );
 	term_takeRef( args );
 	
-	vector* v = value_create( sizeof( vector ));
+	vector* v = (vector*)value_create( sizeof( vector ));
 	*v = Vector( 0.0f, 0.0f, 0.0f, 0.0f );
 	float* floats = (float*)&(*v);
 	int i = 0;
@@ -1078,7 +1078,7 @@ term* lisp_func_color( context* c, term* raw_args ) {
 	assert( isType( args, typeList ) && list_length( args ) == 1 );
 	assert( isType( head( args ), typeVector ) || isType( head( args ), typeList ) || isType( head( args ), typeString ) );
 	term* color = term_create( typeVector, NULL );
-	color->head = value_create( sizeof( vector ));
+	color->head = (term*)value_create( sizeof( vector ));
 	vector v;
 	*(vector*)color->head = v;
 
@@ -1150,7 +1150,7 @@ term* lisp_func_##CLASS##_##ATTR( context* c, term* raw_args ) { \
 	term* value = head( args ); \
 	term* object = head( tail( args )); \
 	lisp_assert( isType( value, typeFloat )); \
-	CLASS* ob = object->data; \
+	CLASS* ob = (CLASS*)object->data; \
 	ob->ATTR = *value->number; \
 	term_deref( args ); \
 	return object; \
@@ -1221,7 +1221,7 @@ term* lisp_func_quote( context* c, term* raw_args ) {
 
 term* lisp_func_always_quote( context* c, term* raw_args ) {
 	(void)c;
-	return cons( term_create( typeAtom, "always_quote" ), raw_args );
+	return cons( term_create( typeAtom, (void*)"always_quote" ), raw_args );
 	}
 
 term* list_copy( term* list ) {
@@ -1331,18 +1331,18 @@ void model_addSubElement( term* element_term, void* model_arg ) {
 	// it has two children - the transform, and a list of children
 	lisp_assert( isType( element_term, typeList ));
 	term* trans = second( element_term );
-	transform* t = trans->data;
-	model* m = model_arg;
+	transform* t = (transform*)trans->data;
+	model* m = (model*)model_arg;
 	model_addTransform( m, t );
 	// Add all the transform's children (Assume particles for now)
 	term* children = third( element_term );
 	if ( children ) {
 		lisp_assert( isType( children, typeList ));
 		while ( children ) {
-			particleEmitter* p = head( children )->data;
+			particleEmitter* p = (particleEmitter*)head( children )->data;
 			model_addParticleEmitter( m, p );
 			// Fix up particle trans into an index that can be unpacked later
-			p->trans = (void*)(uintptr_t)model_transformIndex( m, p->trans );
+			p->trans = (transform*)(uintptr_t)model_transformIndex( m, p->trans );
 			children = tail( children );
 		}
 	}
@@ -1363,7 +1363,7 @@ term* lisp_func_model( context* c, term* raw_args ) {
 	assert( isType( args, typeList ));
 	assert( isType( head( args ), typeObject )); // Looking for a mesh
 	model* m = model_createModel( 1 ); // default to one mesh
-	m->meshes[0] = head( args )->data;
+	m->meshes[0] = (mesh*)head( args )->data;
 
 	// Process other model elements, e.g. transforms and particles
 	term* sub_element = tail( args );
@@ -1374,7 +1374,7 @@ term* lisp_func_model( context* c, term* raw_args ) {
 
 	term* ret = term_create( typeObject, m );
 
-	m->obb = obb_calculate( m->meshes[0]->vert_count, m->meshes[0]->verts );
+	m->_obb = obb_calculate( m->meshes[0]->vert_count, m->meshes[0]->verts );
 	//term_deref( args );	
 	return ret;
 }
@@ -1477,7 +1477,7 @@ term* lisp_func_transform( context* c, term* raw_args ) {
 	transform* t = transform_create();
 	term* term_transform = term_create( typeObject, t );
 	term* pair = cons( term_transform, NULL );
-	term* quote = cons( term_create( typeAtom, "always_quote" ), pair );
+	term* quote = cons( term_create( typeAtom, (void*)"always_quote" ), pair );
 	return quote;
 }
 
@@ -1495,7 +1495,7 @@ term* lisp_func_add_transform_to_model( context* c, term* raw_args ) {
 	term_takeRef( args );
 	term* model_term = first( args );
 	term* transform_term = second( args );
-	model_addTransform( model_term->data, transform_term->data );
+	model_addTransform( (model*)model_term->data, (transform*)transform_term->data );
 	term_deref( args );
 	return model_term;
 }
@@ -1519,11 +1519,11 @@ void lisp_assertArgs_1( term* t, enum termType type ) {
 }
 
 attributeSetter attributeFunction( const char* name ) {
-	void** func_ptr = map_find( attrFuncMap, mhash(name));
+	void** func_ptr = (void**)map_find( attrFuncMap, mhash(name));
 	if ( !func_ptr )
 		//printf( "ERROR: Cannot find lisp Attribute Function \"%s\"\n", name );
 	vAssert( func_ptr );
-	return *func_ptr;
+	return (attributeSetter)*func_ptr;
 }
 
 // (attribute name value)
@@ -1534,13 +1534,13 @@ term* lisp_func_attribute( context* c, term* raw_args ) {
 	lisp_assert( isType( raw_args, typeList ));
 	lisp_assert( list_length( raw_args ) ==  3 );
 	term* args = fmap_1( eval, c, raw_args );
-	term* value = head( tail( args ));
+	term* value = (term*)head( tail( args ));
 	term_validate( value );
 	term_takeRef( args );
 
 	const char* attribute_name = head( args )->string;
 	lisp_assert( isType( tail( args ), typeList ));
-	term* ob = head( tail( tail( args )));
+	term* ob = (term*)head( tail( tail( args )));
 
 	attributeSetter attr = attributeFunction( /* object, */ attribute_name );
 	attr( ob, value );
@@ -1553,7 +1553,7 @@ term* lisp_func_attribute( context* c, term* raw_args ) {
 // Turn a flag atom into a bitmask number
 term* parseFlag( term* flag_atom, void* unused /* to fit fmap_func signature */ ) {
 	(void)unused;
-	int* flag = mem_alloc( sizeof( int ));
+	int* flag = (int*)mem_alloc( sizeof( int ));
 	*flag = 0x0;
 	// TODO this should be some kind of lookup
 	if (string_equal( flag_atom->string, "particle_burst" )) {
@@ -1572,7 +1572,7 @@ term* parseFlag( term* flag_atom, void* unused /* to fit fmap_func signature */ 
 term* lisp_bitwiseOr( term* a, term* b ) {
 	lisp_assert( isType( a, typeInt ));
 	lisp_assert( isType( b, typeInt ));
-	int* or_result = mem_alloc( sizeof( int ));
+	int* or_result = (int*)mem_alloc( sizeof( int ));
 	*or_result = *a->integer | *b->integer;
 	term* result = term_create( typeInt, or_result );
 	return result;
@@ -1590,10 +1590,10 @@ term* foldl( fold_func f, term* initial, term* list ) {
 }
 
 void attr_particle_flags( term* definition_term, term* flags_attr ) {
-	particleEmitterDef* def = definition_term->data;
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
 	lisp_assert( def );
 
-	int* zero = mem_alloc( sizeof( int ));
+	int* zero = (int*)mem_alloc( sizeof( int ));
 	*zero = 0;
 	term* lisp_zero = term_create( typeInt, zero );
 	term* flags_term = foldl( lisp_bitwiseOr, lisp_zero, fmap_1( parseFlag, NULL, flags_attr ));
@@ -1603,7 +1603,7 @@ void attr_particle_flags( term* definition_term, term* flags_attr ) {
 }
 
 void attr_particle_texture( term* definition_term, term* texture_attr ) {
-	particleEmitterDef* def = definition_term->data;
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
 	lisp_assert( def );
 	lisp_assert( isType( texture_attr, typeString ));
 	def->texture_diffuse = texture_load( texture_attr->string );
@@ -1611,23 +1611,23 @@ void attr_particle_texture( term* definition_term, term* texture_attr ) {
 
 void attr_particle_setSpawnRate( term* definition_term, term* spawn_rate_attr ) {
 	// TODO - we need to copy and preserve this correctly
-	particleEmitterDef* def = definition_term->data;
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
 	lisp_assert( def );
-	property* spawn_rate = property_copy( spawn_rate_attr->data );
+	property* spawn_rate = property_copy( (property*)spawn_rate_attr->data );
 	def->spawn_rate = spawn_rate;
 }
 
 void attr_particle_setLifetime( term* definition_term, term* lifetime ) {
 	// TODO - we need to copy and preserve this correctly
-	particleEmitterDef* def = definition_term->data;
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
 	lisp_assert( def );
 	def->lifetime = *(lifetime->number);
 }
 
 void attr_particle_setColor( term* definition_term, term* color_attr ) {
 	// TODO - we need to copy and preserve this correctly
-	particleEmitterDef* def = definition_term->data;
-	property* color = property_copy( color_attr->data );
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
+	property* color = property_copy( (property*)color_attr->data );
 	lisp_assert( def );
 	def->color = color;
 }
@@ -1635,43 +1635,43 @@ void attr_particle_setColor( term* definition_term, term* color_attr ) {
 void attr_particle_setSize( term* definition_term, term* size_attr ) {
 	lisp_assert( isType( size_attr, typeObject ));
 	// TODO - we need to copy and preserve this correctly
-	property* size = property_copy( size_attr->data );
-	particleEmitterDef* def = definition_term->data;
+	property* size = property_copy( (property*)size_attr->data );
+	particleEmitterDef* def = (particleEmitterDef*)definition_term->data;
 	lisp_assert( def );
 	def->size = size;
 }
 
 void attr_mesh_diffuseTexture( term* mesh_term, term* texture_attr ) {
 	lisp_assert( isType( texture_attr, typeString ));
-	mesh* m = mesh_term->data;
+	mesh* m = (mesh*)mesh_term->data;
 	lisp_assert( m );
 	m->texture_diffuse = texture_load( texture_attr->string );
 }
 
 void attr_zone_cliffColor( term* zone_term, term* cliff_color_attr ) {
 	lisp_assert( isType( cliff_color_attr, typeVector ));
-	canyonZone* zone = zone_term->data;
+	canyonZone* zone = (canyonZone*)zone_term->data;
 	lisp_assert( zone );
 	zone->cliff_color = *(vector*)( cliff_color_attr->data );
 }
 
 void attr_zone_terrainColor( term* zone_term, term* terrain_color_attr ) {
 	lisp_assert( isType( terrain_color_attr, typeVector ));
-	canyonZone* zone = zone_term->data;
+	canyonZone* zone = (canyonZone*)zone_term->data;
 	lisp_assert( zone );
 	zone->terrain_color = *(vector*)( terrain_color_attr->data );
 }
 
 void attr_canyonZone_ground_texture( term* zone_term, term* tex_filename ) {
 	lisp_assert( isType( tex_filename, typeString ));
-	canyonZone* zone = zone_term->data;
+	canyonZone* zone = (canyonZone*)zone_term->data;
 	lisp_assert( zone );
 	zone->texture_ground = texture_load( tex_filename->string );
 }
 
 void attr_canyonZone_cliff_texture( term* zone_term, term* tex_filename ) {
 	lisp_assert( isType( tex_filename, typeString ));
-	canyonZone* zone = zone_term->data;
+	canyonZone* zone = (canyonZone*)zone_term->data;
 	lisp_assert( zone );
 	zone->texture_cliff = texture_load( tex_filename->string );
 }
@@ -1681,9 +1681,9 @@ void attr_transform_translation( term* trans_term, term* translation_attr ) {
 	//printf( "Attr_transform_translation - trans_term 0x" xPTRf "\n", (uintptr_t)trans_term );
 	lisp_assert( isType( translation_attr, typeVector ));
 	lisp_assert( isType( trans_term, typeList ));
-	transform* t = head( tail( trans_term ))->data;
+	transform* t = (transform*)head( tail( trans_term ))->data;
 	lisp_assert( t );
-	transform_setLocalTranslation( t, translation_attr->data );
+	transform_setLocalTranslation( t, (vector*)translation_attr->data );
 }
 
 void attr_transform_particle( term* trans_term, term* particle_attr ) {
@@ -1693,9 +1693,9 @@ void attr_transform_particle( term* trans_term, term* particle_attr ) {
 
 	lisp_assert( isType( particle_attr, typeObject ));
 	lisp_assert( isType( trans_term, typeList ));
-	transform* t = head( tail( trans_term ))->data;
+	transform* t = (transform*)head( tail( trans_term ))->data;
 	lisp_assert( t );
-	particleEmitter* p = particle_attr->data;
+	particleEmitter* p = (particleEmitter*)particle_attr->data;
 	p->trans = t;
 
 	term* child_list = trans_term->tail->tail;
@@ -1713,7 +1713,7 @@ term* lisp_func_particle_load( context* c, term* raw_args ) {
 	lisp_assert( list_length( args ) == 1 );
 	lisp_assert( isType( head( args ), typeString ));
 	term_takeRef( args );
-	const char* particle_file = head( args )->data;
+	const char* particle_file = (const char*)head( args )->data;
 	particleEmitterDef* def = particle_loadAsset( particle_file );
 	particleEmitter* particle = particle_newEmitter( def );
 	term* particle_term = term_create( typeObject, particle );
@@ -1755,8 +1755,8 @@ term* lisp_func_property_addkey( context* c, term* raw_args ) {
 	term_takeRef( args );
 	lisp_assert( isType( args, typeList ));
 
-	term* tp = head( args );
-	property* p = tp->data;
+	term* tp = (term*)head( args );
+	property* p = (property*)tp->data;
 	// get first key for now
 	term* key = head( tail( args ));
 	lisp_assert( isType( key, typeList ));
@@ -1891,18 +1891,18 @@ void test_lisp() {
 	vAssert( isType( tail( script ), typeList ));
 	vAssert( isType( head( tail( script )), typeAtom ));
 	// Value tests
-	vAssert( string_equal( value( head( script )) , "a" ));
-	vAssert( string_equal( value( head( tail( script ))) , "b" ));
+	vAssert( string_equal( (char*)value( head( script )) , "a" ));
+	vAssert( string_equal( (char*)value( head( tail( script ))) , "b" ));
 
 	term_deref( script );
 	
 	context* c = lisp_newContext();
-	term* hello = term_create( typeString, "Hello World" );
-	term* goodbye = term_create( typeString, "Goodbye World" );
+	term* hello = term_create( typeString, (void*)"Hello World" );
+	term* goodbye = term_create( typeString, (void*)"Goodbye World" );
 	context_add( c, "b", hello );
 	context_add( c, "goodbye", goodbye );
 
-	term* search = context_lookup( c, mhash("b"));
+	term* search = (term*)context_lookup( c, mhash("b"));
 	vAssert( search->head );
 
 	// Test #1 - Variable binding
@@ -1922,8 +1922,8 @@ void test_lisp() {
 	}
 	vAssert( kMaxLispTerms - term_countFree() == 0 );
 	c = lisp_newContext();
-	hello = term_create( typeString, "Hello World" );
-	goodbye = term_create( typeString, "Goodbye World" );
+	hello = term_create( typeString, (void*)"Hello World" );
+	goodbye = term_create( typeString, (void*)"Goodbye World" );
 	context_add( c, "b", hello );
 	context_add( c, "goodbye", goodbye );
 	////////
@@ -1953,8 +1953,8 @@ void test_lisp() {
 	}
 	vAssert( kMaxLispTerms - term_countFree() == 0 );
 	c = lisp_newContext();
-	hello = term_create( typeString, "Hello World" );
-	goodbye = term_create( typeString, "Goodbye World" );
+	hello = term_create( typeString, (void*)"Hello World" );
+	goodbye = term_create( typeString, (void*)"Goodbye World" );
 	context_add( c, "b", hello );
 	context_add( c, "goodbye", goodbye );
 	////////
@@ -2078,18 +2078,18 @@ void test_lisp() {
 
 	term* test = eval( lisp_parse_string( "(new (quote test_struct))" ), c );
 	vAssert( isType( test, typeObject ));
-	test_struct* object = test->data;
+	test_struct* object = (test_struct*)test->data;
 
 	term* test_b = eval( lisp_parse_string( "(object_process (new (quote test_struct)) (quote (test_a 1.0)))" ), c );
-	object = test_b->data;
+	object = (test_struct*)test_b->data;
 
 	term* test_c = eval( lisp_parse_string( "(foldl object_process (new (quote test_struct)) (quote ((test_a 2.0) (test_b 3.0))))" ), c );
-	object = test_c->data;
+	object = (test_struct*)test_c->data;
 	(void)object;
 
 	term* tp = eval( lisp_parse_string( "(property (quote ((0.1 1.1 1.0 1.0) ( 0.2 2.0 1.0 1.0) (3.0 5.0 1.0 1.0)) ))" ), c );
 
-	property* p = tp->data;
+	property* p = (property*)tp->data;
 	(void)p;
 	vAssert( p->stride == 4 );
 

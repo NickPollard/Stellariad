@@ -5,7 +5,7 @@
 #define kNumFogs 4
 
 struct dynamicFog_s {
-	scene* scene;
+	scene* _scene;
 	float time;
 	int fog_count;
 	vector fog_colors[kNumFogs];

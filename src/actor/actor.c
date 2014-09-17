@@ -32,7 +32,7 @@ void actorSystem_add( actorSystem* system, ActorRef a ) {
 }
 
 ActorRef spawnActor( actorSystem* system ) {
-	ActorRef a = mem_alloc( sizeof( actor ));
+	ActorRef a = (ActorRef)mem_alloc( sizeof( actor ));
 	a->pending = 0;
 	a->active = false;
 	a->system = system;
@@ -101,7 +101,7 @@ Msg actorNextTask( ActorRef a ) {
 }
 
 actorSystem* actorSystemCreate() {
-	actorSystem* a = mem_alloc( sizeof(actorSystem));
+	actorSystem* a = (actorSystem*)mem_alloc( sizeof(actorSystem));
 	memset( a->actors, 0, sizeof( ActorRef ) * MaxActors );
 	a->last = 0;
 	a->count = 0;
@@ -139,7 +139,7 @@ ActorRef systemNext( actorSystem* system ) {
 //@worker
 void* runSystem( void* system ) {
 	// Find next available actor - has messages and not currently running
-	ActorRef a = systemNext( system );
+	ActorRef a = systemNext( (actorSystem*)system );
 	actorReceive( a );
 	return NULL;
 }

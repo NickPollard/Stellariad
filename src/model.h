@@ -16,7 +16,7 @@
    */
 struct mesh_s {
 	transform*	trans;
-	shader**		shader;
+	shader**		_shader;
 	//
 	int			vert_count;
 	vector*		verts;
@@ -67,7 +67,7 @@ struct model_s {
 	transform*			transforms[kMaxSubTransforms];
 	particleEmitter*	emitters[kMaxSubEmitters];
 	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
-	obb					obb;
+	obb					_obb;
 #ifdef DEBUG
 	const char*		filename;
 #endif

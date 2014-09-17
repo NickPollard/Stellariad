@@ -18,13 +18,13 @@ typedef struct list_s {
 
 #define IMPLEMENT_LIST(type)									\
 	type##list* type##list_create() {							\
-		type##list* list = mem_alloc( sizeof( type##list ));	\
+		type##list* list = (type##list*)mem_alloc( sizeof( type##list ));	\
 		list->head = NULL;										\
 		list->tail = NULL;										\
 		return list;											\
 	}															\
 	type##list* type##list_cons( type* h, type##list* t ) {		\
-		type##list* l = mem_alloc( sizeof( type##list ));		\
+		type##list* l = (type##list*)mem_alloc( sizeof( type##list ));		\
 		l->head = h;											\
 		l->tail = t;											\
 		return l;												\

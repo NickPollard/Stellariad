@@ -36,7 +36,7 @@ void particle_initPool() {
 }
 
 particleEmitterDef* particleEmitterDef_create() {
-	particleEmitterDef* def = mem_alloc( sizeof( particleEmitterDef ));
+	particleEmitterDef* def = (particleEmitterDef*)mem_alloc( sizeof( particleEmitterDef ));
 	memset( def, 0, sizeof( particleEmitterDef ));
 	def->spawn_box = Vector( 0.f, 0.f, 0.f, 0.f );
 	def->velocity = Vector( 0.f, 0.f, 0.f, 0.f );
@@ -139,7 +139,7 @@ void particleEmitter_kill( engine* eng, particleEmitter* e ) {
 }
 
 void particleEmitter_tick( void* data, float dt, engine* eng ) {
-	particleEmitter* e = data;
+	particleEmitter* e = (particleEmitter*)data;
 
 	if ( e->dead || ( e->dying && e->count <= 0 )) {
 		particleEmitter_kill( eng, e );
@@ -176,7 +176,7 @@ void particleEmitter_tick( void* data, float dt, engine* eng ) {
 			// Use some stack space to save on a mem_alloc
 			// We just create a buffer and pass that to property_range()
 			size_t alloc_size = sizeof( property ) + sizeof( float ) * e->definition->spawn_rate->stride * kMaxPropertyValues;
-			property* buffer = alloca( alloc_size );
+			property* buffer = (property*)alloca( alloc_size );
 
 			property* keys = property_range( e->definition->spawn_rate, e->emitter_age, e->emitter_age + dt, buffer );
 			for ( int key = 0; key < keys->count; ++key ) {
@@ -244,7 +244,7 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 // Render a particleEmitter system
 void particleEmitter_render( void* data, scene* s ) {
 	(void)s;
-	particleEmitter* p = data;
+	particleEmitter* p = (particleEmitter*)data;
 
 	if ( p->dead )
 		return;
@@ -290,7 +290,7 @@ property* property_init( property* p, int stride ) {
 
 property* property_create( int stride ) {
 	size_t alloc_size = sizeof( property ) + sizeof( float ) * stride * kMaxPropertyValues;
-	property* p = mem_alloc( alloc_size );
+	property* p = (property*)mem_alloc( alloc_size );
 	property_init( p, stride );
 	return p;
 }
@@ -428,24 +428,24 @@ void particle_init() {
 particleEmitterDef* particle_loadAsset( const char* particle_file ) {
 	int key = mhash( particle_file );
 	// try to find it if it's already loaded
-	void** result = map_find( particleEmitterAssets, key );
+	void** result = (void**)map_find( particleEmitterAssets, key );
 	if ( result ) {
 		particleEmitterDef* def = *((particleEmitterDef**)result);
 		// If the file has changed, we want to update this (live-reloading)
 		if ( vfile_modifiedSinceLast( particle_file )) {
 			// Load the new file
 			term* particle_term = lisp_eval_file( lisp_global_context, particle_file );
-			particleEmitterDef* new = particle_term->data;
+			particleEmitterDef* neo = (particleEmitterDef*)particle_term->data;
 			// Save over the old
 			particleEmitterDef_deInit( def );
-			*def = *new;
+			*def = *neo;
 		}
 		return def;
 	}
 	
 	// otherwise load it and add it
 	term* particle_term = lisp_eval_file( lisp_global_context, particle_file );
-	particleEmitterDef* def = particle_term->data;
+	particleEmitterDef* def = (particleEmitterDef*)particle_term->data;
 	map_add( particleEmitterAssets, key, &def );
 	return def;
 }
@@ -469,7 +469,7 @@ void particleEmitter_delete( particleEmitter* e ) {
 }
 
 void particle_initStaticElementBuffer() {
-	static_particle_element_buffer = mem_alloc( sizeof( GLushort ) * kMaxParticleVerts );
+	static_particle_element_buffer = (GLushort*)mem_alloc( sizeof( GLushort ) * kMaxParticleVerts );
 	for ( int i = 0; ( i*6+5 ) < kMaxParticleVerts; ++i ) {
 		static_particle_element_buffer[i*6+0] = i*4+1;
 		static_particle_element_buffer[i*6+1] = i*4+0;

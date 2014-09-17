@@ -133,8 +133,8 @@ void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, 
 // When given an array of vert positions, use them to build a renderable terrainBlock
 // (This will be sent from the canyon that has already calculated positions)
 void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
-	vector* verts = stackArray( vector, vertCount( b ));
-	vector* normals = stackArray( vector, vertCount( b ));
+	vector* verts = (vector*)stackArray( vector, vertCount( b ));
+	vector* normals = (vector*)stackArray( vector, vertCount( b ));
 
 	generatePoints( b, vertSources, verts );
 	lodVectors( b, verts );
@@ -147,7 +147,7 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 
 void* setBlock( const void* data, void* args ) {
 	(void)data;
-	canyonTerrainBlock* b = args;
+	canyonTerrainBlock* b = (canyonTerrainBlock*)args;
 	terrain_setBlock( b->terrain, b->u, b->v, b );
 	return NULL;
 }
@@ -163,8 +163,8 @@ void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
 }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
-	vertPositions* verts = _1(args);
-	canyonTerrainBlock_generate( verts, _2(args) );
+	vertPositions* verts = (vertPositions*)_1(args);
+	canyonTerrainBlock_generate( verts, (canyonTerrainBlock*)_2(args) );
 	vertPositions_delete( verts );
 	mem_free( args );
 	return NULL;

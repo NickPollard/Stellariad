@@ -69,8 +69,6 @@ enum key {
 	kMaxKeyCodes
 };
 
-int key_codes[kMaxKeyCodes];
-
 #define KEY_COUNT 512
 #define INPUT_KEYDATA_SIZE KEY_COUNT / sizeof ( char )
 
@@ -81,10 +79,6 @@ typedef int keybind;
 typedef struct key_array_s {
 	char keys[INPUT_KEYDATA_SIZE];
 } key_array;
-
-#ifdef LINUX_X
-key_array x_key_array;
-#endif
 
 // *** Keybinds
 int input_registerKeybind( );

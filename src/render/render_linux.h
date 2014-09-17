@@ -8,4 +8,4 @@
 #define kGlApi EGL_OPENGL_API
 
 // Create an OS-native window (in this case, Linux Xwindows)
-EGLNativeWindowType os_createWindow();
+EGLNativeWindowType os_createWindow( window* w, const char* title );

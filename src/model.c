@@ -46,20 +46,20 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 						aligned_size( sizeof( vector )		* normal_count,	4 ) ;	// Normals
 	
 	void* data = mem_alloc( data_size );
-	mesh* m = data;
+	mesh* m = (mesh*)data;
 
-	data = advance_align( data + sizeof( mesh ), 4 );
-	m->verts = data;
-	data = advance_align( data + sizeof( m->verts[0] ) * vertCount, 4 );			// Verts
-	m->indices = data;
-	data = advance_align( data + sizeof( m->indices[0] ) * index_count, 4 );	// Indices
-	m->normals = data;
-	data = advance_align( data + sizeof( m->normals[0] ) * normal_count, 4 );	// Normals	
-	m->normal_indices = data;
-	data = advance_align( data + sizeof( m->normal_indices[0] ) * index_count, 4 );	// Normal Indices
-	m->uvs = data;
-	data = advance_align( data + sizeof( m->uvs[0] ) * uv_count, 4 );		// UVs
-	m->uv_indices = data;
+	data = advance_align( (uint8_t*)data + sizeof( mesh ), 4 );
+	m->verts = (vector*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->verts[0] ) * vertCount, 4 );			// Verts
+	m->indices = (uint16_t*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->indices[0] ) * index_count, 4 );	// Indices
+	m->normals = (vector*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->normals[0] ) * normal_count, 4 );	// Normals	
+	m->normal_indices = (uint16_t*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->normal_indices[0] ) * index_count, 4 );	// Normal Indices
+	m->uvs = (vector*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->uvs[0] ) * uv_count, 4 );		// UVs
+	m->uv_indices = (uint16_t*)data;
 
 	m->vert_count = vertCount;
 	m->index_count = index_count;
@@ -71,8 +71,8 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 
 	m->texture_diffuse = static_texture_default;
 	m->texture_normal = texture_load( "dat/img/terrain/cliff_normal.tga" ); // TODO - from model file
-	m->shader = &resources.shader_default;
-	vAssert( m->shader );
+	m->_shader = &resources.shader_default;
+	vAssert( m->_shader );
 
 	m->vertex_VBO = 0;
 	m->element_VBO = 0;
@@ -105,7 +105,7 @@ model* model_createTestCube( ) {
 
 // Create an empty model with meshCount submeshes
 model* model_createModel(int meshCount) {
-	model* m = mem_alloc(	sizeof( model ) +
+	model* m = (model*)mem_alloc(	sizeof( model ) +
 							sizeof( mesh* ) * meshCount );
 	memset( m, 0, sizeof( model ) + sizeof( mesh* ) * meshCount );
 	m->meshCount = meshCount;
@@ -122,8 +122,8 @@ void mesh_buildBuffers( mesh* m ) {
 	vAssert( !m->element_buffer );
 	unsigned int size_vertex	= sizeof( vertex ) * m->index_count;
 	unsigned int size_element	= sizeof( GLushort ) * m->index_count;
-	m->vertex_buffer	= mem_alloc( size_vertex );
-	m->element_buffer	= mem_alloc( size_element );
+	m->vertex_buffer	= (vertex*)mem_alloc( size_vertex );
+	m->element_buffer	= (GLushort*)mem_alloc( size_element );
 
 	bool all_smooth_shaded = false;
 	if ( all_smooth_shaded ) {
@@ -150,8 +150,8 @@ void mesh_buildBuffers( mesh* m ) {
 // Draw the verts of a mesh to the openGL buffer
 void mesh_render( mesh* m ) {
 	if (( *m->vertex_VBO != kInvalidBuffer ) && ( *m->element_VBO != kInvalidBuffer )) {
-		if (!m->cachedDraw || m->cachedDraw->vitae_shader != *m->shader) {
-			drawCall* draw = drawCall_createCached( &renderPass_main, *m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		if (!m->cachedDraw || m->cachedDraw->vitae_shader != *m->_shader) {
+			drawCall* draw = drawCall_createCached( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 			draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 			draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 			draw->vertex_VBO = *m->vertex_VBO;
@@ -162,7 +162,7 @@ void mesh_render( mesh* m ) {
 			drawDepth->element_VBO = *m->element_VBO;
 			m->cachedDepthDraw = drawDepth;
 		}
-		drawCall_callCached( &renderPass_main, *m->shader, m->cachedDraw, modelview );
+		drawCall_callCached( &renderPass_main, *m->_shader, m->cachedDraw, modelview );
 		drawCall_callCached( &renderPass_depth, resources.shader_depth, m->cachedDepthDraw, modelview );
 	}
 }

@@ -24,12 +24,12 @@ void* hashtable_find( hashtable, key ) {
 */
 
 map* map_create( int max, int stride ) {
-	map* m = mem_alloc( sizeof( map ));
+	map* m = (map*)mem_alloc( sizeof( map ));
 	m->max = max;
 	m->count = 0;
 	m->stride = stride;
-	m->keys = mem_alloc( sizeof( int ) * max );
-	m->values = mem_alloc( stride * max );
+	m->keys = (int*)mem_alloc( sizeof( int ) * max );
+	m->values =(uint8_t*) mem_alloc( stride * max );
 	memset( m->keys, 0, sizeof( int ) * max );
 	memset( m->values, 0, stride * max );
 	return m;
@@ -78,7 +78,7 @@ void test_map() {
 	int key = mhash( "modelview" );
 	unsigned int value = 0x3;
 	map_add( test_map, key, &value );
-	unsigned int* modelview = map_find( test_map, key );
+	unsigned int* modelview = (unsigned int*)map_find( test_map, key );
 	assert( *modelview = value );
 }
 

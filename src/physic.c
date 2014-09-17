@@ -12,7 +12,7 @@ int active_physic_count;
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
 
 physic* physic_create()  {
-	physic* p = mem_alloc( sizeof( physic ));
+	physic* p = (physic*)mem_alloc( sizeof( physic ));
 	memset( p, 0, sizeof( physic ));
 	p->velocity = Vector( 0.f, 0.f, 0.f, 0.f );
 	p->mass = 0.f;
@@ -30,7 +30,7 @@ void physic_delete( physic* p ) {
 }
 
 void physic_tick( void* data, float dt, engine* eng ) {
-	physic* p = data;
+	physic* p = (physic*)data;
 	
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );

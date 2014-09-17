@@ -101,10 +101,11 @@ void* worker_threadFunc( void* args ) {
 			vthread_waitCondition( work_exists );
 		}
 	}
+	return nullptr;
 }
 
 worker_task onComplete( worker_task first, worker_task andThen ) {
-	first.onComplete = mem_alloc( sizeof( worker_task ));
+	first.onComplete = (worker_task*)mem_alloc( sizeof( worker_task ));
 	memcpy( first.onComplete, &andThen, sizeof( worker_task )); // TODO - memory implications!
 	return first;
 }
@@ -118,7 +119,7 @@ worker_task task( taskFunc func, void* args ) {
 }
 
 worker_task* taskAlloc( taskFunc func, void* args ) {
-	worker_task* w = mem_alloc( sizeof( worker_task ));
+	worker_task* w = (worker_task*)mem_alloc( sizeof( worker_task ));
 	const worker_task t = task( func, args );
 	memcpy( w, &t, sizeof(worker_task)); 
 	return w;

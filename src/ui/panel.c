@@ -21,7 +21,7 @@ void panel_tick( void* pnl, float dt, engine* e );
 
 // Create a Panel
 panel* panel_create( engine* e ) {
-	panel* p = mem_alloc( sizeof( panel ));
+	panel* p = (panel*)mem_alloc( sizeof( panel ));
 	memset( p, 0, sizeof( panel ));
 
 	// Default anchoring: tl to tl
@@ -31,7 +31,7 @@ panel* panel_create( engine* e ) {
 	// default UI color
 	p->color = ui_color_default;
 	p->visible = true;
-	p->texture = NULL;
+	p->_texture = NULL;
 
 	p->animators = NULL;
 
@@ -50,7 +50,7 @@ static const int vert_count = 4;
 void panel_draw( panel* p, float x, float y ) {
 	(void)x;
 	(void)y;
-	vAssert( p->texture );
+	vAssert( p->_texture );
 
 	// We draw a quad as two triangles
 	p->vertex_buffer[0].position = Vector( p->x,			p->y,				0.1f, 1.f );
@@ -72,7 +72,7 @@ void panel_draw( panel* p, float x, float y ) {
 
 	// Copy our data to the GPU
 	// There are now <index_count> vertices, as we have unrolled them
-	drawCall* draw = drawCall_create( &renderPass_ui, resources.shader_ui, element_count, element_buffer, p->vertex_buffer, p->texture->gl_tex, modelview );
+	drawCall* draw = drawCall_create( &renderPass_ui, resources.shader_ui, element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
 	draw->depth_mask = GL_FALSE;
 }
 
@@ -100,15 +100,15 @@ void panel_setAlpha( panel* p, float alpha ) {
 // *** An animateable property
 bool animate( animator* a, float dt ) {
 	a->time += dt;
-	float f = property_samplef( a->property, a->time );
+	float f = property_samplef( a->_property, a->time );
 	*(a->target) = f;
-	return a->time > property_duration( a->property );;
+	return a->time > property_duration( a->_property );;
 }
 
 animator* newAnimator( property* p, float* target ) {
-	animator* a = mem_alloc( sizeof( animator ));
+	animator* a = (animator*)mem_alloc( sizeof( animator ));
 	a->time = 0.f;
-	a->property = p;
+	a->_property = p;
 	a->target = target;
 	return a;
 }
@@ -119,7 +119,7 @@ void animator_delete( animator* a ) {
 
 void panel_tick( void* pnl, float dt, engine* e ) {
 	(void)e;
-	panel*p = pnl;
+	panel*p = (panel*)pnl;
 	animatorlist* prev = NULL;
 	for ( animatorlist* a = p->animators; a; ) {
 		animatorlist* next = a->tail;

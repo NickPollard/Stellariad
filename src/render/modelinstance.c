@@ -128,7 +128,7 @@ modelInstance* modelInstance_create( modelHandle m ) {
 
 void modelInstance_calculateBoundingBox( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
-	instance->bb = aabb_calculate( m->obb, instance->trans->world );
+	instance->bb = aabb_calculate( m->_obb, instance->trans->world );
 }
 
 void modelInstance_setStatic( modelInstance* m ) {

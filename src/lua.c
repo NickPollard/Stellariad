@@ -80,7 +80,7 @@ luaCallback* luaInterface_addCallback(luaInterface* i, const char* name) {
 
 // Create a luaInterface
 luaInterface* luaInterface_create() {
-	luaInterface* i = mem_alloc(sizeof(luaInterface));
+	luaInterface* i = (luaInterface*)mem_alloc(sizeof(luaInterface));
 	i->callbackCount = 0;
 	memset(&i->callbackArray[0], 0, sizeof(luaCallback) * MAX_CALLBACKS);
 	return i;
@@ -264,7 +264,7 @@ lua_State* vlua_create( engine* e, const char* filename ) {
 	// We now use luaL_loadbuffer rather than luaL_loadfile as on Android we need
 	// to go through Libzip to get the data
 	size_t length;
-	const char* buffer = vfile_contents( filename, &length );
+	const char* buffer = (const char*)vfile_contents( filename, &length );
 	if ( luaL_loadbuffer( l, buffer, length, filename )) {
 		printf("Error: Failed loading lua from file %s!\n", filename );
 		printf( "%s\n", lua_tostring( l, -1 ));
@@ -276,7 +276,7 @@ lua_State* vlua_create( engine* e, const char* filename ) {
 	lua_setConstant_ptr( l, "engine", e );
 	lua_setConstant_int( l, "screen_width", engine_mainWindow( e ).width );
 	lua_setConstant_int( l, "screen_height", engine_mainWindow( e ).height );
-	lua_setConstant_ptr( l, "input", e->input );
+	lua_setConstant_ptr( l, "input", e->_input );
 
 	int err = lua_pcall( l, 0, 0, 0 );
 	if ( err != 0 ) {

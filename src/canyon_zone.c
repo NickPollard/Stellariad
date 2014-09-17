@@ -32,9 +32,9 @@ float canyonZone_distance( float v ) {
 // See-saws back and forth between 1.f and 0.f to deal with our texture building
 float canyonZone_terrainBlend( float v ) {
 	int zone = canyon_zone( v );
-	float this = (float)(zone % 2);
-	float next = 1.f - this;
-	return (zone < 0) ? 0.f : lerp( this, next, canyonZone_blend( v ));
+	float ths = (float)(zone % 2);
+	float next = 1.f - ths;
+	return (zone < 0) ? 0.f : lerp( ths, next, canyonZone_blend( v ));
 }
 
 // Returns a blend value from x to x + 1.f, of how much we should blend to the next zone
@@ -83,7 +83,7 @@ vector canyonZone_edgeColorAtV( canyon* c, float v ) {
 }
 
 texture* canyonZone_buildTexture( canyonZone a, canyonZone b ) {
-	uint8_t* bitmap = mem_alloc( sizeof( uint8_t ) * kZoneTextureWidth * kZoneTextureHeight * kZoneTextureStride );
+	uint8_t* bitmap = (uint8_t*)mem_alloc( sizeof( uint8_t ) * kZoneTextureWidth * kZoneTextureHeight * kZoneTextureStride );
 	for ( int y = 0; y < kZoneTextureHeight; ++y ) {
 		for ( int x = 0; x < kZoneTextureWidth; ++x ) {
 			int index = ( x + y * kZoneTextureWidth ) * kZoneTextureStride;
@@ -139,7 +139,7 @@ void canyonZone_load( canyon* c, const char* filename ) {
 }
 
 canyonZone* canyonZone_create() {
-	canyonZone* z = mem_alloc( sizeof( canyonZone ));
+	canyonZone* z = (canyonZone*)mem_alloc( sizeof( canyonZone ));
 	memset( z, 0, sizeof( canyonZone ));
 	return z;
 }

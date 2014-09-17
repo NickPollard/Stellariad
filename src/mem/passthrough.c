@@ -5,7 +5,7 @@
 #include "mem/allocator.h"
 
 passthroughAllocator* passthrough_create( heapAllocator* heap ) {
-	passthroughAllocator* p = mem_alloc( sizeof( passthroughAllocator ));
+	passthroughAllocator* p = (passthroughAllocator*)mem_alloc( sizeof( passthroughAllocator ));
 	p->heap = heap;
 	p->total_allocated = 0;
 	p->allocations = 0;

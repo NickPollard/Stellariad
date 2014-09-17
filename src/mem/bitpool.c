@@ -26,7 +26,7 @@ bitpool bitpool_create( size_t size, size_t count, void* arena ) {
 	vAssert( size > sizeof( void* )) // Cannot have bitpools that cannot store a pointer (used for free list)
 	b.block_size	= size;
 	b.block_count	= count;
-	b.arena			= arena;
+	b.arena			= (uint8_t*)arena;
 	b.first_free	= b.arena;
 
 	bitpool_initFree( &b );

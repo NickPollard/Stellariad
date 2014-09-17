@@ -45,7 +45,7 @@ void inputStream_reset( inputStream* in ) {
 }
 
 inputStream* inputStream_create( const char* source ) {
-	inputStream* in = mem_alloc( sizeof( inputStream ));
+	inputStream* in = (inputStream*)mem_alloc( sizeof( inputStream ));
 	assert( in );
 	in->source = source;
 	in->stream = in->source;
@@ -82,7 +82,7 @@ char* inputStream_nextToken( inputStream* stream ) {
 		token = &stream->token_buffer[0];
 	}
 	else {
-		token = mem_alloc( sizeof( char ) * (length + 1) );
+		token = (char*)mem_alloc( sizeof( char ) * (length + 1) );
 	}
 	strncpy( token, stream->stream, length );
 	token[length] = '\0';

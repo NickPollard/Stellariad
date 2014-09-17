@@ -76,6 +76,13 @@ void heap_addBitpool( heapAllocator* h, size_t size, size_t count ) {
 	h->bitpools[h->bitpool_count++] = bitpool_create( size, count, arena );
 }
 
+void validateBlockNext( block* b ) {
+	vAssert( !b->next || b->next == (void*)((uint8_t*)b->data + b->size ));
+}
+void validateBlockPrev( block* b ) {
+	vAssert( !b->prev || b->prev->next == (void*)((uint8_t*)b->prev->data + b->prev->size ));
+}
+
 // Find the smallest bitpool big enough to hold SIZE
 bitpool* heap_findBitpool( heapAllocator* h, size_t size ) {
 	bitpool* b = NULL;
@@ -165,8 +172,8 @@ void assertBlockInvariants( block* b ) {
 	vAssert( b );
 	vAssert( !b->next || b->next->prev == b );
 	vAssert( !b->prev || b->prev->next == b );
-	vAssert( !b->next || b->next == b->data + b->size );
-	vAssert( !b->prev || b->prev->next == b->prev->data + b->prev->size );
+	validateBlockNext( b );
+	validateBlockPrev( b );
 }
 
 // Allocates *size* bytes from the given heapAllocator *heap*
@@ -212,8 +219,8 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t toAllocate, size_t alig
 		b->size = toAllocate;
 		heap->total_allocated += sizeof( block );
 		heap->total_free -= sizeof( block );
-		vAssert( b->next == b->data + b->size );
-		vAssert( !remaining->next || remaining->next == remaining->data + remaining->size );
+		validateBlockNext(b);
+		validateBlockNext(remaining);
 	}
 
 	assertBlockInvariants( b );
@@ -244,7 +251,7 @@ void* heap_allocate_aligned( heapAllocator* heap, size_t toAllocate, size_t alig
 
 	assertBlockInvariants( b );
 	//////////////////////////////////////////////////////
-	vAssert( b->next == NULL || b->next == b->data + b->size );
+	validateBlockNext(b);
 
 	heap->total_allocated += toAllocate;
 	heap->total_free -= toAllocate;
@@ -481,8 +488,8 @@ void blockMerge( heapAllocator* heap, block* first, block* second ) {
 	vAssert( ((char*)second - ((char*)first->data + first->size)) < kMaxAlignmentSpace );	// Contiguous
 	vAssert( first->next == second && second->prev == first );
 
-	vAssert( !first->next || first->next == first->data + first->size );
-	vAssert( !second->next || second->next == second->data + second->size );
+	vAssert( !first->next || first->next == (void*)((uint8_t*)first->data + first->size ));
+	vAssert( !second->next || second->next == (void*)((uint8_t*)second->data + second->size ));
 
 	vAssert( second > first );
 	vAssert( second->next > second || second->next == NULL );
@@ -500,7 +507,7 @@ void blockMerge( heapAllocator* heap, block* first, block* second ) {
 		second->next->prev = first;
 
 	memset( second, 0xED, sizeof( block ));
-	vAssert( !first->next || first->next == first->data + first->size );
+	vAssert( !first->next || first->next == (void*)((uint8_t*)first->data + first->size ));
 	vAssert( !first->next || first->next->prev == first );
 	vAssert( !first->prev || first->prev->next == first );
 }
@@ -514,7 +521,7 @@ heapAllocator* heap_create( int heap_size ) {
 	memset( data, 0, sizeof( heapAllocator ) + sizeof( block ) + heap_size );
 
 	heapAllocator* allocator = (heapAllocator*)data;
-	data += sizeof( heapAllocator );
+	data = (uint8_t*)data + sizeof( heapAllocator );
 	allocator->total_size = heap_size;
 	allocator->total_free = heap_size;
 	allocator->total_allocated = 0;

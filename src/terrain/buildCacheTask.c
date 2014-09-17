@@ -14,14 +14,14 @@
 #include "system/thread.h"
 
 void* buildCacheBlockTask(void* args) {
-	canyonTerrainBlock* b = _1(args);
-	future* f = _2(args);
+	canyonTerrainBlock* b = (canyonTerrainBlock*)_1(args);
+	future* f = (future*)_2(args);
 	int uMin = (uintptr_t)_3(args);
 	int vMin = (uintptr_t)_4(args);
 
-	canyon* c = b->terrain->canyon;
+	canyon* c = b->terrain->_canyon;
 	// ! only if not exist or lower-lod
-	cacheBlock* cache = terrainCached( c->terrainCache, uMin, vMin );
+	cacheBlock* cache = terrainCached( c->cache, uMin, vMin );
 	bool rebuild = cache && cache->lod > b->lod_level;
 	if (rebuild)
 		cacheBlockFree( cache ); // Release the cache we don't want
@@ -39,7 +39,7 @@ void* buildCacheBlockTask(void* args) {
 future* requestCache( canyonTerrainBlock* b, int u, int v ) {
 	// If already built, or building, return that future, else start it building
 	future* f = NULL;
-	bool needCreating = cacheBlockFuture( b->terrain->canyon->terrainCache, u, v, b->lod_level, &f);
+	bool needCreating = cacheBlockFuture( b->terrain->_canyon->cache, u, v, b->lod_level, &f);
 	vAssert( f );
 	if (needCreating) {
 		void* uu = (void*)(uintptr_t)u;
@@ -64,7 +64,7 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 		for ( int u = -1; u < b->u_samples + 1; ++u ) {
 			const int index = indexFromUV(b, u, v);
 			vAssert( index >= 0 && index < max );
-			verts[index] = terrainPointCached( b->canyon, b, caches, u, v );
+			verts[index] = terrainPointCached( b->_canyon, b, caches, u, v );
 		}
 
 	releaseAllCaches( caches );
@@ -72,8 +72,8 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 }
 
 void* worker_generateVerts( void* args ) {
-	cacheBlocklist* caches = cachesForBlock( _1(args) );
-	generateVerts( _1(args), _2(args), caches/*_3(args)*/ );
+	cacheBlocklist* caches = cachesForBlock( (canyonTerrainBlock*)_1(args) );
+	generateVerts( (canyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches/*_3(args)*/ );
 	mem_free(args);
 	return NULL;
 }
@@ -94,8 +94,8 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 }
 
 void* buildCacheTask( void* args ) {
-	futurelist* fs = generateAllCaches( _1( args ));
-	future_completeWith( _2(args), futures_sequence( fs ));
+	futurelist* fs = generateAllCaches( (canyonTerrainBlock*)_1( args ));
+	future_completeWith( (future*)_2(args), futures_sequence( fs ));
 	futurelist_delete( fs );
 	mem_free(args);
 	return NULL;
@@ -110,12 +110,12 @@ future* buildCache(canyonTerrainBlock* b) {
 }
 
 void generatePositions( canyonTerrainBlock* b) {
-	vertPositions* vertSources = mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
+	vertPositions* vertSources = (vertPositions*)mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
 	vertSources->uCount = b->u_samples + 2;
 	vertSources->vCount = b->v_samples + 2;
-	vertSources->positions = mem_alloc( sizeof( vector ) * vertCount( b ));
+	vertSources->positions = (vector*)mem_alloc( sizeof( vector ) * vertCount( b ));
 
 	future* f = buildCache( b );
 	cacheBlocklist* caches = NULL;//cachesForBlock( b );
@@ -123,7 +123,7 @@ void generatePositions( canyonTerrainBlock* b) {
 }
 
 void* generateVertices_( void* args ) {
-	generatePositions( args );
+	generatePositions( (canyonTerrainBlock*)args );
 	return NULL;
 }
 

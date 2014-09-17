@@ -10,7 +10,7 @@
 #include "render/render.h" // TODO remove
 
 chasecam* chasecam_create() {
-	chasecam* c = mem_alloc( sizeof( chasecam ));
+	chasecam* c = (chasecam*)mem_alloc( sizeof( chasecam ));
 	memset( c, 0, sizeof( chasecam ));
 	c->position = Vector( 0.f, 0.f, 0.f, 1.f );
 	c->rotation = Quaternion( 0.f, 0.f, 0.f, 1.f );

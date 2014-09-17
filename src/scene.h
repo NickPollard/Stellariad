@@ -73,7 +73,7 @@ void scene_initStatic( );
 // *** Scene functions
 
 // Make a Scene
-scene* scene_create();
+scene* scene_create( engine* e );
 
 // Traverse the transform graph, updating worldspace transforms
 void	scene_concatenateTransforms(scene* s);

@@ -76,7 +76,7 @@ void texture_delete( texture* t );
 // For offline skybox rendering, or anything else that needs source images
 uint8_t* read_tga( const char* file, int* w, int* h );
 
-void* texture_allocate( size_t size );
+uint8_t* texture_allocate( size_t size );
 void texture_free( void* tex );
 
 // Create a new texture using bilinear filtering and clamp-to-edge

@@ -21,7 +21,7 @@ future* future_onCompleteUNSAFE( future* f, handlerfunc hf, void* args ) {
 	if ( f->complete )
 		hf( f->value, args );
 	else {
-		handler* h = f->on_complete ? mem_alloc(sizeof(handler)) : &f->h; // Use inline handler if first onComplete
+		handler* h = f->on_complete ? (handler*)mem_alloc(sizeof(handler)) : &f->h; // Use inline handler if first onComplete
 		h->func = hf;
 		h->args = args;
 		if ( f->on_complete )
@@ -50,7 +50,7 @@ void future_delete( future* f ) {
 }
 
 future* future_create() {
-	future* f = mem_alloc( sizeof( future ));
+	future* f = (future*)mem_alloc( sizeof( future ));
 	f->complete = false;
 	f->execute = false;
 	f->on_complete = NULL;
@@ -111,7 +111,7 @@ void futures_tick( float dt ) {
 
 void* completeWith( const void* data, void* ff ) {
 	// NOTE - we don't lock here otherwise we hit re-entry
-	future* f = ff;
+	future* f = (future*)ff;
 	vAssert( !f->complete );
 	f->value = data;
 	f->complete = true;
@@ -125,14 +125,14 @@ void future_completeWith( future* f, future* other ) {
 
 void* deferredOnComplete( const void* data, void* args ) {
 	(void)data;
-	future_onCompleteUNSAFE( _1(args), _2(args), _3(args)); 
+	future_onCompleteUNSAFE( (future*)_1(args), (handlerfunc)_2(args), _3(args)); 
 	mem_free( args );
 	return NULL;
 }
 
 future* futurePair_sequence( future* a, future* b ) {
 	future* f = future_create();
-	future_onComplete( a, deferredOnComplete, Triple(b, completeWith, f));
+	future_onComplete( a, deferredOnComplete, Triple(b, (void*)completeWith, f));
 	return f;
 }
 
@@ -152,7 +152,7 @@ future* futures_sequence( futurelist* fs ) {
 
 void* runTask( const void* input, void* args ) {
 	(void)input;
-	worker_task* tsk = args;
+	worker_task* tsk = (worker_task*)args;
 	worker_addTask( *tsk );
 	mem_free( tsk );
 	return NULL;

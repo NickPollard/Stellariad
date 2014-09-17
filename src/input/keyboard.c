@@ -15,6 +15,12 @@
 // *** keyboard
 //
 
+int key_codes[kMaxKeyCodes];
+
+#ifdef LINUX_X
+key_array x_key_array;
+#endif
+
 // *** Internal private functions, where they key has been translated into a keycode
 int keyCode( enum key k ) {
 	if ( k >= kMaxKeyCodes )

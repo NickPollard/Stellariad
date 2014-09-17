@@ -25,7 +25,7 @@ void string_staticInit() {
 // Allocates and copies a standard null-terminated c string, then returns the new copy
 const char* string_createCopy( const char* src ) {
 	int length = strlen( src );
-	char* dst = mem_alloc( sizeof( char ) * (length + 1));
+	char* dst = (char*)mem_alloc( sizeof( char ) * (length + 1));
 	memcpy( dst, src, length );
 	dst[length] = '\0';
 	return dst;
@@ -61,7 +61,7 @@ const char* string_trimCopy( char* dst, const char* src ) {
 
 const char* string_trim( const char* src ) {
 	size_t length = strlen( src );
-	char* dst = mem_alloc( sizeof( char ) * (length + 1));
+	char* dst = (char*)mem_alloc( sizeof( char ) * (length + 1));
 	string_trimCopy( dst, src );
 	return dst;
 }
@@ -69,7 +69,7 @@ const char* string_trim( const char* src ) {
 #define kMaxStreamBufferChars 256
 
 streamWriter* streamWriter_create( char* buffer, char* end ) {
-	streamWriter* s = mem_alloc( sizeof( streamWriter ));
+	streamWriter* s = (streamWriter*)mem_alloc( sizeof( streamWriter ));
 	s->write_head =	s->string = buffer;
 	s->end = end;
 	return s;

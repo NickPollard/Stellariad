@@ -36,7 +36,7 @@ typedef struct textureRequest_s {
 	int			height;
 	int			stride;
 	textureProperties properties;
-	future*		future;
+	future*		_future;
 } textureRequest;
 
 #define kMaxTextureRequests 32
@@ -62,11 +62,11 @@ void texture_tick() {
 					texture_free( r.bitmap );
 					break;
 			}
-			//vAssert( r.future );
-			//future_complete( r.future, r.filename );
+			//vAssert( r._future );
+			//future_complete( r._future, r.filename );
 			// TODO - refcount
-			//future_delete( r.future );
-			//r.future = NULL;
+			//future_delete( r._future );
+			//r._future = NULL;
 		}
 		texture_request_count = 0;
 	}
@@ -74,17 +74,17 @@ void texture_tick() {
 }
 
 void* texture_workerLoadFile( void* args ) {
-	void** arg_ptrs = args;
-	GLuint*				tex			= arg_ptrs[0];
-	const char*			filename	= arg_ptrs[1];
-	textureProperties*	properties	= arg_ptrs[2];
+	void** arg_ptrs = (void**)args;
+	GLuint*				tex			= (GLuint*)arg_ptrs[0];
+	const char*			filename	= (const char*)arg_ptrs[1];
+	textureProperties*	properties	= (textureProperties*)arg_ptrs[2];
 	//printf( "Run worker task: Tex: " xPTRf ", filename: %s\n", (uintptr_t)tex, filename );
 
 	int w, h;
 	void* bitmap = read_tga( filename, &w, &h );
 
 	int stride = 4; // Currently we only support RGBA8
-	texture_requestMem( tex, w, h, stride, bitmap, properties->wrap_s, properties->wrap_t );
+	texture_requestMem( tex, w, h, stride, (uint8_t*)bitmap, properties->wrap_s, properties->wrap_t );
 	// texture_requestMem copies image data, so we can safely free now
 	texture_free( bitmap );
 
@@ -95,8 +95,8 @@ void* texture_workerLoadFile( void* args ) {
 		
 textureRequest* textureRequest_new() {
 	textureRequest* r = &requests[texture_request_count++];
-	//vAssert( !r->future );
-	//r->future = future_create();
+	//vAssert( !r->_future );
+	//r->_future = future_create();
 	return r;
 }
 
@@ -124,7 +124,7 @@ void texture_requestMem( GLuint* tex, int w, int h, int stride, uint8_t* bitmap,
 
 void texture_queueWorkerTextureLoad( GLuint* tex, const char* filename, textureProperties* properties ) {
 	// TODO - tuple
-	const void** args = mem_alloc( sizeof( void* ) * 3 );
+	const void** args = (const void**)mem_alloc( sizeof( void* ) * 3 );
 	args[0] = tex;
 	args[1] = filename;
 	args[2] = properties;
@@ -151,7 +151,7 @@ void textureCache_init() {
 }
 
 texture* textureCache_find( const char* filename ) {
-	void** result = map_find( texture_cache, mhash( filename ));
+	void** result = (void**)map_find( texture_cache, mhash( filename ));
 	if ( result )
 		return *((texture**)result);
 	else
@@ -173,7 +173,7 @@ texture* texture_nextEmpty() {
 // Get a texture matching a given filename
 // Pulls it from cache if existing, otherwise loads it asynchronously
 texture* texture_load( const char* filename ) {
-	textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+	textureProperties* properties = (textureProperties*)mem_alloc( sizeof( textureProperties ));
 	properties->wrap_s = GL_REPEAT;
 	properties->wrap_t = GL_REPEAT;
 	return texture_loadWithProperties( filename, properties );
@@ -196,7 +196,7 @@ texture* texture_loadWithProperties( const char* filename, textureProperties* pr
 #ifdef RENDER_TEXTURE_LOAD_ASYNC
 		texture_requestFile( &t->gl_tex, filename, properties );
 #else	
-		const void** args = mem_alloc( sizeof( void* ) * 3 );
+		const void** args = (const void**)mem_alloc( sizeof( void* ) * 3 );
 		args[0] = &t->gl_tex;
 		args[1] = filename;
 		args[2] = properties;
@@ -223,14 +223,14 @@ void texture_delete( texture* t ) {
 
 uint8_t* read_tga( const char* file, int* w, int* h ) {
 	size_t length = 0;
-	u8* image_data = vfile_contents( file, &length );
+	uint8_t* image_data = (uint8_t*)vfile_contents( file, &length );
 	if ( image_data == 0 ) {
 		printf( "ERROR: Error reading TGA.\n" );
 		vAssert( 0 );
 	}
 
 	tga_header* header = (tga_header*)image_data;
-	u8* body = image_data + sizeof(tga_header);
+	uint8_t* body = image_data + sizeof(tga_header);
 
 	static const int kTrueColor_Uncompressed = 0x2;
 	if ( header->image_type != kTrueColor_Uncompressed ) {
@@ -240,11 +240,11 @@ uint8_t* read_tga( const char* file, int* w, int* h ) {
 
 	int width = header->width;
 	int height = header->height;
-	u8* id_field = body;
+	uint8_t* id_field = body;
 	(void)id_field;
-	u8* color_map = body + header->id_length;
+	uint8_t* color_map = body + header->id_length;
 	tga_colormap_spec* mapspec = (tga_colormap_spec*)header->color_map_spec;
-	u8* pixels = color_map + mapspec->entry_count;
+	uint8_t* pixels = color_map + mapspec->entry_count;
 
 	int pixel_bytes = header->pixel_depth / 8;
 	int size = width * height * pixel_bytes;
@@ -356,8 +356,8 @@ GLuint texture_loadBitmap( int w, int h, int stride, uint8_t* bitmap, GLuint wra
 	return tex;
 }
 
-void* texture_allocate( size_t size ) {
-	void* mem = heap_allocate( texture_heap, size, NULL );
+uint8_t* texture_allocate( size_t size ) {
+	uint8_t* mem = (uint8_t*)heap_allocate( texture_heap, size, NULL );
 	//printf( "TEXTURE: Allocating " dPTRf " bytes as 0x" xPTRf "\n", size, (uintptr_t)mem );
 	return mem;
 }

@@ -10,7 +10,7 @@
 #include <assert.h>
 
 light* light_create() {
-	light* l = mem_alloc(sizeof(light));
+	light* l = (light*)mem_alloc(sizeof(light));
 	light_setDiffuse(l, 1.f, 1.f, 1.f, 1.f);
 	light_setSpecular(l, 0.f, 0.f, 0.f, 0.f);
 	light_setAttenuation(l, 1.f, 1.f, 0.f);

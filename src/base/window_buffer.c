@@ -15,7 +15,7 @@ void window_bufferInit( window_buffer* buffer, size_t size, void* elements ) {
 }
 
 window_buffer* window_bufferCreate( size_t elementSize, size_t count ) {
-	window_buffer* w = mem_alloc( sizeof( window_buffer ));
+	window_buffer* w = (window_buffer*)mem_alloc( sizeof( window_buffer ));
 	window_bufferInit( w, count, mem_alloc( elementSize * count ));
 	return w;
 }
@@ -48,7 +48,7 @@ void canyonBuffer_write( window_buffer* buffer, int i, size_t size, void* data )
 }
 
 canyonData canyonBuffer_value( window_buffer* buffer, int i ) {
-	canyonData* values = buffer->elements;
+	canyonData* values = (canyonData*)buffer->elements;
 	return values[i];
 }
 vector canyonBuffer_point( window_buffer* buffer, int i ) { return canyonBuffer_value( buffer, i ).point; }

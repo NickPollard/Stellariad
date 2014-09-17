@@ -14,12 +14,12 @@ mesh* mesh_loadObj( const char* filename ) {
 	int vert_count = 0, index_count = 0, normal_count = 0, uv_count = 0;
 	// Lets create these arrays on the heap, as they need to be big
 	// TODO: Could make these static perhaps?
-	vector* vertices	= mem_alloc( sizeof( vector ) * kObjMaxVertices );
-	vector* normals		= mem_alloc( sizeof( vector ) * kObjMaxVertices );
-	vector* uvs			= mem_alloc( sizeof( vector ) * kObjMaxVertices );
-	uint16_t* indices			= mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
-	uint16_t* normal_indices	= mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
-	uint16_t* uv_indices		= mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
+	vector* vertices	= (vector*)mem_alloc( sizeof( vector ) * kObjMaxVertices );
+	vector* normals		= (vector*)mem_alloc( sizeof( vector ) * kObjMaxVertices );
+	vector* uvs			= (vector*)mem_alloc( sizeof( vector ) * kObjMaxVertices );
+	uint16_t* indices			= (uint16_t*)mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
+	uint16_t* normal_indices	= (uint16_t*)mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
+	uint16_t* uv_indices		= (uint16_t*)mem_alloc( sizeof( uint16_t ) * kObjMaxIndices );
 
 #define array_clear( array, size ) \
 	memset( array, 0, sizeof( array[0] ) * size );
@@ -33,7 +33,7 @@ mesh* mesh_loadObj( const char* filename ) {
 	array_clear( uv_indices, kObjMaxIndices );
 
 	size_t file_length = -1;
-	char* file_buffer = vfile_contents( filename, &file_length );
+	const char* file_buffer = (const char*)vfile_contents( filename, &file_length );
 	inputStream* stream = inputStream_create( file_buffer );
 
 	while ( !inputStream_endOfFile( stream )) {
@@ -82,35 +82,35 @@ mesh* mesh_loadObj( const char* filename ) {
 				char vert[8];
 				char uv[8];
 				char norm[8];
-				int i = 0;
+				int j = 0;
 				const char* string = token;
-				while ( string[i] != '/' && i < len ) {
-					assert( i >= 0 );
-					assert( i < 8 );
-					vert[i] = string[i];
-					i++;
+				while ( string[j] != '/' && j < len ) {
+					assert( j >= 0 );
+					assert( j < 8 );
+					vert[j] = string[j];
+					j++;
 				}
-				vert[i] = '\0';
-				string = &string[i+1];
-				i = 0;
+				vert[j] = '\0';
+				string = &string[j+1];
+				j = 0;
 				len = strlen( string );
-				while ( string[i] != '/' && i < len ) {
-					assert( i >= 0 );
-					assert( i < 8 );
-					uv[i] = string[i];
-					i++;
+				while ( string[j] != '/' && j < len ) {
+					assert( j >= 0 );
+					assert( j < 8 );
+					uv[j] = string[j];
+					j++;
 				}
-				uv[i] = '\0';
-				string = &string[i+1];
-				i = 0;
+				uv[j] = '\0';
+				string = &string[j+1];
+				j = 0;
 				len = strlen( string );
-				while ( string[i] != '/' && i < len ) {
-					assert( i >= 0 );
-					assert( i < 8 );
-					norm[i] = string[i];
-					i++;
+				while ( string[j] != '/' && j < len ) {
+					assert( j >= 0 );
+					assert( j < 8 );
+					norm[j] = string[j];
+					j++;
 				}
-				norm[i] = '\0';
+				norm[j] = '\0';
 
 				indices[index_count]		= atoi( vert ) - 1; // -1 as obj uses 1-based indices, not 0-based as we do
 				normal_indices[index_count]	= atoi( norm ) - 1; // -1 as obj uses 1-based indices, not 0-based as we do
@@ -121,7 +121,7 @@ mesh* mesh_loadObj( const char* filename ) {
 		inputStream_freeToken( stream, token );
 		inputStream_nextLine( stream );
 	}
-	mem_free( file_buffer );
+	mem_free( (void*)file_buffer );
 	//printf( "MESH_LOAD: Parsed .obj file \"%s\" with %d verts, %d faces, %d normals, %d uvs.\n", filename, vert_count, index_count / 3, normal_count, uv_count );
 
 	// Copy our loaded data into the Mesh structure
@@ -145,7 +145,7 @@ mesh* mesh_loadObj( const char* filename ) {
 }
 
 model* model_load( const char* filename ) {
-	model* mdl = sexpr_loadFile( filename );
+	model* mdl = (model*)sexpr_loadFile( filename );
 #if DEBUG
 	mdl->filename = string_createCopy(filename);
 #endif // DEBUG

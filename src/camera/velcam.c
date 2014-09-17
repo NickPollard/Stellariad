@@ -14,7 +14,7 @@
 
 // velcam constructor
 velcam* velcam_create( engine* e ) {
-	velcam* f = mem_alloc( sizeof( velcam ));
+	velcam* f = (velcam*)mem_alloc( sizeof( velcam ));
 	f->pan_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
 	f->track_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
 //	matrix_setIdentity( f->transform );

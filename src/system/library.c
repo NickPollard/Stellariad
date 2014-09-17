@@ -20,11 +20,11 @@ void unref( void* asset ) {
 }
 
 void* library_find( library* l, const char* asset_name ) {
-	return map_find( l->map, mhash( asset_name ));
+	return map_find( l->_map, mhash( asset_name ));
 }
 
 void library_add( library* l, const char* asset_name, void* asset ) {
-	map_add( l->map, mhash( asset_name ), asset );
+	map_add( l->_map, mhash( asset_name ), asset );
 	addref( asset );
 }
 

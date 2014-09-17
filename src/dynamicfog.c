@@ -7,9 +7,9 @@
 #include "mem/allocator.h"
 
 dynamicFog* dynamicFog_create() {
-	dynamicFog* f = mem_alloc( sizeof( dynamicFog ));
+	dynamicFog* f = (dynamicFog*)mem_alloc( sizeof( dynamicFog ));
 	memset( f, 0, sizeof( dynamicFog ));
-	f->scene = NULL;
+	f->_scene = NULL;
 	f->time = 0.f;
 	f->fog_count = 3;
 	f->fog_colors[0] = Vector( 1.f, 0.4f, 0.f, 1.f );
@@ -36,6 +36,6 @@ void dynamicFog_blend( dynamicFog* fog, int previous, int next, float blend ) {
 	next = next % fog->fog_count;
 	vector fog_color = vector_lerp( &fog->fog_colors[previous], &fog->fog_colors[next], blend );
 	vector sky_color = vector_lerp( &fog->sky_colors[previous], &fog->sky_colors[next], blend );
-	scene_setFogColor( fog->scene, &fog_color );
-	scene_setSkyColor( fog->scene, &sky_color );
+	scene_setFogColor( fog->_scene, &fog_color );
+	scene_setSkyColor( fog->_scene, &sky_color );
 }

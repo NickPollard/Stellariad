@@ -31,7 +31,7 @@ delegate* delegate_create(void* func, int size) {
 	delegate* d = (delegate*)mem_alloc(sizeof(delegate));
 	d->tick = func;
 	d->count = 0;
-	d->data = mem_alloc(size * sizeof(void*));
+	d->data = (void**)mem_alloc(size * sizeof(void*));
 	d->max = size;
 
 	return d;

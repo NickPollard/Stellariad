@@ -16,7 +16,7 @@ enum anchor {
 };
 
 typedef struct animator_s {
-	property*	property;
+	property*	_property;
 	float		time;
 	float*		target;
 } animator;
@@ -39,7 +39,7 @@ struct panel_s {
 	animatorlist* animators;
 
 	// Temp
-	texture*	texture;
+	texture*	_texture;
 	vertex vertex_buffer[4];
 };
 

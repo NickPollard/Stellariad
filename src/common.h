@@ -39,6 +39,10 @@
 #define false 0
 #endif
 
+#ifdef __cplusplus
+#define restrict __restrict__
+#endif
+
 // Nullptr
 #define nullptr NULL
 

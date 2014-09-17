@@ -72,7 +72,7 @@ float timer_getGameTimeSeconds(frame_timer* t) {
 }
 
 frame_timer* vtimer_create() {
-	frame_timer* t = mem_alloc(sizeof(frame_timer));
+	frame_timer* t = (frame_timer*)mem_alloc(sizeof(frame_timer));
 	timer_init(t);
 	return t;
 }

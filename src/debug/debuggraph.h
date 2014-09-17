@@ -2,8 +2,10 @@
 #pragma once
 #include "maths/vector.h"
 
+#ifndef __cplusplus
 struct graph_s;
 struct graphData;
+#endif
 typedef struct graphData_s graphData;
 typedef struct graph_s graph;
 

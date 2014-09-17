@@ -81,7 +81,7 @@ GLuint* render_requestBuffer( GLenum target, const void* data, GLsizei size ) {
 		b->size		= size;
 		// Needs to allocate a GLuint somewhere
 		// and return a pointer to that
-		b->ptr = mem_alloc( sizeof( GLuint ));
+		b->ptr = (GLuint*)mem_alloc( sizeof( GLuint ));
 		// Initialise this to 0, so we can ignore ones that haven't been set up yet
 		*(b->ptr) = kInvalidBuffer;
 	}

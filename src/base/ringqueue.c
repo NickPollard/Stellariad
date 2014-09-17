@@ -5,11 +5,11 @@
 #include "mem/allocator.h"
 
 ringQueue* ringQueue_create( int size ) {
-	ringQueue* r = mem_alloc( sizeof( ringQueue ));
+	ringQueue* r = (ringQueue*)mem_alloc( sizeof( ringQueue ));
 	r->size = size;
 	r->first = 0;
 	r->last = 0;
-	r->items = mem_alloc( sizeof( void* ) * size );
+	r->items = (void**)mem_alloc( sizeof( void* ) * size );
 	return r;
 }
 

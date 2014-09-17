@@ -23,22 +23,24 @@ struct quad_s {
 };
 
 #ifndef ANDROID
+#ifndef __cplusplus
 _Static_assert(offsetof(struct pair_s, _1) == offsetof(struct triple_s, _1), "tuples not interchangeable");
 _Static_assert(offsetof(struct pair_s, _2) == offsetof(struct triple_s, _2), "tuples not interchangeable");
 _Static_assert(offsetof(struct triple_s, _1) == offsetof(struct quad_s, _1), "tuples not interchangeable");
 _Static_assert(offsetof(struct triple_s, _2) == offsetof(struct quad_s, _2), "tuples not interchangeable");
 _Static_assert(offsetof(struct triple_s, _3) == offsetof(struct quad_s, _3), "tuples not interchangeable");
 #endif
+#endif
 
 pair* Pair( void* a, void* b ) {
-	pair* p = mem_alloc( sizeof( pair ));
+	pair* p = (pair*)mem_alloc( sizeof( pair ));
 	p->_1 = a;
 	p->_2 = b;
 	return p;
 }
 
 triple* Triple( void* a, void* b, void* c ) {
-	triple* t = mem_alloc( sizeof( triple ));
+	triple* t = (triple*)mem_alloc( sizeof( triple ));
 	t->_1 = a;
 	t->_2 = b;
 	t->_3 = c;
@@ -46,7 +48,7 @@ triple* Triple( void* a, void* b, void* c ) {
 }
 
 quad* Quad( void* a, void* b, void* c, void* d ) {
-	quad* q = mem_alloc( sizeof( quad ));
+	quad* q = (quad*)mem_alloc( sizeof( quad ));
 	q->_1 = a;
 	q->_2 = b;
 	q->_3 = c;

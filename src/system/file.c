@@ -226,7 +226,7 @@ bool token_isFloat( const char* token ) {
 // Allocated in the string memory pool
 const char* sstring_create( const char* token ) {
 	size_t len = strlen( token );
-	char* buffer = heap_allocate( global_string_heap, sizeof( char ) * (len-1), NULL );
+	char* buffer = (char*)heap_allocate( global_string_heap, sizeof( char ) * (len-1), NULL );
 	memcpy( buffer, &token[1], len-2 );
 	buffer[len-2] = '\0';
 	return buffer;
@@ -255,7 +255,7 @@ void vfile_storeModifiedTime( const char* file ) {
 
 time_t vfile_lastModifiedTime( const char* file ) {
 	int key = mhash( file );
-	time_t* modified_time = map_find( file_modified_times, key );
+	time_t* modified_time = (time_t*)map_find( file_modified_times, key );
 	if (!modified_time )
 		return 0;
 	else

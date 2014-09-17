@@ -12,7 +12,7 @@ static const float default_z_far = 1800.f;
 static const float default_fov = 0.8f; // In Radians
 
 camera* camera_create() {
-	camera* c = mem_alloc( sizeof( camera ));
+	camera* c = (camera*)mem_alloc( sizeof( camera ));
 	c->trans = NULL;
 	camera_init( c );
 	return c;

@@ -129,7 +129,7 @@ int LUA_createModelInstance( lua_State* l ) {
 
 int LUA_modelInstanceSetStatic( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
-		modelInstance* m = lua_toptr( l, 1 );
+		modelInstance* m = (modelInstance*)lua_toptr( l, 1 );
 		modelInstance_setStatic( m );
 		lua_pushptr( l, m );
 		return 1;
@@ -168,14 +168,14 @@ typedef struct luaCollisionCallbackData_s {
 	int callback_ref;
 } luaCollisionCallbackData;
 
-void lua_collisionCallback( body* this, body* other, void* data ) {
+void lua_collisionCallback( body* ths, body* other, void* data ) {
 	luaCollisionCallbackData* callback_data = (luaCollisionCallbackData*)data;
 	lua_State* l = callback_data->lua_state;
 	int ref = callback_data->callback_ref;
 
 	lua_retrieve( l, ref );
-	luaAssert( l, this->intdata );
-	lua_retrieve( l, this->intdata );
+	luaAssert( l, ths->intdata );
+	lua_retrieve( l, ths->intdata );
 	if ( other->intdata ) {
 		lua_retrieve( l, other->intdata );
 	} else {
@@ -197,7 +197,7 @@ int LUA_createbodySphere( lua_State* l ) {
 
 int LUA_createbodyMesh( lua_State* l ) {
 	// Get the mesh but then pop it, so that the object is left on the top for the lua_store command
-	modelInstance* render_model = lua_toptr( l, 2 );
+	modelInstance* render_model = (modelInstance*)lua_toptr( l, 2 );
 	lua_pop( l, 1 );
 	int ref = lua_store( l );	// Store top of the stack ( the object )
 
@@ -211,7 +211,7 @@ int LUA_createbodyMesh( lua_State* l ) {
 }
 
 int LUA_deleteModelInstance( lua_State* l ) {
-	modelInstance* m = lua_toptr( l, 1 );
+	modelInstance* m = (modelInstance*)lua_toptr( l, 1 );
 	scene_removeModel( theScene, m );
 #if DEBUG
 	//model* mod = model_fromInstance( m );
@@ -223,15 +223,15 @@ int LUA_deleteModelInstance( lua_State* l ) {
 
 // vscene_addModel( scene, model )
 int LUA_scene_addModel( lua_State* l ) {
-	scene* s = lua_toptr( l, 1 );	
-	modelInstance* m = lua_toptr( l, 2 );	
+	scene* s = (scene*)lua_toptr( l, 1 );	
+	modelInstance* m = (modelInstance*)lua_toptr( l, 2 );	
 	luaAssert( l, m->trans );
 	scene_addModel( s, m );
 	return 0;
 }
 int LUA_scene_removeModel( lua_State* l ) {
-	scene* s = lua_toptr( l, 1 );	
-	modelInstance* m = lua_toptr( l, 2 );	
+	scene* s = (scene*)lua_toptr( l, 1 );	
+	modelInstance* m = (modelInstance*)lua_toptr( l, 2 );	
 	scene_removeModel( s, m );
 	return 0;
 }
@@ -240,7 +240,7 @@ int LUA_model_setTransform( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua model set transform\n" );
 	lua_assertnumber( l, 1 );
 	lua_assertnumber( l, 2 );
-	modelInstance* m = lua_toptr( l, 1 );
+	modelInstance* m = (modelInstance*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	m->trans = t;
 	return 0;
@@ -248,7 +248,7 @@ int LUA_model_setTransform( lua_State* l ) {
 
 int LUA_physic_setTransform( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua physic set transform\n" );
-	physic* p = lua_toptr( l, 1 );
+	physic* p = (physic*)lua_toptr( l, 1 );
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
@@ -259,14 +259,14 @@ int LUA_physic_setTransform( lua_State* l ) {
 
 int LUA_body_setTransform( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua body set transform\n" );
-	body* b = lua_toptr( l, 1 );
+	body* b = (body*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	b->trans = t;
 	return 0;
 }
 int LUA_body_registerCollisionCallback( lua_State* l ) {
 	LUA_DEBUG_PRINT( "Registering lua collision handler.\n" );
-	body* b = lua_toptr( l, 1 );
+	body* b = (body*)lua_toptr( l, 1 );
 	// Store the lua func callback in the Lua registry
 	// and keep a reference to it so we can resolve it later
 	int ref = lua_store( l ); // Must be top of the stack
@@ -274,7 +274,7 @@ int LUA_body_registerCollisionCallback( lua_State* l ) {
 	// Store the Lua ref (which resolves to the function) in the callback_data for the body
 	// This allows us to call the correct lua func (or closure) for this body
 	// TODO: fix this temp hack
-	luaCollisionCallbackData* data = mem_alloc( sizeof( luaCollisionCallbackData ));
+	luaCollisionCallbackData* data = (luaCollisionCallbackData*)mem_alloc( sizeof( luaCollisionCallbackData ));
 	data->lua_state = l;
 	data->callback_ref = ref;
 	b->callback_data = data;
@@ -282,14 +282,14 @@ int LUA_body_registerCollisionCallback( lua_State* l ) {
 }
 
 int LUA_body_destroy( lua_State* l ) {
-	body* b = lua_toptr( l, 1 );
+	body* b = (body*)lua_toptr( l, 1 );
 	luaAssert( l, b );
 	collision_removeBody( b );
 	return 0;
 }
 
 int LUA_physic_destroy( lua_State* l ) {
-	physic* p = lua_toptr( l, 1 );
+	physic* p = (physic*)lua_toptr( l, 1 );
 	luaAssert( l, p );
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
@@ -299,7 +299,7 @@ int LUA_physic_destroy( lua_State* l ) {
 }
 
 int LUA_transform_destroy( lua_State* l ) {
-	scene* s = lua_toptr( l, 1 );
+	scene* s = (scene*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	luaAssert( l, t );
 	scene_removeTransform( s, t );
@@ -309,8 +309,8 @@ int LUA_transform_destroy( lua_State* l ) {
 
 int LUA_physic_activate( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua physic activate.\n" );
-	engine* e = lua_toptr( l, 1 );
-	physic* p = lua_toptr( l, 2 );
+	engine* e = (engine*)lua_toptr( l, 1 );
+	physic* p = (physic*)lua_toptr( l, 2 );
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
@@ -319,11 +319,11 @@ int LUA_physic_activate( lua_State* l ) {
 }
 
 int LUA_physic_setVelocity( lua_State* l ) {
-	physic* p = lua_toptr( l, 1 );
+	physic* p = (physic*)lua_toptr( l, 1 );
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 	physic_assertActive( p );
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
-	vector* v = lua_toptr( l, 2 );
+	vector* v = (vector*)lua_toptr( l, 2 );
 	p->velocity = *v;
 	return 0;
 }
@@ -351,9 +351,9 @@ int LUA_setWorldSpacePosition( lua_State* l ) {
 
 int LUA_keyPressed( lua_State* l ) {
 	if ( lua_isnumber( l, 2 ) ) {
-		input* in = lua_toptr( l, 1 );
+		input* in = (input*)lua_toptr( l, 1 );
 		int key = (int)lua_tonumber( l, 2 );
-		bool pressed = input_keyPressed( in, key );
+		bool pressed = input_keyPressed( in, (enum key)key );
 		lua_pushboolean( l, pressed );
 		return 1;
 	}
@@ -362,9 +362,9 @@ int LUA_keyPressed( lua_State* l ) {
 }
 int LUA_keyHeld( lua_State* l ) {
 	if ( lua_isnumber( l, 2 ) ) {
-		input* in = lua_toptr( l, 1 );
+		input* in = (input*)lua_toptr( l, 1 );
 		int key = (int)lua_tonumber( l, 2 );
-		bool held = input_keyHeld( in, key );
+		bool held = input_keyHeld( in, (enum key)key );
 		lua_pushboolean( l, held );
 		return 1;
 	}
@@ -379,7 +379,7 @@ int LUA_touchPressed( lua_State* l ) {
 	 	lua_isnumber( l, 4 ) &&
 	 	lua_isnumber( l, 5 ) )
 	{
-		input* in = lua_toptr( l, 1 );
+		input* in = (input*)lua_toptr( l, 1 );
 		int x_min = lua_tonumber( l, 2 );
 		int y_min = lua_tonumber( l, 3 );
 		int x_max = lua_tonumber( l, 4 );
@@ -398,7 +398,7 @@ int LUA_touchHeld( lua_State* l ) {
 	 	lua_isnumber( l, 4 ) &&
 	 	lua_isnumber( l, 5 ) )
 	{
-		input* in = lua_toptr( l, 1 );
+		input* in = (input*)lua_toptr( l, 1 );
 		int x_min = lua_tonumber( l, 2 );
 		int y_min = lua_tonumber( l, 3 );
 		int x_max = lua_tonumber( l, 4 );
@@ -412,7 +412,7 @@ int LUA_touchHeld( lua_State* l ) {
 }
 
 int LUA_createTouchPad( lua_State* l ) {
-	input* in = lua_toptr( l, 1 );
+	input* in = (input*)lua_toptr( l, 1 );
 	int x = lua_tonumber( l, 2 );
 	int y = lua_tonumber( l, 3 );
 	int w = lua_tonumber( l, 4 );
@@ -423,7 +423,7 @@ int LUA_createTouchPad( lua_State* l ) {
 }
 
 int LUA_touchPadDragged( lua_State* l ) {
-	touchPad* pad = lua_toptr( l, 1 );
+	touchPad* pad = (touchPad*)lua_toptr( l, 1 );
 	int x, y;
 	bool dragged = touchPad_dragged( pad, &x, &y );
 	lua_pushboolean( l, dragged );
@@ -433,7 +433,7 @@ int LUA_touchPadDragged( lua_State* l ) {
 }
 
 int LUA_touchPadTouched( lua_State* l ) {
-	touchPad* pad = lua_toptr( l, 1 );
+	touchPad* pad = (touchPad*)lua_toptr( l, 1 );
 	int x, y;
 	bool touched = touchPad_touched( pad, &x, &y );
 	lua_pushboolean( l, touched );
@@ -445,7 +445,7 @@ int LUA_touchPadTouched( lua_State* l ) {
 int LUA_createGesture( lua_State* l ) {
 	float distance = lua_tonumber( l, 1 );
 	float duration = lua_tonumber( l, 2 );
-	vector* direction = lua_toptr( l, 3 );
+	vector* direction = (touchPad*)lua_toptr( l, 3 );
 	float angle_tolerance = lua_tonumber( l, 4 );
 	gesture* g = gesture_create( distance, duration, *direction, angle_tolerance );
 	lua_pushptr( l, g );
@@ -453,8 +453,8 @@ int LUA_createGesture( lua_State* l ) {
 }
 
 int LUA_gesture_performed( lua_State* l ) {
-	touchPad* pad = lua_toptr( l, 1 );
-	gesture* g = lua_toptr( l, 2 );
+	touchPad* pad = (touchPad*)lua_toptr( l, 1 );
+	gesture* g = (gesture*)lua_toptr( l, 2 );
 	bool performed = input_gesturePerformed( pad, g );
 	lua_pushboolean( l, performed );
 	return 1;
@@ -534,7 +534,7 @@ int LUA_vector( lua_State* l ) {
 
 int LUA_transformVector( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	vector* v = lua_toptr( l, 2 );
+	vector* v = (vector*)lua_toptr( l, 2 );
 	vector* _v = lua_createVector();
 	*_v = matrix_vecMul( t->world, v );
 	lua_pushptr( l, _v );
@@ -543,14 +543,14 @@ int LUA_transformVector( lua_State* l ) {
 
 int LUA_transform_setLocalPosition( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	vector* v = lua_toptr( l, 2 );
+	vector* v = (vector*)lua_toptr( l, 2 );
 	transform_setLocalTranslation( t, v );
 	return 0;
 }
 
 int LUA_transform_setWorldPosition( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	vector* v = lua_toptr( l, 2 );
+	vector* v = (vector*)lua_toptr( l, 2 );
 	transform_setWorldSpacePosition( t, v );
 	return 0;
 }
@@ -572,7 +572,7 @@ int LUA_transform_getWorldPosition( lua_State* l ) {
 }
 
 int LUA_vector_values( lua_State* l ) {
-	const vector* v = lua_toptr( l, 1 );
+	const vector* v = (const vector*)lua_toptr( l, 1 );
 	lua_pushnumber( l, v->coord.x );
 	lua_pushnumber( l, v->coord.y );
 	lua_pushnumber( l, v->coord.z );
@@ -582,7 +582,7 @@ int LUA_vector_values( lua_State* l ) {
 
 int LUA_chasecam_follow( lua_State* l ) {
 	LUA_DEBUG_PRINT( "LUA chasecam_follow\n" );
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	chasecam* c = chasecam_create();
 	startTick( e, (void*)c, chasecam_tick );	
@@ -595,7 +595,7 @@ int LUA_chasecam_follow( lua_State* l ) {
 
 int LUA_flycam( lua_State* l ) {
 	LUA_DEBUG_PRINT( "LUA flycam\n" );
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	flycam* c = flycam_create();
 	startTick( e, (void*)c, flycam_tick );	
 	startInput( e, (void*)c, flycam_input );	
@@ -606,12 +606,12 @@ int LUA_flycam( lua_State* l ) {
 }
 
 int LUA_setCamera( lua_State* l ) {
-	theScene->cam = lua_toptr( l, 1 );
+	theScene->cam = (camera*)lua_toptr( l, 1 );
 	return 0;
 }
 
 int LUA_cameraPosition( lua_State* l ) {
-	camera* c = lua_toptr( l, 1 );
+	camera* c = (camera*)lua_toptr( l, 1 );
 	vector* v = lua_createVector();
 	*v = *transform_getWorldPosition( c->trans );
 	lua_pushptr( l, v );
@@ -647,7 +647,7 @@ int LUA_transform_distance( lua_State* l ) {
 
 int LUA_transform_setRotation( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	quaternion* q = lua_toptr( l, 2 );
+	quaternion* q = (quaternion*)lua_toptr( l, 2 );
 	matrix m;
 	matrix_fromRotationTranslation( m, *q, Vector( 0.f, 0.f, 0.f, 1.f ));
 	transform_setWorldRotationMatrix( t, m );
@@ -656,14 +656,14 @@ int LUA_transform_setRotation( lua_State* l ) {
 
 int LUA_transform_setWorldSpaceByMatrix( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	matrix* m = lua_toptr( l, 2 );
+	matrix* m = (matrix*)lua_toptr( l, 2 );
 	transform_setWorldSpace( t, *m );
 	return 0;
 }
 
 int LUA_transform_facingWorld( lua_State* l ) {
 	transform* t = lua_toTransform( l, 1 );
-	const vector* look_at = lua_toptr( l, 2 );
+	const vector* look_at = (const vector*)lua_toptr( l, 2 );
 	const vector* position = transform_getWorldPosition( t );
 	vector displacement;
 	Sub( &displacement, look_at, position );
@@ -692,7 +692,7 @@ particleEmitter* createEmitter( const char* particle_file, transform* t, engine*
 }
 
 int LUA_particle_oneShot( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	const char* particle_file = lua_tostring( l, 3 );
 	particleEmitter* emitter = createEmitter( particle_file, t, e );
@@ -702,7 +702,7 @@ int LUA_particle_oneShot( lua_State* l ) {
 }
 
 int LUA_particle_create( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	const char* particle_file = lua_tostring( l, 3 );
 	particleEmitter* emitter = createEmitter( particle_file, t, e );
@@ -712,7 +712,7 @@ int LUA_particle_create( lua_State* l ) {
 
 
 int LUA_particle_destroy( lua_State* l ) {
-	particleEmitter* emitter = lua_toptr( l, 1 );
+	particleEmitter* emitter = (particleEmitter*)lua_toptr( l, 1 );
 	luaAssert( l, emitter );
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 	particleEmitter_assertActive( emitter );
@@ -723,7 +723,7 @@ int LUA_particle_destroy( lua_State* l ) {
 
 int LUA_ribbon_create( lua_State* l ) {
 	printf( "Create ribbon emitter!\n" );
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	transform* t = lua_toTransform( l, 2 );
 	const char* filename = lua_tostring( l, 3 );
 
@@ -741,7 +741,7 @@ canyon* theCanyon; // TODO
 
 // Get the world X,Y,Z position of a point a given DISTANCE down the canyon
 int LUA_canyonPosition( lua_State* l ) {
-	canyon* c = lua_toptr( l, 1 );
+	canyon* c = (canyon*)lua_toptr( l, 1 );
 	float u = lua_tonumber( l, 2 );
 	float v = lua_tonumber( l, 3 );
 	float x, y, z;
@@ -755,8 +755,8 @@ int LUA_canyonPosition( lua_State* l ) {
 
 // Get the Canyon U,V position of a point from a given world position
 int LUA_canyon_fromWorld( lua_State* l ) {
-	canyon* c = lua_toptr( l, 1 );
-	vector* world_position = lua_toptr( l, 2 );
+	canyon* c = (canyon*)lua_toptr( l, 1 );
+	vector* world_position = (vector*)lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
@@ -767,8 +767,8 @@ int LUA_canyon_fromWorld( lua_State* l ) {
 	return 2;
 }
 int LUA_canyonU_atWorld( lua_State* l ) {
-	canyon* c = lua_toptr( l, 1 );
-	vector* world_position = lua_toptr( l, 2 );
+	canyon* c = (canyon*)lua_toptr( l, 1 );
+	vector* world_position = (vector*)lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
@@ -779,8 +779,8 @@ int LUA_canyonU_atWorld( lua_State* l ) {
 	return 1;
 }
 int LUA_canyonV_atWorld( lua_State* l ) {
-	canyon* c = lua_toptr( l, 1 );
-	vector* world_position = lua_toptr( l, 2 );
+	canyon* c = (canyon*)lua_toptr( l, 1 );
+	vector* world_position = (vector*)lua_toptr( l, 2 );
 #ifdef DEBUG_SANITY_CHECK_POINTERS
 	luaAssert( l, (uintptr_t)world_position > 0xffff );
 #endif // DEBUG_SANITY_CHECK_POINTERS
@@ -799,7 +799,7 @@ int LUA_canyonzone_fromV( lua_State* l ) {
 }
 
 int LUA_canyonzoneType_fromV( lua_State* l ) {
-	canyon* c = lua_toptr( l, 1 );
+	canyon* c = (canyon*)lua_toptr( l, 1 );
 	float v = lua_tonumber( l, 2 );
 	int zone = canyon_zoneType( c, v );
 	lua_pushnumber( l, zone );
@@ -825,9 +825,9 @@ int LUA_fx_toggleBloom( lua_State* l ) {
 }
 
 int LUA_createUIPanel( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	const char* texture_path = lua_tostring( l, 2 );
-	vector* ui_color = lua_toptr( l, 3 );
+	vector* ui_color = (vector*)lua_toptr( l, 3 );
 	float x = lua_tonumber( l, 4 );
 	float y = lua_tonumber( l, 5 );
 	float w = lua_tonumber( l, 6 );
@@ -838,19 +838,19 @@ int LUA_createUIPanel( lua_State* l ) {
 	p->width = w;
 	p->height = h;
 	p->color = *ui_color;
-	textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+	textureProperties* properties = (textureProperties*)mem_alloc( sizeof( textureProperties ));
 	properties->wrap_s = GL_CLAMP_TO_EDGE;
 	properties->wrap_t = GL_CLAMP_TO_EDGE;
-	p->texture = texture_loadWithProperties( texture_path, properties );
+	p->_texture = texture_loadWithProperties( texture_path, properties );
 	engine_addRender( e, p, panel_render );
 	lua_pushptr( l, p );
 	return 1;
 }
 
 int LUA_createUIPanel_future( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	const char* texture_path = lua_tostring( l, 2 );
-	vector* ui_color = lua_toptr( l, 3 );
+	vector* ui_color = (vector*)lua_toptr( l, 3 );
 	float x = lua_tonumber( l, 4 );
 	float y = lua_tonumber( l, 5 );
 	float w = lua_tonumber( l, 6 );
@@ -864,10 +864,10 @@ int LUA_createUIPanel_future( lua_State* l ) {
 	p->width = w;
 	p->height = h;
 	p->color = *ui_color;
-	textureProperties* properties = mem_alloc( sizeof( textureProperties ));
+	textureProperties* properties = (textureProperties*)mem_alloc( sizeof( textureProperties ));
 	properties->wrap_s = GL_CLAMP_TO_EDGE;
 	properties->wrap_t = GL_CLAMP_TO_EDGE;
-	p->texture = texture_loadWithProperties( texture_path, properties );
+	p->_texture = texture_loadWithProperties( texture_path, properties );
 	engine_addRender( e, p, panel_render );
 
 	lua_completeFuturePtr( l, future_ref, p );
@@ -877,57 +877,57 @@ int LUA_createUIPanel_future( lua_State* l ) {
 }
 
 int LUA_showUIPanel( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
-	panel* p = lua_toptr( l, 2 );
+	engine* e = (engine*)lua_toptr( l, 1 );
+	panel* p = (panel*)lua_toptr( l, 2 );
 	panel_show( e, p );
 	return 0;
 }
 
 int LUA_hideUIPanel( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
-	panel* p = lua_toptr( l, 2 );
+	engine* e = (engine*)lua_toptr( l, 1 );
+	panel* p = (panel*)lua_toptr( l, 2 );
 	panel_hide( e, p );
 	return 0;
 }
 
 int LUA_setPanelAlpha( lua_State* l ) {
-	panel* p = lua_toptr( l, 1 );
+	panel* p = (panel*)lua_toptr( l, 1 );
 	float a = lua_tonumber( l, 2 );
 	panel_setAlpha( p, a );
 	return 0;
 }
 
 int LUA_panelFadeOut( lua_State* l ) {
-	panel* p = lua_toptr( l, 1 );
+	panel* p = (panel*)lua_toptr( l, 1 );
 	float t = lua_tonumber( l, 2 );
 	panel_fadeOut( p, t );	
 	return 0;
 }
 
 int LUA_panelFadeIn( lua_State* l ) {
-	panel* p = lua_toptr( l, 1 );
+	panel* p = (panel*)lua_toptr( l, 1 );
 	float t = lua_tonumber( l, 2 );
 	panel_fadeIn( p, t );	
 	return 0;
 }
 
 int LUA_body_setLayers( lua_State* l ) {
-	body* b = lua_toptr( l, 1 );
+	body* b = (body*)lua_toptr( l, 1 );
 	collision_layers_t layers = (collision_layers_t)lua_tonumber( l, 2 );
 	b->layers = layers;
 	return 0;
 }
 
 int LUA_body_setCollidableLayers( lua_State* l ) {
-	body* b = lua_toptr( l, 1 );
+	body* b = (body*)lua_toptr( l, 1 );
 	collision_layers_t layers = (collision_layers_t)lua_tonumber( l, 2 );
 	b->collide_with = layers;
 	return 0;
 }
 
 int LUA_createCanyon(lua_State* l) {
-	engine* e = lua_toptr( l, 1 );
-	scene* s = lua_toptr( l, 2 );
+	engine* e = (engine*)lua_toptr( l, 1 );
+	scene* s = (scene*)lua_toptr( l, 2 );
 	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
 	canyon_generateInitialPoints( c );
 	canyonBuffer_seek( c, 0 );
@@ -944,22 +944,22 @@ int LUA_createCanyon(lua_State* l) {
 }
 
 int LUA_debugdraw_cross( lua_State* l ) {
-	vector* center = lua_toptr( l, 1 );
+	vector* center = (vector*)lua_toptr( l, 1 );
 	float radius = lua_tonumber( l, 2 );
 	debugdraw_cross( *center, radius, color_green );
 	return 0;
 }
 
 int LUA_vector_distance( lua_State* l ) {
-	const vector* a = lua_toptr( l, 1 );
-	const vector* b = lua_toptr( l, 2 );
+	const vector* a = (const vector*)lua_toptr( l, 1 );
+	const vector* b = (const vector*)lua_toptr( l, 2 );
 	float distance = vector_distance( a, b );
 	lua_pushnumber( l, (double)distance );
 	return 1;
 }
 int LUA_vector_add( lua_State* l ) {
-	const vector* a = lua_toptr( l, 1 );
-	const vector* b = lua_toptr( l, 2 );
+	const vector* a = (const vector*)lua_toptr( l, 1 );
+	const vector* b = (const vector*)lua_toptr( l, 2 );
 	vector* v = lua_createVector();
 	*v = vector_add( *a, *b );
 	lua_pushptr( l, v );
@@ -967,8 +967,8 @@ int LUA_vector_add( lua_State* l ) {
 }
 
 int LUA_vector_subtract( lua_State* l ) {
-	const vector* a = lua_toptr( l, 1 );
-	const vector* b = lua_toptr( l, 2 );
+	const vector* a = (const vector*)lua_toptr( l, 1 );
+	const vector* b = (const vector*)lua_toptr( l, 2 );
 	vector* v = lua_createVector();
 	*v = vector_sub( *a, *b );
 	lua_pushptr( l, v );
@@ -976,7 +976,7 @@ int LUA_vector_subtract( lua_State* l ) {
 }
 
 int LUA_vector_normalize( lua_State* l ) {
-	const vector* v = lua_toptr( l, 1 );
+	const vector* v = (const vector*)lua_toptr( l, 1 );
 	vector* v_normalized = lua_createVector();
 	*v_normalized = normalized( *v );
 	lua_pushptr( l, v_normalized );
@@ -984,14 +984,14 @@ int LUA_vector_normalize( lua_State* l ) {
 }
 
 int LUA_vector_dot( lua_State* l ) {
-	const vector* a = lua_toptr( l, 1 );
-	const vector* b = lua_toptr( l, 2 );
+	const vector* a = (const vector*)lua_toptr( l, 1 );
+	const vector* b = (const vector*)lua_toptr( l, 2 );
 	lua_pushnumber( l, Dot( a, b ));
 	return 1;
 }
 
 int LUA_vector_scale( lua_State* l ) {
-	const vector* v = lua_toptr( l, 1 );
+	const vector* v = (const vector*)lua_toptr( l, 1 );
 	float scale = lua_tonumber( l, 2 );
 	vector* v_scaled = lua_createVector();
 	*v_scaled = vector_scaled( *v, scale );
@@ -1010,15 +1010,15 @@ int LUA_transformWorldMatrix( lua_State* l ) {
 }
 
 int LUA_matrix_setTranslation( lua_State* l ) {
-	matrix* m = lua_toptr( l, 1 );
-	vector* v = lua_toptr( l, 2 );
+	matrix* m = (matrix*)lua_toptr( l, 1 );
+	vector* v = (vector*)lua_toptr( l, 2 );
 	matrix_setTranslation( *m, v );
 	return 0;
 }
 
 int LUA_matrix_facing( lua_State* l ) {
-	vector* facing = lua_toptr( l, 1 );
-	vector* from = lua_toptr( l, 2 );
+	vector* facing = (vector*)lua_toptr( l, 1 );
+	vector* from = (vector*)lua_toptr( l, 2 );
 	vector displacement = normalized( vector_sub( *facing, *from ));
 	
 	matrix* m = lua_createMatrix();
@@ -1029,7 +1029,7 @@ int LUA_matrix_facing( lua_State* l ) {
 }
 
 int LUA_matrix_toEulerAngles( lua_State* l ) {
-	matrix *m = lua_toptr( l, 1 );
+	matrix *m = (matrix*)lua_toptr( l, 1 );
 	vector ypr = matrix_toEuler( *m );
 	lua_pushnumber( l, ypr.coord.x );
 	lua_pushnumber( l, ypr.coord.y );
@@ -1048,7 +1048,7 @@ int LUA_quaternion_fromTransform( lua_State* l ) {
 }
 
 int LUA_quaternion_look( lua_State* l ) {
-	const vector* v = lua_toptr( l, 1 );
+	const vector* v = (const vector*)lua_toptr( l, 1 );
 	matrix m;
 	matrix_look( m, *v );
 	quaternion* q = lua_createQuaternion();
@@ -1058,8 +1058,8 @@ int LUA_quaternion_look( lua_State* l ) {
 }
 
 int LUA_quaternion_rotation( lua_State* l ) {
-	const quaternion* q = lua_toptr( l, 1 );
-	const vector* v = lua_toptr( l, 2 );
+	const quaternion* q = (const quaternion*)lua_toptr( l, 1 );
+	const vector* v = (const vector*)lua_toptr( l, 2 );
 	vector* result = lua_createVector();
 	*result = quaternion_rotation( *q, *v );
 	lua_pushptr( l, result );
@@ -1067,8 +1067,8 @@ int LUA_quaternion_rotation( lua_State* l ) {
 }
 
 int LUA_quaternion_slerp( lua_State* l ) {
-	const quaternion* from = lua_toptr( l, 1 );
-	const quaternion* to = lua_toptr( l, 2 );
+	const quaternion* from = (const quaternion*)lua_toptr( l, 1 );
+	const quaternion* to = (const quaternion*)lua_toptr( l, 2 );
 	float f = lua_tonumber( l, 3 );
 	quaternion* result = lua_createQuaternion();
 	*result = quaternion_slerp( *from, *to, f );
@@ -1077,8 +1077,8 @@ int LUA_quaternion_slerp( lua_State* l ) {
 }
 
 int LUA_quaternion_slerpAngle( lua_State* l ) {
-	const quaternion* from = lua_toptr( l, 1 );
-	const quaternion* to = lua_toptr( l, 2 );
+	const quaternion* from = (const quaternion*)lua_toptr( l, 1 );
+	const quaternion* to = (const quaternion*)lua_toptr( l, 2 );
 	float angle = lua_tonumber( l, 3 );
 	quaternion* result = lua_createQuaternion();
 	*result = quaternion_slerpAngle( *from, *to, angle );
@@ -1105,7 +1105,7 @@ int LUA_bit_AND( lua_State* l ) {
 }
 
 int LUA_rand_newSeq( lua_State* l ) {
-	randSeq* random_sequence = mem_alloc( sizeof( randSeq ));
+	randSeq* random_sequence = (randSeq*)mem_alloc( sizeof( randSeq ));
 	random_sequence->buffer[0] = 0x1;
 	random_sequence->buffer[1] = 0x2;
 	random_sequence->buffer[2] = 0x3;
@@ -1115,7 +1115,7 @@ int LUA_rand_newSeq( lua_State* l ) {
 }
 
 int LUA_rand( lua_State* l ) {
-	randSeq* random_sequence = lua_toptr( l, 1 );
+	randSeq* random_sequence = (randSeq*)lua_toptr( l, 1 );
 	float floor = lua_tonumber( l, 2 );
 	float ceiling = lua_tonumber( l, 3 );
 	float rand = deterministic_frand( random_sequence, floor, ceiling );
@@ -1124,13 +1124,13 @@ int LUA_rand( lua_State* l ) {
 }
 
 int LUA_pause( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	e->paused = true;
 	return 0;
 }
 
 int LUA_unpause( lua_State* l ) {
-	engine* e = lua_toptr( l, 1 );
+	engine* e = (engine*)lua_toptr( l, 1 );
 	e->paused = false;
 	return 0;
 }

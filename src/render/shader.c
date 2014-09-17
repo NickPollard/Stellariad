@@ -35,7 +35,7 @@ shaderConstantBinding shader_createBinding( GLuint shader_program, const char* v
 	binding.program_location = shader_getAttributeLocation( shader_program, variable_name );
 	if ( binding.program_location == -1 )
 		binding.program_location = shader_getUniformLocation( shader_program, variable_name );
-	binding.value = map_findOrAdd( shader_constants, mhash( variable_name ));
+	binding.value = (GLint*)map_findOrAdd( shader_constants, mhash( variable_name ));
 
 	// TODO: Make this into an easy lookup table
 	binding.type = uniform_unknown;
@@ -94,7 +94,7 @@ void gl_dumpInfoLog( GLuint object, func_getIV getIV, func_getInfoLog getInfoLog
 	getIV( object, GL_INFO_LOG_LENGTH, &length );
 	if ( length != -1 ) {
 		length = min( length, kShaderMaxLogLength );
-		log = mem_alloc( sizeof( char ) * length );
+		log = (char*)mem_alloc( sizeof( char ) * length );
 		log[0] = '\0';
 		GLint length_read;
 		getInfoLog( object, length, &length_read, log );
@@ -169,7 +169,7 @@ void shader_bindConstant( shaderConstantBinding binding ) {
 }
 
 GLint* shader_findConstant( int key ) {
-	return map_find( shader_constants, key );
+	return (GLint*)map_find( shader_constants, key );
 }
 
 // Clear all constants so that they are unbound
@@ -216,7 +216,7 @@ void shaderLoad( const char* shaderName, bool required ) {
 	printf( "loading shader %s.\n", shaderName );
 	if (shaderMap == NULL)
 		shaderMap = map_create(128, sizeof( shader* ) );
-	shaderInfo* sInfo = sexpr_loadFile( shaderName );
+	shaderInfo* sInfo = (shaderInfo*)sexpr_loadFile( shaderName );
 	sInfo->name = shaderName;
 	shader* s = shader_load( sInfo->vertex, sInfo->fragment );
 	if (!s) {
@@ -229,12 +229,6 @@ void shaderLoad( const char* shaderName, bool required ) {
 	// Add to loaded list
 	// if no already in it
 	if (!shaderAlreadyLoaded(shaderName)) {
-		/*
-		shaderInfo* sInfo = mem_alloc(sizeof(shaderInfo));
-		sInfo->name = shaderName;
-		sInfo->vertex = string_createCopy(shaderName);
-		sInfo->fragment = string_createCopy(shaderName);
-		*/
 		shadersLoaded = shaderInfolist_cons( sInfo, shadersLoaded );
 	}
 }
@@ -248,14 +242,14 @@ void shadersReloadAll() {
 // Load a shader from GLSL files
 shader* shader_load( const char* vertex_name, const char* fragment_name ) {
 	SHADER_DEBUGPRINT( "SHADER: Loading Shader (Vertex: \"%s\", Fragment: \"%s\")\n", vertex_name, fragment_name );
-	shader* s = mem_alloc( sizeof( shader ));
+	shader* s = (shader*)mem_alloc( sizeof( shader ));
 	memset( s, 0, sizeof( shader ));
 	s->dict.count = 0;
 
 	// Load source code
 	size_t length = 0;
-	const char* vertex_file = vfile_contents( vertex_name, &length );
-	const char* fragment_file = vfile_contents( fragment_name, &length );
+	const char* vertex_file = (const char*)vfile_contents( vertex_name, &length );
+	const char* fragment_file = (const char*)vfile_contents( fragment_name, &length );
 
 	s->program = buildShader( vertex_name, fragment_name, vertex_file, fragment_file );
 	if (s->program == 0) { // If we couldn't build it properly

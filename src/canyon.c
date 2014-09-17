@@ -300,14 +300,14 @@ void canyon_tickZone( canyon* c, float v, int zone ) {
 	canyonZone* b = &c->zones[next];
 	vector sky_color, fog_color, sun_color;
 	canyonZone_skyFogBlend( a, b, canyonZone_blend( v ), &sky_color, &fog_color, &sun_color );
-	scene_setFogColor( c->scene, &fog_color );
-	scene_setSkyColor( c->scene, &sky_color );
-	scene_setSunColor( c->scene, &sun_color );
+	scene_setFogColor( c->_scene, &fog_color );
+	scene_setSkyColor( c->_scene, &sky_color );
+	scene_setSunColor( c->_scene, &sun_color );
 }
 
 void canyon_tick( void* canyon_data, float dt, engine* eng ) {
 	(void)eng;
-	canyon* c = canyon_data;
+	canyon* c = (canyon*)canyon_data;
 	float u, v;
 	canyonSpaceFromWorld( c, zone_sample_point.coord.x, zone_sample_point.coord.z, &u, &v );
 	canyon_tickZone( c, v, canyon_zone( v )); // TODO - Huh??
@@ -323,12 +323,12 @@ canyonData* canyon_sample( canyon* c, int index ) {
 */
 
 canyon* canyon_create( scene* s, const char* file ) {
-	canyon* c = mem_alloc( sizeof( canyon ));
+	canyon* c = (canyon*)mem_alloc( sizeof( canyon ));
 	memset( c, 0, sizeof( canyon ));
-	c->scene = s;
+	c->_scene = s;
 	canyonZone_load( c, file );
 	c->canyon_streaming_buffer = window_bufferCreate( sizeof( canyonData ), MaxCanyonPoints );
-	c->terrainCache = terrainCache_create();
+	c->cache = terrainCache_create();
 	canyon_generateInitialPoints( c );
 	canyonBuffer_seek( c, 0 );
 	return c;

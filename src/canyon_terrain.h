@@ -37,12 +37,12 @@ struct canyonTerrainBlock_s {
 	body*			collision;
 
 	canyonTerrain* terrain;
-	canyon* canyon;
+	canyon* _canyon;
 
 	ActorRef actor;
 
 	terrainRenderable* renderable;
-	engine* engine;
+	engine* _engine;
 	future* ready;
 };
 
@@ -84,8 +84,8 @@ struct canyonTerrain_s {
 	int				bounds[2][2];
 	vector			sample_point;
 
-	canyon*				canyon;
-	unsigned short**	vertex_buffers;
+	canyon*				_canyon;
+	vertex**			vertex_buffers;
 	int					vertex_buffer_count;
 	unsigned short**	element_buffers;
 	int					element_buffer_count;

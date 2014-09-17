@@ -78,7 +78,7 @@ transform* transform_createAndAdd( scene* s ) {
 
 // Create a new default transform
 transform* transform_createEmpty() {
-	transform* t = mem_alloc( sizeof( transform ));
+	transform* t = (transform*)mem_alloc( sizeof( transform ));
 	matrix_setIdentity(t->local);
 	matrix_setIdentity(t->world);
 	t->parent = NULL;
@@ -89,7 +89,8 @@ transform* transform_createEmpty() {
 
 // Create a new default transform with the given parent
 transform* transform_create_Parent(scene* s, transform* parent) {
-	transform* t = transform_create(s);
+	(void)s;
+	transform* t = transform_create();
 	t->parent = parent;
 	return t;
 }

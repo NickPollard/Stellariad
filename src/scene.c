@@ -239,15 +239,15 @@ void scene_setSunColor( scene* s, const vector* color ) {
 
 // Make a scene
 scene* scene_create( engine* e ) {
-	scene* s = mem_alloc( sizeof( scene ));
+	scene* s = (scene*)mem_alloc( sizeof( scene ));
 	memset( s, 0, sizeof( scene ));
 	s->model_count = s->light_count = s->transform_count = 0;
-	s->modelInstances = mem_alloc( sizeof( modelInstance* ) * MAX_MODELS );
-	s->lights =			mem_alloc( sizeof( light* ) * MAX_LIGHTS );
-	s->transforms =		mem_alloc( sizeof( transform* ) * MAX_TRANSFORMS );
+	s->modelInstances = (modelInstance**)mem_alloc( sizeof( modelInstance* ) * MAX_MODELS );
+	s->lights =			(light**)mem_alloc( sizeof( light* ) * MAX_LIGHTS );
+	s->transforms =		(transform**)mem_alloc( sizeof( transform* ) * MAX_TRANSFORMS );
 	memset( s->transforms, 0, sizeof( transform* ) * MAX_TRANSFORMS );
-	s->emitters =		mem_alloc( sizeof( particleEmitter* ) * MAX_EMITTERS );
-	s->ribbon_emitters =		mem_alloc( sizeof( ribbonEmitter* ) * MAX_EMITTERS );
+	s->emitters =		(particleEmitter**)mem_alloc( sizeof( particleEmitter* ) * MAX_EMITTERS );
+	s->ribbon_emitters =		(ribbonEmitter**)mem_alloc( sizeof( ribbonEmitter* ) * MAX_EMITTERS );
 	s->fog_color = Vector( 0.f, 1.f, 0.f, 1.f );
 	s->eng = e;
 	return s;
@@ -362,7 +362,7 @@ sceneData* scene_save( scene* s ) {
 						sizeof( camera );
 
 	void* blob = mem_alloc( blob_size );
-	void* blob_end = blob + blob_size;	// Used for debug check to ensure we don't write over the end
+	void* blob_end = (uint8_t*)blob + blob_size;	// Used for debug check to ensure we don't write over the end
 	
 	sceneData* data = (sceneData*)blob;
 	data->size = blob_size;
@@ -372,36 +372,36 @@ sceneData* scene_save( scene* s ) {
 
 	// transforms
 	data->transform_count = s->transform_count;
-	data->transforms = blob + sizeof( sceneData );
+	data->transforms = (transform*)((uint8_t*)blob + sizeof( sceneData ));
 	vAssert( (void*)data->transforms < blob_end );
 
 	for ( int i = 0; i < s->transform_count; i++ ) {
 		data->transforms[i] = *scene_transform( s, i );
 		vAssert( data->transforms[i].parent != scene_transform( s, i ));
-		data->transforms[i].parent = (void*)(uintptr_t)scene_transformIndex( s, data->transforms[i].parent );
+		data->transforms[i].parent = (transform*)(uintptr_t)scene_transformIndex( s, data->transforms[i].parent );
 	}
 	
 	// modelInstances
 	data->model_count = s->model_count;
-	data->modelInstances = (void*)data->transforms + transforms_size;
+	data->modelInstances = (modelInstance*)((uint8_t*)data->transforms + transforms_size);
 	vAssert( (void*)data->modelInstances < blob_end );
 
 	for ( int i = 0; i < s->model_count; i++ ) {
 		data->modelInstances[i] = *scene_model( s, i );
-		data->modelInstances[i].trans = (void*)(uintptr_t)scene_transformIndex( s, data->modelInstances[i].trans );
+		data->modelInstances[i].trans = (transform*)(uintptr_t)scene_transformIndex( s, data->modelInstances[i].trans );
 	}
 
 	// lights
 	data->light_count = s->light_count;
-	data->lights = (void*)data->modelInstances + models_size;
+	data->lights = (light*)((uint8_t*)data->modelInstances + models_size);
 	vAssert( (void*)data->lights < blob_end );
 
 	for ( int i = 0; i < s->light_count; i++ ) {
 		data->lights[i] = *scene_light( s, i );
-		data->lights[i].trans = (void*)(uintptr_t)scene_transformIndex( s, data->lights[i].trans );
+		data->lights[i].trans = (transform*)(uintptr_t)scene_transformIndex( s, data->lights[i].trans );
 	}
 
-	data->cam = (void*)data->lights + lights_size;
+	data->cam = (camera*)((uint8_t*)data->lights + lights_size);
 	vAssert( (void*)data->cam < blob_end );
 
 	memcpy( data->cam, s->cam, sizeof( camera ));
@@ -431,7 +431,7 @@ scene* scene_loadFile( const char* filename ) {
 	sceneData* data = (sceneData*)buffer;
 	printf( "Loading scene from file %s. File Size: " dPTRf ", Data size: " dPTRf ".\n", filename, buffer_length, data->size );
 	vAssert( data->size == buffer_length );
-	return scene_load( buffer );
+	return scene_load( data );
 }
 
 scene* scene_load( sceneData* data ) {
@@ -446,13 +446,13 @@ scene* scene_load( sceneData* data ) {
 	size_t transforms_size =	sizeof( transform ) *		data->transform_count;
 
 	// Need to fix up array pointers
-	data->transforms = (void*)data + sizeof( sceneData );
-	data->modelInstances = (void*)data->transforms + transforms_size;
-	data->lights = (void*)data->modelInstances + models_size;
+	data->transforms = (transform*)((uint8_t*)data + sizeof( sceneData ));
+	data->modelInstances = (modelInstance*)((uint8_t*)data->transforms + transforms_size);
+	data->lights = (light*)((uint8_t*)data->modelInstances + models_size);
 
 	// create transforms
 	for ( int i = 0; i < data->transform_count; i++ ) {
-		transform* t = transform_create( s );
+		transform* t = transform_create();
 		memcpy( t, &data->transforms[i], sizeof( transform ));
 		scene_addTransform( s, t );
 		printf(" Loading transform %d. Parent index = " dPTRf ".\n", i, (uintptr_t)t->parent );
@@ -460,7 +460,7 @@ scene* scene_load( sceneData* data ) {
 		vAssert( t != t->parent );
 	}
 
-	s->cam = camera_create( s );
+	s->cam = camera_create();
 	memcpy( s->cam, data->cam, sizeof( camera ));
 	s->cam->trans = scene_resolveTransform( s, (uintptr_t)s->cam->trans );
 
