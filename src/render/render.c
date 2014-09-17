@@ -91,17 +91,15 @@ bool	render_bloom_enabled = true;
 	sceneParams sceneParams_main;
 
 void render_buildShaders() {
-	// Load Shaders					Vertex												Fragment
-	shaderLoad( "dat/shaders/default.s" );
-	shaderLoad( "dat/shaders/refl_normal.s" );
-	shaderLoad( "dat/shaders/terrain.s" );
+	shaderLoad( "dat/shaders/default.s", true );
+	shaderLoad( "dat/shaders/refl_normal.s", true );
+	shaderLoad( "dat/shaders/reflective.s", true );
+	shaderLoad( "dat/shaders/terrain.s", true );
 
-	//
+	// Load Shaders					Vertex												Fragment
 	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
-	resources.shader_reflective		= shader_load( "dat/shaders/reflective.v.glsl",		"dat/shaders/reflective.f.glsl" );
-//	resources.shader_refl_normal	= shader_load( "dat/shaders/refl_normal.v.glsl",	"dat/shaders/refl_normal.f.glsl" );
 	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
-	resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
+	//resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
 	resources.shader_ui				= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
 	resources.shader_gaussian		= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
@@ -121,14 +119,8 @@ void render_buildShaders() {
 
 // TODO - hashmap
 shader** render_shaderByName( const char* name ) {
-	if (string_equal(name, "phong")) return &resources.shader_default;
-	else if (string_equal(name, "reflective")) return &resources.shader_reflective;
-	//else if (string_equal(name, "refl_normal")) return &resources.shader_refl_normal;
-	else {
-		shader** s = shaderGet( name );
-		if (s) return s;
-		else return &resources.shader_default;
-	}
+	shader** s = shaderGet( name );
+	if (s) return s; else return &resources.shader_default;
 }
 
 #define kMaxDrawCalls 2048
@@ -607,13 +599,12 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	//mem_free( sorted );
 }
 
+void glToggle( GLuint var, bool enable ) { if (enable) glEnable( var ); else glDisable( var ); }
+
 // Draw each batch of drawcalls
 void render_drawPass( window* w, renderPass* pass ) {
 	if ( pass->alphaBlend != render_alphaBlend ) {
-		if ( pass->alphaBlend )
-			glEnable( GL_BLEND );
-		else 
-			glDisable( GL_BLEND );
+		glToggle( GL_BLEND, pass->alphaBlend );
 		render_alphaBlend = pass->alphaBlend;
 	}
 	if ( pass->colorMask != render_colorMask ) {
@@ -628,7 +619,7 @@ void render_drawPass( window* w, renderPass* pass ) {
 		render_depthMask = pass->depthMask;
 	}
 	for ( int i = 0; i < kCallBufferCount; i++ ) {
-		int count = pass->next_call_index[i];
+		const int count = pass->next_call_index[i];
 		if ( count > 0 )
 			render_drawShaderBatch( w, count, pass->call_buffer[i] );	
 	}
@@ -802,28 +793,10 @@ void render_waitForEngineThread() {
 	vthread_waitCondition( start_render );
 }
 
-void reloadShaders() {
-	// Reload everything from the shaderMap
-	shadersReloadAll();
-
-	if (vfile_modifiedSinceLast( "dat/shaders/ssao.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/ssao.v.glsl" )) {
-		resources.shader_ssao = shader_load( "dat/shaders/ssao.v.glsl",	"dat/shaders/ssao.f.glsl" );
-	}
-	if (vfile_modifiedSinceLast( "dat/shaders/phong.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/phong.v.glsl" )) {
-		resources.shader_default = shader_load( "dat/shaders/phong.v.glsl", "dat/shaders/phong.f.glsl" );
-	}
-	if (vfile_modifiedSinceLast( "dat/shaders/reflective.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/reflective.v.glsl" )) {
-		resources.shader_reflective	= shader_load( "dat/shaders/reflective.v.glsl",	"dat/shaders/reflective.f.glsl" );
-	}
-//	if (vfile_modifiedSinceLast( "dat/shaders/refl_normal.f.glsl" ) || vfile_modifiedSinceLast( "dat/shaders/refl_normal.v.glsl" )) {
-//		resources.shader_refl_normal = shader_load( "dat/shaders/refl_normal.v.glsl", "dat/shaders/refl_normal.f.glsl" );
-//	}
-}
-
 void render_renderThreadTick( engine* e ) {
 	PROFILE_BEGIN( PROFILE_RENDER_TICK );
 	texture_tick();
-	reloadShaders();
+	shadersReloadAll();
 	render_resetModelView();
 #ifdef GRAPH_GPU_FPS
 	graph_render( gpu_fpsgraph );

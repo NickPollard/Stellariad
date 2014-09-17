@@ -92,18 +92,15 @@ void gl_dumpInfoLog( GLuint object, func_getIV getIV, func_getInfoLog getInfoLog
 	GLint length = -1;
 	char* log;
 	getIV( object, GL_INFO_LOG_LENGTH, &length );
-	printf( "SHADER: got log length: %d\n", length );
-
 	if ( length != -1 ) {
 		length = min( length, kShaderMaxLogLength );
 		log = mem_alloc( sizeof( char ) * length );
 		log[0] = '\0';
-		printf( "SHADER: allocated log.\n" );
 		GLint length_read;
 		getInfoLog( object, length, &length_read, log );
-		printf( "--- Begin Info Log ---\n" );
-		printf( "%s\n", log );
-		printf( "--- End Info Log: %d characters read ---\n", length_read );
+		printf( "--- shader compiler output ---\n" );
+		printf( "%s", log );
+		printf( "------\n" );
 		mem_free( log );
 	}
 }
@@ -116,7 +113,7 @@ GLuint shader_compile( GLenum type, const char* path, const char* source ) {
 	GLint shader_ok;
 
 	if ( !source ) {
-		printError( "Cannot create Shader. File %s not found.\n", path );
+		printError( "Cannot create Shader. File %s not found.", path );
 		assert( 0 );
 	}
 
@@ -126,9 +123,10 @@ GLuint shader_compile( GLenum type, const char* path, const char* source ) {
 
 	glGetShaderiv( glShader, GL_COMPILE_STATUS, &shader_ok );
 	if ( !shader_ok ) {
-		printError( "Failed to compile Shader from File %s.\n", path );
+		printError( "Failed to compile Shader from File %s.", path );
 		gl_dumpInfoLog( glShader, glGetShaderiv,  glGetShaderInfoLog );
-		assert( 0 );
+		return 0;
+		//assert( 0 );
 	}
 
 	return glShader;
@@ -155,10 +153,11 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 }
 
 // Build a GLSL shader program from given vertex and fragment shader source pathnames
-GLuint	buildShader( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
+GLuint buildShader( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
 	GLuint vertex_shader = shader_compile( GL_VERTEX_SHADER, vertex_path, vertex_file );
 	GLuint fragment_shader = shader_compile( GL_FRAGMENT_SHADER, fragment_path, fragment_file );
-	return shader_link( vertex_shader, fragment_shader );
+	bool err = (vertex_shader == 0 || fragment_shader == 0); 
+	return err ? 0 : shader_link( vertex_shader, fragment_shader );
 }
 
 void shader_init() {
@@ -213,14 +212,19 @@ bool shaderAlreadyLoaded( const char* shaderName ) {
 	return false;
 }
 
-void shaderLoad( const char* shaderName ) {
+void shaderLoad( const char* shaderName, bool required ) {
 	printf( "loading shader %s.\n", shaderName );
 	if (shaderMap == NULL)
 		shaderMap = map_create(128, sizeof( shader* ) );
 	shaderInfo* sInfo = sexpr_loadFile( shaderName );
 	sInfo->name = shaderName;
 	shader* s = shader_load( sInfo->vertex, sInfo->fragment );
-	map_addOverride(shaderMap, mhash(shaderName), &s);
+	if (!s) {
+		printf( "Could not load shader %s\n", shaderName );
+		vAssert( !required || s );
+	}
+	else
+		map_addOverride(shaderMap, mhash(shaderName), &s);
 
 	// Add to loaded list
 	// if no already in it
@@ -238,7 +242,7 @@ void shaderLoad( const char* shaderName ) {
 void shadersReloadAll() {
 	for ( shaderInfolist* l = shadersLoaded; l && l->head; l = l->tail )
 		if (vfile_modifiedSinceLast( l->head->fragment) || vfile_modifiedSinceLast( l->head->vertex) || vfile_modifiedSinceLast( l->head->name ))
-			shaderLoad( l->head->name );
+			shaderLoad( l->head->name, false );
 }
 
 // Load a shader from GLSL files
@@ -254,6 +258,10 @@ shader* shader_load( const char* vertex_name, const char* fragment_name ) {
 	const char* fragment_file = vfile_contents( fragment_name, &length );
 
 	s->program = buildShader( vertex_name, fragment_name, vertex_file, fragment_file );
+	if (s->program == 0) { // If we couldn't build it properly
+		mem_free( s );
+		return nullptr;
+	}
 
 	shader_buildDictionary( &s->dict, s->program, vertex_file );
 	shader_buildDictionary( &s->dict, s->program, fragment_file );

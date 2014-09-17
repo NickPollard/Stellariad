@@ -81,13 +81,13 @@ void main() {
 #else
 	float fresnel = 1.0;
 #endif
-
-	material_diffuse = vec4( 0.5, 0.5, 0.5, 1.0 );
+	float m = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.f;
+	material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.3f);
 	vec4 fragColor = total_light_color * material_diffuse;// + reflection * fresnel;
 	vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);
 	float sun = sun( camera_space_sun_direction, view_direction );
 	float fogSun = sun_fog( camera_space_sun_direction, view_direction );
 	vec4 local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
-	//gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+	//gl_FragColor = vec4( 1.0, 1.0, 0.0, 1.0 );
 }

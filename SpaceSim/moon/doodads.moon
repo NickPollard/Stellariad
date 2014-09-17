@@ -10,7 +10,7 @@ doodads = {}
 -- config
 doodads.spawn_distance = 900.0
 doodads.random = vrand_newSeq()
-doodads.interval = 30.0
+doodads.interval = 150.0
 
 all_doodads = list\empty()
 
@@ -100,8 +100,9 @@ doodads.spawnSkyscraper = (canyon, u, v) ->
 		
 doodads.spawnRange = ( canyon, near, far ) ->
 	nxt = doodads.spawnIndex( near ) + 1
+	factor = 5.0
 	v = nxt * doodads.interval
-	u_offset = 130.0
+	u_offset = 110.0
 	model = "dat/model/tree_fir.s"
 	while library.contains( v, near, far ) do
 		doodads.spawnSkyscraper( canyon, u_offset, v )
@@ -110,6 +111,13 @@ doodads.spawnRange = ( canyon, near, far ) ->
 		doodads.spawnSkyscraper( canyon, u_offset + 60.0, v)
 		doodads.spawnSkyscraper( canyon, -u_offset - 30.0, v)
 		doodads.spawnSkyscraper( canyon, -u_offset - 60.0, v)
+
+		doodads.spawnSkyscraper( canyon, u_offset, v + 30.0)
+		doodads.spawnSkyscraper( canyon, -u_offset, v + 30.0 )
+		doodads.spawnSkyscraper( canyon, u_offset + 30.0, v + 30.0 )
+		doodads.spawnSkyscraper( canyon, u_offset + 60.0, v + 30.0 )
+		doodads.spawnSkyscraper( canyon, -u_offset - 30.0, v + 30.0 )
+		doodads.spawnSkyscraper( canyon, -u_offset - 60.0, v + 30.0 )
 
 		--doodads.spawnDoodad( canyon, u_offset, v, "dat/model/skyscraper_blocks.s" )
 		--doodads.spawnDoodad( canyon, u_offset, v, model )

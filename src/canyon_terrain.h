@@ -49,6 +49,7 @@ struct canyonTerrainBlock_s {
 struct terrainRenderable_s {
 	canyonTerrainBlock* block;
 
+	shader** terrainShader;
 	int element_count;
 	int element_count_render; // The one currently used to render with; for smooth LoD switching
 	unsigned short* element_buffer;

@@ -125,31 +125,32 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 	int render_pair_count = 0;
 
 	for ( int i = 0; i < r->pair_count; ++i ) {
-		int real_index = ( i + r->pair_first ) % kMaxRibbonPairs;
-		if ( r->vertex_ages[real_index] < r->definition->lifetime ) {
-			++render_pair_count;
-		}
+		for ( ; i < r->pair_count && r->vertex_ages[(i+r->pair_first) % kMaxRibbonPairs] >= r->definition->lifetime; ++i ) { }
+		const int this = ( i + r->pair_first ) % kMaxRibbonPairs;
+		if ( r->vertex_ages[this] < r->definition->lifetime ) ++render_pair_count; else break;
 	}
+
+	const vector* camera = matrix_getTranslation( camera_mtx );
 
 	int j = 0;
 	float v = 0.f;
 	float v_delta = 1.f / (float)( render_pair_count - 1 );
 	for ( int i = 0; i < r->pair_count; ++i ) {
+		for ( ; i < r->pair_count && r->vertex_ages[(i+r->pair_first) % kMaxRibbonPairs] >= r->definition->lifetime; ++i ) { }
 		int this = ( i + r->pair_first ) % kMaxRibbonPairs;
+		const int left = j * 2;
+		const int right = left + 1;
 
 		if ( r->vertex_ages[this] < r->definition->lifetime ) {
+			r->vertex_buffer[left].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
+			r->vertex_buffer[left].color = property_samplev( r->definition->color, v );
+			r->vertex_buffer[right].uv.coord.y = r->vertex_buffer[left].uv.coord.y;
+			r->vertex_buffer[right].color = r->vertex_buffer[j*2+0].color;
+
 			if ( !r->definition->billboard ) {
-				r->vertex_buffer[j*2+0].position = r->vertex_array[this][0];
-				r->vertex_buffer[j*2+1].position = r->vertex_array[this][1];
-			}
-
-			r->vertex_buffer[j*2+0].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
-			r->vertex_buffer[j*2+0].color = property_samplev( r->definition->color, v );
-
-			r->vertex_buffer[j*2+1].uv.coord.y = ( r->definition->static_texture ? r->tex_v[this] : v );
-			r->vertex_buffer[j*2+1].color = property_samplev( r->definition->color, v );
-
-			if ( r->definition->billboard ) {
+				r->vertex_buffer[left].position = r->vertex_array[this][0];
+				r->vertex_buffer[right].position = r->vertex_array[this][1];
+			} else {
 				vector last_pos, current_pos;
 				if ( i > 0 ) {
 					int last = ( this + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
@@ -162,15 +163,15 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 					current_pos = r->vertex_array[next][0];
 				}
 
-				vector view_dir = vector_sub( current_pos, *matrix_getTranslation( camera_mtx ));
+				// TODO - could do one for the whole ribbon
+				vector view_dir = vector_sub( current_pos, *camera);
+				// TODO - could do this in tick and cache?
 				vector ribbon_dir = vector_sub( current_pos, last_pos );
 				// Provide a sensible default in case the ribbon_dir is 0
-				if ( vector_length( &ribbon_dir ) <= 0.f ) {
-					ribbon_dir = z_axis;
-				}
-				vector normal = vector_cross( view_dir, ribbon_dir );
+				if ( vector_lengthSq( &ribbon_dir ) <= 0.f ) ribbon_dir = z_axis;
+				const vector normal = vector_cross( view_dir, ribbon_dir );
 				float normalization = 1.f / vector_length( &normal );
-				vector offset = vector_scaled( normal, normalization * r->definition->radius );
+				const vector offset = vector_scaled( normal, normalization * r->definition->radius );
 				r->vertex_buffer[j*2+0].position = vector_sub( r->vertex_array[this][0], offset );
 				r->vertex_buffer[j*2+1].position = vector_add( r->vertex_array[this][1], offset );
 			}
@@ -178,41 +179,13 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 			v += v_delta;
 			++j;
 		}
-		else {
-			continue;
-		}
+		else break;
 	}
 	vAssert( j == render_pair_count );
-
-	/*
-	if ( r->definition->billboard ) {
-		for ( int i = 0; i < r->pair_count; ++i ) {
-			int this = ( i + r->pair_first ) % kMaxRibbonPairs;
-			vector last_pos, current_pos;
-			if ( i > 0 ) {
-				int last = ( this + kMaxRibbonPairs - 1 ) % kMaxRibbonPairs;
-				last_pos = r->vertex_array[last][0];
-				current_pos = r->vertex_array[this][0];
-			}
-			else {
-				int next = ( this + 1 ) % kMaxRibbonPairs;
-				last_pos = r->vertex_array[this][0];
-				current_pos = r->vertex_array[next][0];
-			}
-
-			vector view_dir = vector_sub( current_pos, *matrix_getTranslation( camera_mtx ));
-			vector ribbon_dir = vector_sub( current_pos, last_pos );
-			vector normal = normalized( vector_cross( view_dir, ribbon_dir ));
-			r->vertex_buffer[i*2+0].position = vector_add( r->vertex_array[this][0], vector_scaled( normal, -r->radius ));
-			r->vertex_buffer[i*2+1].position = vector_add( r->vertex_array[this][1], vector_scaled( normal, r->radius ));
-		}
-	}
-	*/
-
-	// Reset modelview; our positions are in world space
-	render_resetModelView();
-	int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
 	if ( r->definition->diffuse->gl_tex && render_pair_count > 1 ) {
+		// Reset modelview; our positions are in world space
+		render_resetModelView();
+		int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
 		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
 				r->definition->diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;

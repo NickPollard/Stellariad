@@ -42,6 +42,9 @@ struct mesh_s {
 	//
 	GLuint*		vertex_VBO;
 	GLuint*		element_VBO;
+	//
+	drawCall*	cachedDraw;
+	drawCall*	cachedDepthDraw;
 };
 
 typedef struct obb_s {

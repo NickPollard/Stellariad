@@ -29,7 +29,7 @@ s = (spwn) -> spawner( () -> spwn()())
 
 -----------------------------------
 
-block = model("dat/model/block2.s")
+block = model("dat/model/block4.s") ^ model("dat/model/block3.s")
 smallblock = model("dat/model/smallblock.s")
 pyramid = model("dat/model/edge.s") ^ model("dat/model/pyramid2.s")
 empty = spawner(() -> list.empty())

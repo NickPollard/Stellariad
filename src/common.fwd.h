@@ -1,6 +1,7 @@
 #ifndef __COMMON_FWD_H__
 #define __COMMON_FWD_H__
 
+#ifndef __cplusplus
 struct actor_s;
 struct actorSystem_s;
 struct body_s;
@@ -43,6 +44,7 @@ struct window_buffer_s;
 struct worker_task_s;
 struct xwindow_s;
 union vector_u;
+#endif
 
 typedef struct actor_s actor;
 typedef struct actorSystem_s actorSystem;

@@ -240,12 +240,12 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 	if ( frustum_cull( &r->bb, s->cam->frustum ) )
 		return false;
 
-	shader** terrainShader = render_shaderByName("dat/shaders/terrain.s");
 	int zone = b->canyon->current_zone;
 	int first = ( zone + zone % 2 ) % b->canyon->zone_count;
 	int second = ( zone + 1 - (zone % 2)) % b->canyon->zone_count;
 	if ( r->vertex_VBO && *r->vertex_VBO && terrain_texture && terrain_texture_cliff ) {
-		drawCall* draw = drawCall_create( &renderPass_main, *terrainShader, r->element_count_render, r->element_buffer, r->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
+		// TODO - use a cached drawcall
+		drawCall* draw = drawCall_create( &renderPass_main, *r->terrainShader, r->element_count_render, r->element_buffer, r->vertex_buffer, b->canyon->zones[first].texture_ground->gl_tex, modelview );
 		draw->texture_b = b->canyon->zones[first].texture_cliff->gl_tex;
 		draw->texture_c = b->canyon->zones[second].texture_ground->gl_tex;
 		draw->texture_d = b->canyon->zones[second].texture_cliff->gl_tex;
@@ -343,6 +343,7 @@ void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
 	terrainRenderable* r = pool_terrainRenderable_allocate( static_renderable_pool ); 
 	memset( r, 0, sizeof( terrainRenderable ));
+	r->terrainShader = render_shaderByName("dat/shaders/terrain.s");
 	r->block = b;
 	return r;
 }

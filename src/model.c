@@ -150,7 +150,7 @@ void mesh_buildBuffers( mesh* m ) {
 // Draw the verts of a mesh to the openGL buffer
 void mesh_render( mesh* m ) {
 	if (( *m->vertex_VBO != kInvalidBuffer ) && ( *m->element_VBO != kInvalidBuffer )) {
-		if (!m->cachedDraw) {
+		if (!m->cachedDraw || m->cachedDraw->vitae_shader != *m->shader) {
 			drawCall* draw = drawCall_createCached( &renderPass_main, *m->shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 			draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 			draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;

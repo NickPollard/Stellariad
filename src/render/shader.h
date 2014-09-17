@@ -55,7 +55,7 @@ GLuint shader_compile( GLenum type, const char* path, const char* source );
 shader* shader_load( const char* vertex_name, const char* fragment_name );
 // * NEW
 shader** shaderGet( const char* shaderName );
-void shaderLoad( const char* shader );
+void shaderLoad( const char* shader, bool required );
 void shadersReloadAll();
 
 // Find the program location for a named Uniform variable in the given program
