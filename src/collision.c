@@ -25,7 +25,7 @@ int event_count;
 body* bodies[kMaxCollidingBodies];
 int body_count;
 
-ringQueue* collision_dead_body_queue = NULL;
+RingQ<body>* collision_dead_body_queue = NULL;
 ringQueue* collision_new_body_queue = NULL;
 
 vmutex collision_mutex = kMutexInitialiser;
@@ -84,8 +84,8 @@ body* dead_bodies[kMaxDeadBodies];
 
 
 void collision_removeBody( body* b ) {
-	vAssert( ringQueue_count( collision_dead_body_queue ) < collision_dead_body_queue->size );
-	ringQueue_push( collision_dead_body_queue, b );
+	vAssert( collision_dead_body_queue->count() < collision_dead_body_queue->size );
+	*collision_dead_body_queue << b;
 	b->disabled = true;
 }
 
@@ -99,8 +99,8 @@ void collision_removeDeadBody( body* b ) {
 
 void collision_removeDeadBodies( ) {
 	vmutex_lock( &collision_mutex ); {
-		while ( ringQueue_count( collision_dead_body_queue ) > 0 )
-			collision_removeDeadBody( (body*)ringQueue_pop( collision_dead_body_queue ));
+		while ( collision_dead_body_queue->count() > 0 )
+			collision_removeDeadBody( collision_dead_body_queue->pop() );
 	} vmutex_unlock( &collision_mutex );
 }
 
@@ -865,7 +865,8 @@ void collision_init() {
 	body_count = 0;
 	collision_clearEvents();
 	collision_initCollisionFuncs();
-	collision_dead_body_queue = ringQueue_create( kDeadBodyQueueSize );
+	//collision_dead_body_queue = ringQueue_create( kDeadBodyQueueSize );
+	collision_dead_body_queue = newRingQ<body>( kDeadBodyQueueSize );
 	collision_new_body_queue = ringQueue_create( kNewBodyQueueSize );
 }
 

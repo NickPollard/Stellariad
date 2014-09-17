@@ -97,7 +97,7 @@ static void handle_cmd( struct android_app* app, int32_t cmd ) {
 				printf( "MAIN THREAD: Renderer has been initialised.\n" );
 
 				// Set the touch window boundaries in the input
-				input_setWindowSize( e->input, window_main.width, window_main.height );
+				input_setWindowSize( e->_input, window_main.width, window_main.height );
 				e->active = true;
 				//render_init();
                 //draw_frame( &window_main );
@@ -135,7 +135,7 @@ int android_motionAction_getPointerIndex( int motion_action ) {
 static int32_t handle_input(struct android_app* app, AInputEvent* event) {
     engine* e = app->userData;
 	vAssert( e );
-	vAssert( e->input );
+	vAssert( e->_input );
 	// AInputEvent_getSource() == AINPUT_SOURCE_TOUCHSCREEN
     if ( AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION ) {
 		int motion_action = AMotionEvent_getAction( event );
@@ -176,7 +176,7 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event) {
 					int pointer_x = AMotionEvent_getX( event, i );
 					int pointer_y = AMotionEvent_getY( event, i );
 					int uid = AMotionEvent_getPointerId( event, i );
-					input_registerTouch( e->input, uid, pointer_x, pointer_y, action );
+					input_registerTouch( e->_input, uid, pointer_x, pointer_y, action );
 					//printf( "Pointer action %d. uid %d.\n", action_code, uid );
 				}
 				break;
@@ -187,7 +187,7 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event) {
 						int pointer_x = AMotionEvent_getX( event, i );
 						int pointer_y = AMotionEvent_getY( event, i );
 						int uid = AMotionEvent_getPointerId( event, i );
-						input_registerTouch( e->input, uid, pointer_x, pointer_y, action );
+						input_registerTouch( e->_input, uid, pointer_x, pointer_y, action );
 					}
 				}
 				break;
@@ -217,7 +217,7 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event) {
 		}
 
 		int uid = AMotionEvent_getPointerId( event, pointer_index );
-		input_registerTouch( e->input, uid, x, y, action );
+		input_registerTouch( e->_input, uid, x, y, action );
 		*/
 
         return 0;
