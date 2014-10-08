@@ -51,17 +51,19 @@ char apkPath[kMaxApkPathLength];
 
 void vfile_loadApk( const char* path );
 
-void Java_com_vitruvianinteractive_vitae_VNativeActivity_setApkPath( JNIEnv* env, jobject thiz, jstring path ) {
-	printf( "Running setApkPath\n" );
-	const char* aPath = (*env)->GetStringUTFChars( env, path, NULL /* isCopy */ );
-	printf( "Path is: \"%s\"\n", aPath );
-	int length = strlen( aPath );
-	assert( length < (kMaxApkPathLength-1) );
-	memcpy( apkPath, aPath, sizeof( char ) * length );
-	apkPath[length] = '\0';
-	(*env)->ReleaseStringUTFChars( env, path, aPath );
+extern "C" {
+	void Java_com_vitruvianinteractive_vitae_VNativeActivity_setApkPath( JNIEnv* env, jobject thiz, jstring path ) {
+		printf( "Running setApkPath\n" );
+		const char* aPath = env->GetStringUTFChars( path, NULL /* isCopy */ );
+		printf( "Path is: \"%s\"\n", aPath );
+		int length = strlen( aPath );
+		assert( length < (kMaxApkPathLength-1) );
+		memcpy( apkPath, aPath, sizeof( char ) * length );
+		apkPath[length] = '\0';
+		env->ReleaseStringUTFChars( path, aPath );
 
-	vfile_loadApk( apkPath );
+		vfile_loadApk( apkPath );
+	}
 }
 
 void vfile_loadApk( const char* path ) {
@@ -119,7 +121,7 @@ bool vfile_exists( const char* path ) {
 // Load the entire contents of a file into a heap-allocated buffer of the same length
 // returns a pointer to that buffer
 // It its the caller's responsibility to free the buffer
-void* vfile_contentsApk( const char* path, int* length ) {
+void* vfile_contentsApk( const char* path, size_t* length ) {
 	void *buffer;
 	vmutex_lock( &file_mutex );
 	{
@@ -131,7 +133,7 @@ void* vfile_contentsApk( const char* path, int* length ) {
 
 		struct zip_stat stat;
 		zip_stat( apk_archive, asset_path, 0x0 /* flags */, &stat );
-		*length = (int)stat.size;
+		*length = stat.size;
 		buffer = mem_alloc( *length+1 );
 		*length = zip_fread( f, buffer, *length );
 		zip_fclose( f );

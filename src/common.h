@@ -57,7 +57,7 @@
 #define TERM_WHITE "[0;37;40m"
 
 // *** Architecture
-#define ARCH_64BIT
+//#define ARCH_64BIT
 #ifdef ARCH_64BIT
 #define dPTRf "%ld"
 #define xPTRf "%lx"

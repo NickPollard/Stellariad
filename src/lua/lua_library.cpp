@@ -343,7 +343,7 @@ int LUA_setWorldSpacePosition( lua_State* l ) {
 		matrix m;
 		matrix_cpy( m, t->world );
 		matrix_setTranslation( m, &v );
-		printf( "Transform pointer: " dPTRf ".\n", (uintptr_t)t );
+		printf( "Transform pointer: " xPTRf ".\n", (uintptr_t)t );
 		transform_setWorldSpace( t, m );
 	}
 	return 0;
@@ -445,7 +445,7 @@ int LUA_touchPadTouched( lua_State* l ) {
 int LUA_createGesture( lua_State* l ) {
 	float distance = lua_tonumber( l, 1 );
 	float duration = lua_tonumber( l, 2 );
-	vector* direction = (touchPad*)lua_toptr( l, 3 );
+	vector* direction = (vector*)lua_toptr( l, 3 );
 	float angle_tolerance = lua_tonumber( l, 4 );
 	gesture* g = gesture_create( distance, duration, *direction, angle_tolerance );
 	lua_pushptr( l, g );

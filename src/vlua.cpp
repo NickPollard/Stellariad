@@ -1,6 +1,6 @@
 // Lua.c
 #include "common.h"
-#include "lua.h"
+#include "src/vlua.h"
 //---------------------
 #include "engine.h"
 #include "lua/lua_library.h"
@@ -204,8 +204,8 @@ int LUA_androidOpen( lua_State* l ) {
 	while ( !found ) {
 		printf( "Android loading Lua file \"%s\"\n", paths[i] );
 		if ( vfile_exists( paths[i] )) {
-			int length = -1;
-			const char* buffer = vfile_contents( paths[i], &length );
+			size_t length = -1;
+			const char* buffer = (const char*)vfile_contents( paths[i], &length );
 			if ( !luaL_loadbuffer( l, buffer, length, paths[i] )) {
 				found = true;
 			}

@@ -34,7 +34,7 @@ SRCS = $(LUA_SRCS:%.c=3rdparty/Lua/lua-5.1.4/src/%.c)
 LOCAL_SRC_FILES := $(SRCS)
 
 LOCAL_CFLAGS := -g #debug
-LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
+#LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -53,7 +53,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/3rdparty/libzip-0.10/lib
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -lz 
 
 LOCAL_CFLAGS := -g #debug
-LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
+#LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -66,10 +66,10 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE    := vitae
 include ../Makelist
-LOCAL_SRC_FILES := android/jni/android.c
+LOCAL_SRC_FILES := android/jni/android.cpp
 LOCAL_SRC_FILES	+= $(SRCS)
 LOCAL_LDLIBS    := -llog -landroid -lEGL -lGLESv2 -L$(SYSROOT)/usr/lib -lz 
-LOCAL_STATIC_LIBRARIES := android_native_app_glue lua zip andprof
+LOCAL_STATIC_LIBRARIES := android_native_app_glue lua zip 
 
 MY_LUA_PATH := 3rdparty/Lua/lua-5.1.4/src
 MY_GLFW_PATH := 3rdparty/glfw-2.7.2/include
@@ -77,12 +77,11 @@ MY_LIBZIP_PATH := 3rdparty/libzip-0.10/lib
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/src
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_LUA_PATH)
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_GLFW_PATH)
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_LIBZIP_PATH)
 
-LOCAL_CFLAGS := -g -pg -D DEBUG #debug
+LOCAL_CFLAGS := -g -D DEBUG #debug #no profile (-pg) as library not cpp compatible?
 LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
-LOCAL_CFLAGS += -std=gnu99
+LOCAL_CFLAGS += -std=gnu99 -D __STDC_LIMIT_MACROS
 
 include $(BUILD_SHARED_LIBRARY)
 

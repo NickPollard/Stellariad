@@ -9,9 +9,9 @@ PLATFORM_LIBS = -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu
 LIBS = -L/usr/lib -L/usr/local/lib $(PLATFORM_LIBS) -lGL -lGLU -lEGL -llua5.1 -lm -lX11 -lpthread -ldl
 EXECUTABLE = vitae
 include Makelist
-OBJS = $(SRCS:src/%.c=bin/release/%.o)
-OBJS_DBG = $(SRCS:src/%.c=bin/debug/%.o)
-OBJS_PROF = $(SRCS:src/%.c=bin/profile/%.o)
+OBJS = $(SRCS:src/%.cpp=bin/release/%.o)
+OBJS_DBG = $(SRCS:src/%.cpp=bin/debug/%.o)
+OBJS_PROF = $(SRCS:src/%.cpp=bin/profile/%.o)
 include Makemoon
 MOON_LUA = $(MOON_SRCS:%.moon=SpaceSim/lua/compiled/%.lua)
 
@@ -19,9 +19,9 @@ all : $(EXECUTABLE)_release
 
 # pull in dependency info for *existing* .o files
 #-include $(OBJS:.o=.d)
--include $(SRCS:src/%.c=bin/release/%.d)
--include $(SRCS:src/%.c=bin/debug/%.d)
--include $(SRCS:src/%.c=bin/profile/%.d)
+-include $(SRCS:src/%.cpp=bin/release/%.d)
+-include $(SRCS:src/%.cpp=bin/debug/%.d)
+-include $(SRCS:src/%.cpp=bin/profile/%.d)
 
 .PHONY : clean cleandebug android cleanandroid
 
@@ -87,23 +87,23 @@ $(EXECUTABLE)_debug : $(SRCS) $(OBJS_DBG) $(MOON_LUA)
 	@echo "- Linking $@"
 	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_debug $(OBJS_DBG) $(LIBS)
 
-bin/debug/%.o : src/%.c
+bin/debug/%.o : src/%.cpp
 #	Calculate the directory required and create it
 	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
 	@echo "- Compiling $@"
-	@$(C) -g $(CFLAGS) -MD -D DEBUG -c -o $@ $<
+	@$(C) -g $(CFLAGS) -MD -D ARCH_64BIT -D DEBUG -c -o $@ $<
 
-bin/profile/%.o : src/%.c
+bin/profile/%.o : src/%.cpp
 #	Calculate the directory required and create it
 	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
 	@echo "- Compiling $@"
-	@$(C) $(CFLAGS) -g -O2 -MD -c -o $@ $<
+	@$(C) $(CFLAGS) -g -O2 -MD -D ARCH_64BIT -c -o $@ $<
 
-bin/release/%.o : src/%.c
+bin/release/%.o : src/%.cpp
 #	Calculate the directory required and create it
 	@mkdir -pv `echo "$@" | sed -e 's/\/[^/]*\.o//'`
 	@echo "- Compiling $@"
-	@$(C) $(CFLAGS) -O2 -MD -c -o $@ $<
+	@$(C) $(CFLAGS) -O2 -MD -D ARCH_64BIT -c -o $@ $<
 
 SpaceSim/lua/compiled/%.lua : SpaceSim/moon/%.moon
 	@echo "compiling $< to $@"

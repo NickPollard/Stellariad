@@ -13,6 +13,7 @@ int isNewLine( char c );
 
 // *** File Operations
 
+bool vfile_exists( const char* path );
 FILE* vfile_open( const char* path, const char* mode );
 void* vfile_contents(const char *path, size_t *length);
 void vfile_writeContents( const char* path, void* buffer, int length );

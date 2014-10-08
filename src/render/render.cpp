@@ -825,8 +825,8 @@ void* render_renderThreadFunc( void* args ) {
 	printf( "RENDER THREAD: Hello from the render thread!\n" );
 	engine* e = NULL;
 #ifdef ANDROID
-	struct android_app* app = args;
-	e = app->userData;
+	struct android_app* app = (struct android_app*)args;
+	e = (engine*)app->userData;
 #else
 	e = (engine*)args;
 	void* app = NULL;

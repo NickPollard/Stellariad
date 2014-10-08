@@ -141,18 +141,18 @@ void input_touchTick( input* in, float dt ) {
 	// Anything that was previously released, we remove
 	// This gives us the touches that are still alive
 	int active_touches = 0;
-	touch* new = &in->data[in->active].touch.touches[0];
+	touch* neo = &in->data[in->active].touch.touches[0];
 	for ( int i = 0; i < kMaxMultiTouch; ++i ) {
 		touch* old = &in->data[1 - in->active].touch.touches[i];
 		if ( old->uid != kInvalidTouchUid && old->released ) {
 			//printf( "touch %d released\n", old->uid );
 		}
 		if ( old->uid != kInvalidTouchUid && !old->released ) {
-			*new = *old;
-			new->drag_x = 0.f;
-			new->drag_y = 0.f;
-			new->time = time;
-			++new;
+			*neo = *old;
+			neo->drag_x = 0.f;
+			neo->drag_y = 0.f;
+			neo->time = time;
+			++neo;
 			++active_touches;
 		}
 	}
@@ -173,9 +173,9 @@ void input_touchTick( input* in, float dt ) {
 			//vAssert( pending->pressed == true );
 			// Add it on the end
 			vAssert( active_touches < kMaxMultiTouch );
-			touch* new = &in->data[in->active].touch.touches[active_touches];
-			*new = *pending;
-			new->time = time;
+			touch* neo = &in->data[in->active].touch.touches[active_touches];
+			*neo = *pending;
+			neo->time = time;
 			++active_touches;
 			//printf( "New touch received\n" );
 		}
@@ -215,7 +215,7 @@ typedef struct touchHistory_s {
 } touchHistory;
 
 gesture* gesture_create( float distance, float duration, vector direction, float angle_tolerance ) {
-	gesture* g = mem_alloc( sizeof( gesture ));
+	gesture* g = (gesture*)mem_alloc( sizeof( gesture ));
 	memset( g, 0, sizeof( gesture ));
 	g->distance = distance;
 	g->duration = duration;
@@ -293,7 +293,7 @@ found:
 void touchPanel_init( touchPanel* p ) {
 	memset( p, 0, sizeof( touchPanel ));
 	p->touch_pad_count = 0;
-	p->touch_pad = mem_alloc( sizeof( touchPad* ) * kMaxTouchPads );
+	p->touch_pad = (touchPad**)mem_alloc( sizeof( touchPad* ) * kMaxTouchPads );
 	p->touch_count = 0;
 	for ( int i = 0; i < kMaxMultiTouch; ++i ) {
 		p->touches[i].uid = kInvalidTouchUid;
@@ -308,7 +308,7 @@ void touchPanel_tick( touchPanel* panel, input* in, float dt ) {
 // Touch Pads
 
 touchPad* touchPad_create( int x, int y, int w, int h ) {
-	touchPad* p = mem_alloc( sizeof( touchPad ));
+	touchPad* p = (touchPad*)mem_alloc( sizeof( touchPad ));
 	p->x = x; p->y = y;
 	p->width = w; p->height = h;
 	p->active = true;

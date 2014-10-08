@@ -6,7 +6,6 @@
 #include "system/thread.h"
 #include <assert.h>
 #include <stdio.h>
-#include <stdint.h>
 
 // *** Forward Declarations
 void block_insertAfter( block* before, block* after );

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "base/list.h"
-#include "lua.h"
+#include "vlua.h"
 #include "ticker.h"
 #include "vtime.h"
 
@@ -19,7 +19,14 @@
 #endif // LINUX_X
 
 // Lua Libraries
+#ifdef __cplusplus
+extern "C" 
+{
+#endif
 #include <lua.h>
+#ifdef __cplusplus
+}
+#endif
 
 #define DEBUG_LUA false
 

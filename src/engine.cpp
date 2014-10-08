@@ -37,8 +37,15 @@
 #include "system/thread.h"
 
 // Lua Libraries
+#ifdef __cplusplus
+extern "C" 
+{
+#endif
 #include <lauxlib.h>
 #include <lualib.h>
+#ifdef __cplusplus
+}
+#endif
 
 // System Libraries
 #include <stdlib.h>

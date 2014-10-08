@@ -3,8 +3,15 @@
 #include "maths/mathstypes.h"
 
 // Lua Libraries
+#ifdef __cplusplus
+extern "C" 
+{
+#endif
 #include <lauxlib.h>
 #include <lualib.h>
+#ifdef __cplusplus
+}
+#endif
 
 #define LUA_DEBUG false
 

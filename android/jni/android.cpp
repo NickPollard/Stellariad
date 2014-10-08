@@ -67,7 +67,7 @@ void android_exit() {
 
 void app_exit( struct android_app* app ) {
 	// The window is being hidden or closed, clean it up.
-	engine* e = app->userData;
+	engine* e = (engine*)app->userData;
 	render_destroyWindow( &window_main );
 	e->active = false;
 	android_exit();
@@ -85,7 +85,7 @@ static void handle_cmd( struct android_app* app, int32_t cmd ) {
             if ( app->window != NULL ) {
 				printf( "ANDROID: init EGL." );
 				vAssert( app->userData );
-				engine* e = app->userData;
+				engine* e = (engine*)app->userData;
 
 				// Spawn the renderer thread here
 				vthread render_thread = vthread_create( render_renderThreadFunc, (void*)app );
@@ -133,7 +133,7 @@ int android_motionAction_getPointerIndex( int motion_action ) {
 
 // Process the next input event.
 static int32_t handle_input(struct android_app* app, AInputEvent* event) {
-    engine* e = app->userData;
+    engine* e = (engine*)app->userData;
 	vAssert( e );
 	vAssert( e->_input );
 	// AInputEvent_getSource() == AINPUT_SOURCE_TOUCHSCREEN
@@ -283,11 +283,11 @@ void android_main( struct android_app* app ) {
 	int argc = 0;
 	char** argv = NULL;
 	// Can't init engine until EGL is initialised
-	engine_init( app->userData, argc, argv );
+	engine_init( (engine*)app->userData, argc, argv );
 
 #if UNIT_TEST
 	runTests();
 #endif
 
-	engine_run( app->userData );
+	engine_run( (engine*)app->userData );
 }

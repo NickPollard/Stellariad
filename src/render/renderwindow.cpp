@@ -96,7 +96,7 @@ void render_createWindow( void* app, window* w ) {
 	// We need to create a window first, outside EGL
 	EGLNativeWindowType native_win = 
 		IF_LINUX( os_createWindow( w, "Skies of Antares" ); )
-		IF_ANDROID(	os_createWindow( w->display, config, app ); )
+		IF_ANDROID(	os_createWindow( &w->display, &config, (AndroidApp*)app ); )
 
     w->surface = eglCreateWindowSurface( w->display, config, native_win, NULL );
 	if ( w->surface == EGL_NO_SURFACE ) {
