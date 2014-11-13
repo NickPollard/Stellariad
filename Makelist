@@ -38,6 +38,7 @@ SRCS =	src/bounds.cpp \
 		src/camera/chasecam.cpp \
 		src/camera/flycam.cpp \
 		src/camera/velcam.cpp \
+		src/collision/quadtree.cpp \
 		src/debug/debuggraph.cpp \
 		src/input/keyboard.cpp \
 		src/input/mouse.cpp \
