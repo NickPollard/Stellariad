@@ -147,7 +147,7 @@ sexpr* sexpr_findChildNamed( const char* name, sexpr* parent ) {
 
 mesh* sexpr_loadMesh( sexpr* s ) {
 	(void)s;
-	const char* filename = "dat/model/smoothsphere2.obj";
+	const char* filename = "no filename specified";
 
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
 	if ( fileterm ) {

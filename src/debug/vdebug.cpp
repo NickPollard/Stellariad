@@ -1,6 +1,6 @@
-// debug.c
+// vdebug.c
 #include "common.h"
-#include "debug.h"
+#include "vdebug.h"
 
 #include "mem/allocator.h"
 

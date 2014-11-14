@@ -57,7 +57,6 @@ function fx.preload()
 	fx.preload_particle( "dat/vfx/particles/explosion_glow.s" )
 	fx.preload_particle( "dat/vfx/particles/bullet.s" )
 	
-	vmodel_preload( projectile_model )
 	vmodel_preload( "dat/model/bullet_player.s" )
 	vmodel_preload( "dat/model/missile_enemy_homing.s" )
 end

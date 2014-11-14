@@ -272,7 +272,7 @@ renderPass RenderPass( bool alpha, bool color, bool depth ) {
 void render_init( void* app ) {
 	render_createWindow( app, &window_main );
 
-	printf("RENDERING: Initialising OpenGL rendering settings.\n");
+	printf("[RENDER] Initialising OpenGL rendering settings.\n");
 #if 0
 	const char* extension_string = (const char*)glGetString( GL_EXTENSIONS );
 	printf( "Extensions supported: %s\n", extension_string );
@@ -287,8 +287,8 @@ void render_init( void* app ) {
 
 	glGetIntegerv( kGlTextureUnits, &graphicsSystem.maxTextureUnits );
 	glGetIntegerv( kGlMaxVaryingParams, &graphicsSystem.maxVaryingParams );
-	printf( "Max texture units: %d.\n", graphicsSystem.maxTextureUnits );
-	printf( "Max varying params: %d.\n", graphicsSystem.maxVaryingParams );
+	printf( "[RENDER] Max texture units: %d.\n", graphicsSystem.maxTextureUnits );
+	printf( "[RENDER] Max varying params: %d.\n", graphicsSystem.maxVaryingParams );
 
 	texture_staticInit();
 	shader_init();
@@ -502,15 +502,6 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 
 	matrix_cpy( draw->modelview, mv );
 	return draw;
-}
-
-void render_printShader( shader* s ) {
-	if ( s == resources.shader_default )	printf( "shader: default\n" );
-	if ( s == resources.shader_particle )	printf( "shader: particle\n" );
-	if ( s == resources.shader_terrain )	printf( "shader: terrain\n" );
-	if ( s == resources.shader_skybox )		printf( "shader: skybox\n" );
-	if ( s == resources.shader_ui )			printf( "shader: ui\n" );
-	if ( s == resources.shader_filter )		printf( "shader: filter\n" );
 }
 
 void render_drawCall_draw( drawCall* draw ) {
@@ -822,7 +813,6 @@ void render_renderThreadTick( engine* e ) {
 // *** The Rendering Thread itself
 //
 void* render_renderThreadFunc( void* args ) {
-	printf( "RENDER THREAD: Hello from the render thread!\n" );
 	engine* e = NULL;
 #ifdef ANDROID
 	struct android_app* app = (struct android_app*)args;
@@ -834,7 +824,7 @@ void* render_renderThreadFunc( void* args ) {
 
 	render_init( app );
 	render_initialised = true;
-	printf( "RENDER THREAD: Render system initialised.\n");
+	printf( "[RENDER] Render system initialised.\n");
 	vthread_signalCondition( finished_render );
 
 	while( true ) {

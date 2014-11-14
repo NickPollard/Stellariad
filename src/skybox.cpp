@@ -45,6 +45,7 @@ void skybox_init( ) {
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 	skybox_model->meshes[0]->_shader = &resources.shader_skybox;
 	skybox_model->meshes[0]->cachedDraw = NULL;
+	skybox_model->meshes[0]->dontCache = true;
 }
 
 #define SKYBOX_VERTEX_ATTRIB_POINTER( attrib ) \
@@ -61,7 +62,7 @@ void skybox_render( void* data ) {
 	matrix_setTranslation( modelview, &v );
 
 	// TEMP: Force texture again as delayed tex loading from model can override this
-	skybox_model->meshes[0]->cachedDraw = NULL;
+	//skybox_model->meshes[0]->cachedDraw = NULL;
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 
 	mesh_render( skybox_model->meshes[0] );

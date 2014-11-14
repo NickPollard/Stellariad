@@ -62,6 +62,7 @@ SRCS =	src/bounds.cpp \
 		src/render/texture.cpp \
 		src/script/lisp.cpp \
 		src/script/sexpr.cpp \
+		src/string/stringops.cpp \
 		src/system/file.cpp \
 		src/system/hash.cpp \
 		src/system/inputstream.cpp \

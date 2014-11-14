@@ -213,7 +213,7 @@ bool shaderAlreadyLoaded( const char* shaderName ) {
 }
 
 void shaderLoad( const char* shaderName, bool required ) {
-	printf( "loading shader %s.\n", shaderName );
+	printf( "[SHADER] loading %s.\n", shaderName );
 	if (shaderMap == NULL)
 		shaderMap = map_create(128, sizeof( shader* ) );
 	shaderInfo* sInfo = (shaderInfo*)sexpr_loadFile( shaderName );

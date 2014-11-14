@@ -8,6 +8,7 @@
 #include "maths/maths.h"
 #include "mem/allocator.h"
 #include "render/render.h"
+#include "string/stringops.h"
 #include "system/file.h"
 #include "system/hash.h"
 #include "system/string.h"
@@ -167,6 +168,7 @@ texture textures[kTexturesMax];
 int texture_count = 0;
 
 texture* texture_nextEmpty() {
+	vAssert(texture_count < kTexturesMax);
 	return &textures[texture_count++];
 }
 
@@ -185,11 +187,10 @@ texture* texture_load( const char* filename ) {
 texture* texture_loadWithProperties( const char* filename, textureProperties* properties ) {
 	texture* t;
 	t = textureCache_find( filename );
-	if ( t ) {
+	if ( t )
 		return t;
-	}
 	else {
-		//printf( "Loading Texture \"%s\".\n", filename );
+		//println("Loading Texture: " + $(filename));
 		t = texture_nextEmpty();
 		texture_init( t, filename );
 		textureCache_add( t, filename );

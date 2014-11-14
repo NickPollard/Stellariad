@@ -5,11 +5,13 @@
 #include "model.h"
 #include "script/lisp.h"
 #include "script/sexpr.h"
+#include "string/stringops.h"
 #include "system/file.h"
 #include "system/inputstream.h"
 #include "system/string.h"
 
 mesh* mesh_loadObj( const char* filename ) {
+	//println("Loading Mesh: " + $(filename));
 	// Load the raw data
 	int vert_count = 0, index_count = 0, normal_count = 0, uv_count = 0;
 	// Lets create these arrays on the heap, as they need to be big
@@ -146,6 +148,8 @@ mesh* mesh_loadObj( const char* filename ) {
 
 model* model_load( const char* filename ) {
 	model* mdl = (model*)sexpr_loadFile( filename );
+	if ( mdl->meshCount > 0 )
+		mdl->_obb = obb_calculate( mdl->meshes[0]->vert_count, mdl->meshes[0]->verts );
 #if DEBUG
 	mdl->filename = string_createCopy(filename);
 #endif // DEBUG

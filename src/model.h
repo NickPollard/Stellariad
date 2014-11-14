@@ -45,6 +45,8 @@ struct mesh_s {
 	//
 	drawCall*	cachedDraw;
 	drawCall*	cachedDepthDraw;
+
+	bool		dontCache; // prevent draw call caching for this mesh
 };
 
 typedef struct obb_s {

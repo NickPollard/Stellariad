@@ -17,10 +17,10 @@ C and only controlled remotely by Lua
 	local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
 
 -- Debug settings
-	debug_spawning_disabled	= true
-	debug_doodads_disabled	= false
+	debug_spawning_disabled	= false
+	debug_doodads_disabled	= true
 	debug_player_immortal	= true
-	debug_player_autofly	= false
+	debug_player_autofly	= true
 	debug_player_immobile	= false
 	debug_auto_start		= true
 	debug_no_pause_fade		= true
@@ -1063,6 +1063,7 @@ function update_despawns( c, transform )
 end
 
 function interceptor_fire( interceptor )
+	--[[
 	-- Right
 	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
 	fx.muzzle_flare_large( interceptor, muzzle_position )
@@ -1071,6 +1072,7 @@ function interceptor_fire( interceptor )
 	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 );
 	fx.muzzle_flare_large( interceptor, muzzle_position )
 	fire_missile( interceptor, muzzle_position, enemy_gunfire )
+	--]]
 end
 
 function interceptor_fire_homing( interceptor )
