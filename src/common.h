@@ -34,8 +34,14 @@
 #define GL_GLEXT_PROTOTYPES
 
 // Boolean defines
+#ifndef __cplusplus
 #define true 1
 #define false 0
+#endif
+
+#ifdef __cplusplus
+#define restrict __restrict__
+#endif
 
 // Nullptr
 #define nullptr NULL
@@ -51,7 +57,7 @@
 #define TERM_WHITE "[0;37;40m"
 
 // *** Architecture
-#define ARCH_64BIT
+//#define ARCH_64BIT
 #ifdef ARCH_64BIT
 #define dPTRf "%ld"
 #define xPTRf "%lx"
@@ -122,7 +128,7 @@ typedef const char* String;
 #define printError( format, args... ) 	{ \
 											printf( "%sError%s: ", TERM_RED, TERM_WHITE ); \
 											printf( format, args ); \
-											printf( " [File: %s, Line: %d]\n", __FILE__, __LINE__ ); \
+											printf( " (%s:%d)\n", __FILE__, __LINE__ ); \
 										}
 
 // Maximum path length in characters

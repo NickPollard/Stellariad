@@ -10,12 +10,14 @@ varying vec4 fragPosition;
 varying vec4 fragNormal;
 varying vec2 texcoord;
 varying float fog;
+varying vec2 screenCoord;
 
 // *** Uniform
 uniform mat4 worldspace;
 uniform vec4 directional_light_direction;
 uniform vec4 sun_color;
 uniform sampler2D tex;
+uniform sampler2D ssao_tex;
 uniform vec4 fog_color;
 uniform vec4 camera_space_sun_direction;
 
@@ -37,6 +39,7 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 }
 
 void main() {
+	vec4 ssao = texture2D( ssao_tex, screenCoord * 0.5 + vec2( 0.5, 0.5 ) );
 	vec4 material = texture2D( tex, texcoord );
 
 	vec4 light_direction = normalize( worldspace * directional_light_direction );
@@ -47,7 +50,7 @@ void main() {
 	float spec = clamp( dot( bounce, -normalize(fragPosition)), 0.0, 1.0 );
 	vec4 specular = directionalSpecular * pow( spec, 10.0 ) * material.a;
 
-	vec4 fragColor = (ambient + specular + diffuse) * material;
+	vec4 fragColor = ((ambient + diffuse) * ssao.x + specular ) * material;
 	//vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, fragPosition ));
 
 	vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);

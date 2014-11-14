@@ -7,9 +7,9 @@ void canyonTerrain_renderInit();
 // *** Buffers
 void	canyonTerrainBlock_fillTrianglesForVertex( canyonTerrainBlock* b, vector* positions, vertex* vertices, int u_index, int v_index, vertex* vert );
 void	canyonTerrain_initVertexBuffers( canyonTerrain* t );
-void* canyonTerrain_nextVertexBuffer( canyonTerrain* t );
+vertex* canyonTerrain_nextVertexBuffer( canyonTerrain* t );
 void	canyonTerrain_initElementBuffers( canyonTerrain* t );
-void* canyonTerrain_nextElementBuffer( canyonTerrain* t );
+short unsigned int* canyonTerrain_nextElementBuffer( canyonTerrain* t );
 future* terrainBlock_initVBO( canyonTerrainBlock* b );
 
 void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b );

@@ -3,4 +3,3 @@
 				(normal_texture "dat/img/metal_test_normal.tga")
 				(shader "refl_normal"))
 )
-		

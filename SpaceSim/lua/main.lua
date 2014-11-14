@@ -17,12 +17,13 @@ C and only controlled remotely by Lua
 	local z_axis = Vector( 0.0, 0.0, 1.0, 0.0 )
 
 -- Debug settings
-	debug_spawning_disabled	= true
+	debug_spawning_disabled	= false
 	debug_doodads_disabled	= true
 	debug_player_immortal	= true
 	debug_player_autofly	= true
 	debug_player_immobile	= false
 	debug_auto_start		= true
+	debug_no_pause_fade		= true
 
 -- Load Modules
 	--package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
@@ -897,7 +898,9 @@ function tick( dt )
 			vpause( engine )
 			if pauseFrame then ui.hide_splash( pauseFrame ) end
 			local alpha = 0.3	
-			pauseFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
+			if not debug_no_pause_fade then
+				pauseFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
+			end
 		end
 	end
 
@@ -1060,6 +1063,7 @@ function update_despawns( c, transform )
 end
 
 function interceptor_fire( interceptor )
+	--[[
 	-- Right
 	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
 	fx.muzzle_flare_large( interceptor, muzzle_position )
@@ -1068,6 +1072,7 @@ function interceptor_fire( interceptor )
 	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 );
 	fx.muzzle_flare_large( interceptor, muzzle_position )
 	fire_missile( interceptor, muzzle_position, enemy_gunfire )
+	--]]
 end
 
 function interceptor_fire_homing( interceptor )

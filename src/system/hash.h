@@ -1,7 +1,5 @@
 // hash.h
 #pragma once
-#include <stdint.h>
-
 
 unsigned int mhash( const char* src );
 unsigned int MurmurHash2 ( const void * key, int len, unsigned int seed );

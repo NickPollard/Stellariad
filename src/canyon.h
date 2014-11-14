@@ -15,9 +15,9 @@ struct canyon_s {
 	int			zone_count;
 	int			current_zone;
 	vector		zone_sample_point;
-	scene*		scene;
+	scene*		_scene;
 	window_buffer* canyon_streaming_buffer;
-	terrainCache* terrainCache;
+	terrainCache* cache;
 };
 
 struct canyonData_s {

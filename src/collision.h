@@ -52,12 +52,12 @@ typedef struct shape_s {
 	vector origin;
 } shape;
 
-typedef void (*collisionCallback)( body* this, body* collided_width, void* data );
+typedef void (*collisionCallback)( body* ths, body* collided_width, void* data );
 typedef uint8_t collision_layers_t;
 
 struct body_s {
 	transform* trans;
-	shape* shape;
+	shape* _shape;
 	union {
 		void* data;	// Pointer for storing arbitrary data - e.g. the owner 
 		int intdata;

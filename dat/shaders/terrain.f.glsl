@@ -58,6 +58,7 @@ void main() {
 	vec4 tex_color_2 = mix( ground_color_2, cliff_color_2, cliff ) * darken;
 
 	vec4 fragColor = total_light_color * mix( tex_color, tex_color_2, vert_color.x );
+	//vec4 fragColor = vec4( 0.5, 0.5, 0.5, 1.0 );
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
 	gl_FragColor.w = 1.0;
 }

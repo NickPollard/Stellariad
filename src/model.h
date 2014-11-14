@@ -16,7 +16,7 @@
    */
 struct mesh_s {
 	transform*	trans;
-	shader*		shader;
+	shader**		_shader;
 	//
 	int			vert_count;
 	vector*		verts;
@@ -42,6 +42,11 @@ struct mesh_s {
 	//
 	GLuint*		vertex_VBO;
 	GLuint*		element_VBO;
+	//
+	drawCall*	cachedDraw;
+	drawCall*	cachedDepthDraw;
+
+	bool		dontCache; // prevent draw call caching for this mesh
 };
 
 typedef struct obb_s {
@@ -64,7 +69,7 @@ struct model_s {
 	transform*			transforms[kMaxSubTransforms];
 	particleEmitter*	emitters[kMaxSubEmitters];
 	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
-	obb					obb;
+	obb					_obb;
 #ifdef DEBUG
 	const char*		filename;
 #endif

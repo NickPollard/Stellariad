@@ -31,10 +31,10 @@ pool_##type* pool_##type##_create( int size ) {							\
 	void* data = mem_alloc( sizeof( pool_##type ) + 					\
 							sizeof( bool ) * size +						\
 							sizeof( type ) * size );					\
-	pool_##type* p = data;												\
+	pool_##type* p = (pool_##type*)data;												\
 	p->size = size;														\
-	p->free = data + sizeof( pool_##type );								\
-	p->pool = data + sizeof( pool_##type ) + sizeof( bool ) * size;		\
+	p->free = (bool*)((uint8_t*)data + sizeof( pool_##type ));					\
+	p->pool = (type*)((uint8_t*)data + sizeof( pool_##type ) + sizeof( bool ) * size);		\
 	memset( p->free, 1, sizeof( bool ) * size );						\
 	return p;															\
 }																		\

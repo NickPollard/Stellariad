@@ -13,7 +13,7 @@
 #include "transform.h"
 
 #define MAX_TRANSFORMS 1024
-#define MAX_MODELS 512
+#define MAX_MODELS 2048
 #define MAX_LIGHTS 512
 #define MAX_EMITTERS 512
 
@@ -73,7 +73,7 @@ void scene_initStatic( );
 // *** Scene functions
 
 // Make a Scene
-scene* scene_create();
+scene* scene_create( engine* e );
 
 // Traverse the transform graph, updating worldspace transforms
 void	scene_concatenateTransforms(scene* s);

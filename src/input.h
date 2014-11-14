@@ -22,7 +22,7 @@
 // ie. each byte stores 8 flags for 8 keys respectively
 typedef struct input_data_s {
 	key_array keys;
-	mouse mouse;
+	mouse _mouse;
 #ifdef TOUCH
 	touchPanel touch;
 #endif // TOUCH
