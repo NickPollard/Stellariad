@@ -10,6 +10,8 @@
 #include "base/ringqueue.h"
 #include "maths/geometry.h"
 #include "render/debugdraw.h"
+#include "collection/vec.h"
+#include "collision/quadtree.h"
 
 #define kDeadBodyQueueSize 128
 #define kNewBodyQueueSize 128
@@ -119,7 +121,7 @@ void collision_runCallbacks() {
 void collision_generateEvents() {
 	// for every body, check every other body
 	// TODO - keep separate lists for layers; iterate those instead
-	/*
+#if 0
 	for ( int i = 0; i < body_count; ++i )
 		for ( int j = i + 1; j < body_count; j++ ) {
 			vAssert( bodies[i] )
@@ -127,7 +129,16 @@ void collision_generateEvents() {
 			if ( !bodies[i]->disabled && !bodies[j]->disabled && body_colliding( bodies[i], bodies[j] ))
 				collision_event( bodies[i], bodies[j] );
 		}
-		*/
+#else 
+	QuadTree<body*> tree;
+	for ( int i = 0; i < body_count; ++i ) {
+		tree += bodies[i];
+	}
+	auto collisions = potentialCollisions(tree);
+	for (auto c : collisions.underlying) {
+			collision_event( c.a, c.b );
+	}
+#endif
 }
 
 void collisionMesh_drawWireframe( collisionMesh* m, matrix trans, vector color ) {

@@ -1,4 +1,5 @@
 // collision.h
+#pragma once
 
 #define kMaxCollisionEvents 256
 #define kMaxShapeTypes 4
@@ -96,6 +97,9 @@ bool body_collided( body* b );
 // Did two bodies hit each other this frame
 bool body_collidedBody( body* a, body* b );
 
+// Test if these bodies collided (only used by collision code)
+bool body_colliding( body* a, body* b );
+
 body* body_create( shape* s, transform* t );
 shape* sphere_create( float radius );
 shape* mesh_createFromRenderMesh( mesh* render_mesh );
@@ -106,3 +110,4 @@ void heightField_calculateAABB( heightField* h );
 
 // Unit tests
 void test_collision();
+
