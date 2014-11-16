@@ -30,7 +30,7 @@ extern "C"
 
 #define DEBUG_LUA false
 
-#if 1
+#if 0
 #define GRAPH_GPU_FPS
 #define GRAPH_FPS
 #endif

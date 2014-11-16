@@ -774,17 +774,10 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 	(void)matrix_heightfield;
 	vector sphere_position = *matrix_getTranslation( matrix_sphere );
 
-
 	// Check that the sphere is actually over the heightfield
-	if ( !heightField_contains( height_shape->height_field, sphere_position )) {
-		return false;
-	}
-
-	//if ( heightField_collides( height_shape->height_field, sphere_position )) {
-		//return true;
-	//}
-
-	return false;
+	bool collides = heightField_contains( height_shape->height_field, sphere_position )
+	collides &&= heightField_collides( height_shape->height_field, sphere_position )
+	return collides;
 }
 
 bool collisionFunc_HeightfieldSphere( shape* height_shape, shape* sphere_shape, matrix matrix_heightfield, matrix matrix_sphere ) {
@@ -825,6 +818,14 @@ void shape_delete( shape* s ) {
 	mem_free( s );
 }
 
+aabb2d sphereAabb2d( shape* sphere, transform* t ) {
+	// without transform
+	(void)t;
+	float r = sphere->radius;
+	const vector& offset = *transform_getWorldPosition( t );
+	aabb2d bb = Aabb2d( -r + offset.coord.x, r + offset.coord.x, -r + offset.coord.z, r + offset.coord.z );
+	return bb;
+}
 
 #if UNIT_TEST
 void test_heightField() {
@@ -859,6 +860,8 @@ void test_heightField() {
 
 	heightField_delete( h );
 }
+
+
 #endif // UNIT_TEST
 
 //

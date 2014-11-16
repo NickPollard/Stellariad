@@ -108,6 +108,8 @@ heightField* heightField_create( float width, float length, int x_samples, int z
 shape* shape_heightField_create( heightField* h );
 void heightField_calculateAABB( heightField* h );
 
+aabb2d sphereAabb2d( shape* sphere, transform* t );
+
 // Unit tests
 void test_collision();
 

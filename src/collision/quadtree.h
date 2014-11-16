@@ -1,4 +1,5 @@
 // quadtree.h
+#pragma once
 
 #include "collection/vec.h"
 #include "collision.h"
@@ -10,7 +11,31 @@ template<typename T> struct Bounded {
 
 template<> struct Bounded<body*> {
 	static aabb2d bb2d(body* const& b) {
+		// TODO - calculate (naive?) aabb2d for bodies
+		// needs to be per-shape (do only spheres for now? What kind of shapes in use?)
+		// heightfields?
 		(void)b;
+		shape* s = b->_shape;
+		switch (s->type) {
+			case shapeInvalid: {
+				NYI;
+				aabb2d bb = Aabb2d( -20.f, -5.f, -20.f, -5.f );
+				return bb;
+			}
+			case shapeSphere: {
+				return sphereAabb2d(s, b->trans);
+			}
+			case shapeMesh: {
+				NYI;
+				aabb2d bb = Aabb2d( -20.f, -5.f, -20.f, -5.f );
+				return bb;
+			}
+			case shapeHeightField: {
+				return s->height_field->aabb;
+			}
+			default:
+				vAssert(0);
+		}
 		aabb2d bb = Aabb2d( -20.f, -5.f, -20.f, -5.f );
 		return bb;
 	}
