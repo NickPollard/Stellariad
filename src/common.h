@@ -24,7 +24,7 @@
 
 #include "common.fwd.h"
 
-#include "debug/debug.h"
+#include "debug/vdebug.h"
 #include "profile.h"
 
 // For sleep

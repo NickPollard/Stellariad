@@ -12,13 +12,13 @@ depends(androidunpack, _, [androiddl]).
 
 % Download NDK
 pkg(android_ndk_dl).
-met(android_ndk_dl, _) :- isfile('~/Download/android-ndk32-r10-linux-x86_64.tar.bz2').
-meet(android_ndk_dl, _) :- bash('mkdir -p ~/Download && wget http://dl.google.com/android/ndk/android-ndk32-r10-linux-x86_64.tar.bz2 && mv android-ndk32-r10-linux-x86_64.tar.bz2 ~/Download/').
+met(android_ndk_dl, _) :- isfile('~/Download/android-ndk-r10c-linux-x86_64.bin').
+meet(android_ndk_dl, _) :- bash('mkdir -p ~/Download && wget http://dl.google.com/android/ndk/android-ndk-r10c-linux-x86_64.bin && mv android-ndk-r10c-linux-x86_64.bin ~/Download/').
 
-% Unpack and install SDK
+% Unpack and install NDK
 pkg(android_ndk_unpack).
-met(android_ndk_unpack, _) :- isfile('~/android/android-ndk-r10/ndk-build').
-meet(android_ndk_unpack, _) :- bash('mkdir -p ~/android && tar xjvf ~/Download/android-ndk32-r10-linux-x86_64.tar.bz2 -C ~/android').
+met(android_ndk_unpack, _) :- isfile('~/android/android-ndk-r10c/ndk-build').
+meet(android_ndk_unpack, _) :- bash('mkdir -p ~/android && cd ~/android && chmod 755 ~/Download/android-ndk-r10c-linux-x86_64.bin && ~/Download/android-ndk-r10c-linux-x86_64.bin').
 depends(android_ndk_unpack, _, [android_ndk_dl]).
 
 %Ant

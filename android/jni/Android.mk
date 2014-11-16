@@ -62,7 +62,7 @@ include $(BUILD_STATIC_LIBRARY)
 
 ## Reset make state
 include $(CLEAR_VARS)
-
+NDK_TOOLCHAIN_VERSION := clang
 
 LOCAL_MODULE    := vitae
 include ../Makelist
@@ -82,7 +82,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_LIBZIP_PATH)
 LOCAL_CFLAGS := -g -D DEBUG #debug #no profile (-pg) as library not cpp compatible?
 LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
 LOCAL_CFLAGS += -std=gnu99 -D __STDC_LIMIT_MACROS
-
+LOCAL_CPPFLAGS += -std=c++11
 include $(BUILD_SHARED_LIBRARY)
 
 $(call import-module,android/native_app_glue)
