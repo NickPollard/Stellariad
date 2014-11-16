@@ -17,3 +17,7 @@ float segment_closestPoint( vector a, vector b, vector point, vector* closest );
 vector eulerAngles( float yaw, float pitch, float roll );
 
 vector normal2d( vector line );
+
+bool overlap( aabb2d first, aabb2d second );
+
+aabb2d Aabb2d( float xMin, float xMax, float zMin, float zMax );

@@ -10,12 +10,8 @@ template<typename A>
 struct Vec {
 	Vec() : underlying() {}
 	Vec(const std::vector<A>& init) : underlying(init) {}
-	// back by std::vector?
-	std::vector<A> underlying;
-//	range<A> contents() { return underlying.range(); }
 
-//	template<typename B>
-//	Vec<B> operator >>=( bindfunc<A,B>& f ) = flatmap(this, f)
+	std::vector<A> underlying; /* backed by std::vector */
 
 	template<typename B>
 	Vec<B> operator | ( std::function<A(B)> f ) {
@@ -29,35 +25,40 @@ struct Vec {
 
 	template<typename B>
 	Vec<B> flatmap( std::function<Vec<B>(A)> f ) const {
-	   return fflatmap(*this, f);
+	   return bind(*this, f);
 	};
 
 	// Vector-like interface
 	int size() const { return underlying.size(); }
-	A& operator [](int i) { return underlying[i]; }
-	const A& operator [](int i) const { return underlying[i]; }
+	inline A& operator [](int i) { return underlying[i]; }
+	inline const A& operator [](int i) const { return underlying[i]; }
+	typename std::vector<A>::iterator begin() { return underlying.begin(); }
+	typename std::vector<A>::iterator end() { return underlying.end(); }
+	void clear() { underlying.clear(); }
+
+	Vec<A> operator +( const A& that ) {
+		auto neo = this.copy();
+		neo.underlying.push_back( that );
+		return neo;
+	}
 
 	Vec<A> operator +( const Vec<A>& that ) {
-		auto neo = Vec<A>();
-		for (const auto i : this.contents())
-			neo.underlying.push_back( i );
-		for (const auto i : that.contents())
-			neo.underlying.push_back( i );
+		auto neo = this.copy();
+		for (const auto i : that.contents()) neo+= i;
 		return neo;
 	}
 
 	void operator +=( const A& a ) { underlying.push_back(a); }
+	void operator +=( const Vec<A>& that ) { for (const auto i : that.contents()) *this += i; }
 };
 
 template<typename A, typename B>
-Vec<B> fflatmap(Vec<A> v, std::function<Vec<B>(A)> f) {
+Vec<B> bind(Vec<A> v, std::function<Vec<B>(A)> f) {
 	Vec<B> out = Vec<B>();
 	for (const auto i : v.underlying) {
 		Vec<B> vTemp = f(i);
-		for( const auto j : vTemp.underlying) {
+		for( const auto j : vTemp.underlying)
 			out.underlying.push_back(j);
-		}
-		// TODO vTemp.delete?
 	}
 	return out;
 }
@@ -65,13 +66,9 @@ Vec<B> fflatmap(Vec<A> v, std::function<Vec<B>(A)> f) {
 template<typename A, typename B>
 Vec<B> fmap(Vec<A> v, std::function<B(A)> f) {
 	Vec<B> out = Vec<B>();
-	for (const auto i : v.underlying) {
+	for (const auto i : v.underlying)
 		out.underlying.push_back(f(i));
-	}
 	return out;
 };
 
-template<typename A>
-Vec<A> vec(const std::vector<A>& stdvec) {
-	return Vec<A>(stdvec);
-};
+template<typename A> Vec<A> vec(const std::vector<A>& stdvec) { return Vec<A>(stdvec); };

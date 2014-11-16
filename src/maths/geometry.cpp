@@ -45,3 +45,14 @@ vector normal2d( vector line ) {
 	return Vector( -line.coord.z, 0.f, line.coord.x, 0.f );
 }
 
+bool overlap( aabb2d first, aabb2d second ) {
+	return !(first.x_max < second.x_min ||
+		first.z_max < second.z_min ||
+		first.x_min > second.x_max ||
+		first.z_min > second.z_max);
+}
+
+aabb2d Aabb2d( float xMin, float xMax, float zMin, float zMax ) {
+		aabb2d bb = { xMin, xMax, zMin, zMax };
+		return bb;
+}
