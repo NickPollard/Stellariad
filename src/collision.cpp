@@ -130,11 +130,18 @@ void collision_generateEvents() {
 				collision_event( bodies[i], bodies[j] );
 		}
 #else 
-	QuadTree<body*> tree;
+	float radius = 10000.f;
+	aabb2d bb;
+	bb.x_max = radius;
+	bb.x_min = -radius;
+	bb.z_max = radius;
+	bb.z_min = -radius;
+	QuadTree<body*> tree(bb);
 	for ( int i = 0; i < body_count; ++i ) {
 		tree += bodies[i];
 	}
-	auto collisions = potentialCollisions(tree);
+//	tree.print(0);
+	auto collisions = potentialCollisions(&tree);
 	for (auto c : collisions.underlying) {
 			collision_event( c.a, c.b );
 	}

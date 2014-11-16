@@ -429,7 +429,8 @@ void engine_run(engine* e) {
 			static int framecount = 0;
 			++framecount;
 			graphData_append( fpsdata, (float)framecount, dt );
-			printf( "CPU Delta %6.5f\n", dt );
+			//printf( "CPU Delta %6.5f\n", dt );
+//			printf( "CPU fps %6.5f\n", 1.0/dt );
 
 #endif // GRAPH_FPS
 			engine_waitForRenderThread();
