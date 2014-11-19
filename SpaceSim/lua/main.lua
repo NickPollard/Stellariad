@@ -190,38 +190,48 @@ end
 
 function player_fire_missile_swarm( ship )
 	vprint( "Missile swarm!" )
+	--[[
 	local enemies = findClosestEnemies( ship.transform, 4 )
 	enemies:zipWithIndex():foreach( function( target ) 
 		inTime( (target[2] - 1) * 0.1, function() 
 			player_fire_missile( ship, target[1] ) end ) end )
+			--]]
 end
 
 function findClosestEnemies( transform, count )
 	local targets = array.filter( interceptors, 
 	function ( interceptor )
-		if not vtransform_valid( interceptor.transform ) then return 1000000.0 end
+		if not vtransform_valid( interceptor.transform ) then return false end
 		local interceptor_position = vtransform_getWorldPosition( interceptor.transform )
 		local current_position = vtransform_getWorldPosition( transform )
-		interceptor_position:foreach( function( i_pos )
-			current_position:foreach( function( c_pos )
+		return interceptor_position:map( function( i_pos )
+			return current_position:map( function( c_pos )
 				local displacement = vvector_subtract( i_pos, c_pos )
 				local direction = vtransformVector( transform, z_axis )
-				return vvector_dot( displacement, direction ) > 0 
+				vprint('measuring distance' )
+				local valid = vvector_dot( displacement, direction ) > 0 
+				if valid then vprint('valid') else vprint('invalid') end
+				return valid
 			end)
-		end)
-	end )
-	return list.fromArray( targets ):take(count)
+		end):getOrElse(false):getOrElse(false)
+	end)
+	local l = list.fromArray(targets)
+	vprint( 'num: ' .. l:length() )
+	return l:take(count)
 end
 
 function findClosestEnemy( transform )
 	local enemies = findClosestEnemies( transform, 1 )
-	return enemies.head
+	vprint('found ' .. enemies:length() .. ' enemies.' )
+	return enemies:headOption()
 end
 
 function player_fire_missile( ship, target )
+	vprint( 'missile fire' )
 	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
 	local missile = fire_missile( ship, muzzle_position, player_missile )
-	missile.tick = homing_missile_tick( target.transform )
+	if target.isSome then vprint("true") else vprint("false") end
+	missile.tick = homing_missile_tick( target:map(function(t) return t.transform end) )
 end
 
 function safeCleanup( value, cleanup )
@@ -336,14 +346,16 @@ function homing_missile_tick( target )
 	return function ( missile, dt )
 		if missile.physic and vtransform_valid( missile.transform ) then
 			vtransform_getWorldPosition( missile.transform ):foreach( function( p ) 
-			vtransform_getWorldPosition( target ):foreach( function ( t )
-				local current = vquaternion_fromTransform( missile.transform )
-				local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
-				local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_rps * dt )
-				vphysic_setVelocity( missile.physic, vquaternion_rotation( dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 )))
-				vtransform_setRotation( missile.transform, dir )
+				target:filter(function(t) return vtransform_valid(t) end):foreach(function(tt)
+					vtransform_getWorldPosition( tt ):foreach( function ( t )
+						local current = vquaternion_fromTransform( missile.transform )
+						local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
+						local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_rps * dt )
+						vphysic_setVelocity( missile.physic, vquaternion_rotation( dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 )))
+						vtransform_setRotation( missile.transform, dir )
+					end )
+				end)
 			end )
-		end )
 		end
 	end
 end
@@ -675,13 +687,12 @@ function playership_weaponsTick( ship, dt )
 		missile_fired = vkeyPressed( input, key.q )
 	end
 	if missile_fired and ship.missile_cooldown <= 0.0 then
+		vprint( 'fired' )
 		if ship.aileron_roll then
 			player_fire_missile_swarm( ship )
 		else
 			local target = findClosestEnemy( ship.transform )
-			if target ~= nil then
-				player_fire_missile( ship, target )
-			end
+			player_fire_missile( ship, target )
 		end
 		ship.missile_cooldown = player_missile_cooldown
 	end

@@ -320,7 +320,18 @@ int lua_stacktrace( lua_State* l ) {
 		while (lua_getstack( l, depth, &debug_entry )) {
 			int status = lua_getinfo( l, "Sln", &debug_entry );
 			vAssert(status);
-			printf( "%s(%d): %s\n", debug_entry.short_src, debug_entry.currentline, debug_entry.name ? debug_entry.name : "?" );
+			char buffer[256];
+			strncpy(buffer, debug_entry.short_src, 7);
+			buffer[7] = '\0';
+			if (string_equal(buffer, "[string")) {
+				strncpy(buffer, &debug_entry.short_src[9], 256);
+				int end = max(0, strlen(buffer) - 2);
+				buffer[255] = '\0';
+				buffer[end] = '\0';
+			} else {
+				strncpy(buffer, debug_entry.short_src, 256);
+			}
+			printf( "(%s:%d) %s\n", buffer, debug_entry.currentline, debug_entry.name ? debug_entry.name : "?" );
 			depth++;
 		}
 	}

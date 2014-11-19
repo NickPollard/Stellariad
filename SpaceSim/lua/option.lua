@@ -28,6 +28,10 @@ function option:foreach( f )
 	end
 end
 
+function option:filter( f )
+	if self.isSome == true and f(self:get()) then return self else return option:none() end
+end
+
 function option:get()
 	if not self.isSome then
 		vprint( "Error: trying to Get from a None Option" )

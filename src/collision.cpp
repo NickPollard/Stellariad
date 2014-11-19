@@ -775,8 +775,8 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 	vector sphere_position = *matrix_getTranslation( matrix_sphere );
 
 	// Check that the sphere is actually over the heightfield
-	bool collides = heightField_contains( height_shape->height_field, sphere_position )
-	collides &&= heightField_collides( height_shape->height_field, sphere_position )
+	bool collides = heightField_contains( height_shape->height_field, sphere_position );
+	collides = collides && heightField_collides( height_shape->height_field, sphere_position );
 	return collides;
 }
 
