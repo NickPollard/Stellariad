@@ -57,10 +57,12 @@ transform* lua_toTransform( lua_State* l, int i ) {
 	transformHandle h = lua_tonumber( l, i );
 	transform* t = transform_fromHandle( h );
 	
+	/*
 	if( (uintptr_t)t <= 0xffff ) {
 		printf( "Transform handle: %d.\n", (int)h );
 	}
-	luaAssert( l, (uintptr_t)t > 0xffff );
+	*/
+	//luaAssert( l, (uintptr_t)t > 0xffff );
 	return t;
 }
 

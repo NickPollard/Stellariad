@@ -124,7 +124,7 @@ function spawn.spawnTurret( canyon, u, v )
 	-- position
 	local x, y, z = vcanyon_position( canyon, u, v )
 	local position = Vector( x, y + spawn_height, z, 1.0 )
-	local turret = gameobject_create( "dat/model/gun_turret.s" )
+	local turret = game.create( "dat/model/gun_turret.s" )
 	vtransform_setWorldPosition( turret.transform, position )
 
 	-- Orientation
@@ -133,11 +133,11 @@ function spawn.spawnTurret( canyon, u, v )
 	vtransform_facingWorld( turret.transform, facing_position )
 
 	-- Physics
-	vbody_registerCollisionCallback( turret.body, turret_collisionHandler )
+	vbody_registerCollisionCallback( turret.body, entities.turret_collisionHandler )
 	vbody_setLayers( turret.body, collision_layer_enemy )
 	vbody_setCollidableLayers( turret.body, collision_layer_player )
 
-	turret.tick = turret_tick
+	turret.tick = entities.turret_tick
 	turret.cooldown = turret_cooldown
 
 	-- TEMP tweak collision position
@@ -183,7 +183,7 @@ function interceptor_attack_gun( x, y, z )
 		entities.setSpeed( interceptor, 0.0 )
 
 		if interceptor.cooldown < 0.0 then
-			interceptor_fire( interceptor )
+			entities.interceptor_fire( interceptor )
 			interceptor.cooldown = interceptor_weapon_cooldown
 		end
 		interceptor.cooldown = interceptor.cooldown - dt
@@ -197,14 +197,20 @@ function interceptor_attack_homing( x, y, z )
 		entities.setSpeed( interceptor, 0.0 )
 
 		if interceptor.cooldown < 0.0 then
-			interceptor_fire_homing( interceptor )
+			entities.interceptor_fire_homing( interceptor )
 			interceptor.cooldown = homing_missile_cooldown
 		end
 		interceptor.cooldown = interceptor.cooldown - dt
 	end
 end
 
+function spawn_index( pos )
+	return math.floor( ( pos - spawn_offset ) / spawn_interval )
+end
 
+function spawn_pos( i )
+	return i * spawn_interval + spawn_offset;
+end
 
 local type_interceptor = {
 	speed = 0.0,
@@ -308,10 +314,10 @@ function spawn.create_interceptor( enemy_type )
 end
 
 function spawn.create_enemy( enemy_type )
-	local enemy = gameobject_create( enemy_type.model )
+	local enemy = game.create( enemy_type.model )
 	
 	-- Collision
-	vbody_registerCollisionCallback( enemy.body, ship_collisionHandler )
+	vbody_registerCollisionCallback( enemy.body, entities.ship_collisionHandler )
 	vbody_setLayers( enemy.body, collision_layer_enemy )
 	vbody_setCollidableLayers( enemy.body, collision_layer_player )
 
@@ -325,5 +331,75 @@ function spawn.create_enemy( enemy_type )
 
 	return enemy
 end
+
+function spawn_atCanyon( u, v, model )
+	local x, y, z = vcanyon_position( canyon, u, v )
+	local position = Vector( x, y, z, 1.0 )
+	local obj = game.create( model )
+	vtransform_setWorldPosition( obj.transform, position )
+end
+
+
+-- Spawn all entities in the given range
+function entities_spawnRange( canyon, near, far )
+	local i = spawn_index( near ) + 1
+	local spawn_v = i * spawn_interval
+	while library.contains( spawn_v, near, far ) do
+		local interceptor_offset_u = 20.0
+		spawn.spawnGroup( spawn.spawnGroupForIndex( canyon, i, player_ship ), spawn_v )
+		i = i + 1
+		spawn_v = i * spawn_interval
+	end
+end
+
+function entities_despawnAll()
+	for unit in array.iterator( interceptors ) do
+		ship_delete( unit )
+		array.clear( interceptors )
+	end
+end
+
+-- Spawn all entities that need to be spawned this frame
+function update_spawns( c, transform )
+	vtransform_getWorldPosition( transform ):foreach( function( p )
+		local u,v = vcanyon_fromWorld( c, p )
+		local spawn_until = v + spawn_distance
+		entities_spawnRange( c, entities_spawned, spawn_until )
+		entities_spawned = spawn_until;
+	end )
+end
+
+function update_despawns( c, transform ) 
+	vtransform_getWorldPosition( transform ):foreach( function( p )
+		local u,v = vcanyon_fromWorld( c, p )
+		local despawn_up_to = v - despawn_distance
+
+		for unit in array.iterator( interceptors ) do
+			-- TODO remove them properly
+			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
+				u,v = vcanyon_fromWorld( c, p_ )
+				if v < despawn_up_to then
+					ship_delete( unit )
+					unit = nil
+				end
+			end )
+		end
+
+		for unit in array.iterator( turrets ) do
+			-- TODO remove them properly
+			if unit.transform then
+				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
+					u,v = vcanyon_fromWorld( c, p_ )
+					if v < despawn_up_to then
+						ship_delete( unit )
+						unit = nil
+					end
+				end)
+			end
+		end
+	end )
+end
+
+
 
 return spawn

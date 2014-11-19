@@ -27,19 +27,21 @@ C and only controlled remotely by Lua
 
 -- Load Modules
 	--package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
-	ai			= require "ai"
-	array		= require "array"
+	ai				= require "ai"
+	array			= require "array"
 	doodads		= require "doodads"
 	entities	= require "entities"
-	fx			= require "fx"
+	fx				= require "fx"
 	future		= require "future"
+	game			= require "game"
 	library		= require "library"
-	list		= require "list"
+	list			= require "list"
 	option		= require "option"
-	spawn		= require "spawn"
+	playr			= require "player"
+	spawn			= require "spawn"
 	timers		= require "timers"
 	triggers	= require "triggers"
-	ui			= require "ui"
+	ui				= require "ui"
 
 -- player - this object contains general data about the player
 	player = nil
@@ -110,118 +112,18 @@ C and only controlled remotely by Lua
 
 local spawning_active = false
 
--- Create a spacesim Game object
--- A gameobject has a visual representation (model), a physical entity for velocity and momentum (physic)
--- and a transform for locating it in space (transform)
-function gameobject_create( model_file )
-	local g = {}
-	g.model = vcreateModelInstance( model_file )
-	g.physic = vcreatePhysic()
-	g.transform = vcreateTransform()
-	g.body = vcreateBodySphere( g )
-	vmodel_setTransform( g.model, g.transform )
-	vphysic_setTransform( g.physic, g.transform )
-	vbody_setTransform( g.body, g.transform )
-	vscene_addModel( scene, g.model )
-	vphysic_activate( engine, g.physic )
-	local v = Vector( 0.0, 0.0, 0.0, 0.0 )
-	vphysic_setVelocity( g.physic, v )
-
-	return g
-end
-
-function gameobject_createAt( model_file, matrix )
-	local g = {}
-	g.model = vcreateModelInstance( model_file )
-	g.physic = vcreatePhysic()
-	g.transform = vcreateTransform()
-	vtransform_setWorldSpaceByMatrix( g.transform, matrix )
-	g.body = vcreateBodySphere( g )
-	vmodel_setTransform( g.model, g.transform )
-	vphysic_setTransform( g.physic, g.transform )
-	vbody_setTransform( g.body, g.transform )
-	vscene_addModel( scene, g.model )
-	vphysic_activate( engine, g.physic )
-	local v = Vector( 0.0, 0.0, 0.0, 0.0 )
-	vphysic_setVelocity( g.physic, v )
-
-	return g
-end
-
-function gameobject_destroy( g )
-	inTime( 0.2, function() gameobject_delete( g ) end )
-
-	if g.body then
-		vdestroyBody( g.body )
-		g.body = nil
-	end
-end
-
-function gameobject_delete( g )
-	if g.model then
-		vdeleteModelInstance( g.model )
-		g.model = nil
-	end
-	if vtransform_valid(g.transform) then
-		vdestroyTransform( scene, g.transform )
-		g.transform = nil
-	end
-	if g.physic then
-		vphysic_destroy( g.physic )
-		g.physic = nil
-	end
-	if g.body then
-		vdestroyBody( g.body )
-		g.body = nil
-	end
-end
-
-function player_fire( ship )
-	if ship.cooldown <= 0.0 then
-		local muzzle_position	= Vector( 1.2, 1.0, 1.0, 1.0 );
-		fire_missile( ship, muzzle_position, player_gunfire )
-		fx.muzzle_flare( ship, muzzle_position )
-		muzzle_position			= Vector( -1.2, 1.0, 1.0, 1.0 );
-		fire_missile( ship, muzzle_position, player_gunfire )
-		fx.muzzle_flare( ship, muzzle_position )
-		ship.cooldown = player_gun_cooldown
-	end
-end
-
-function player_fire_missile_swarm( ship )
-	vprint( "Missile swarm!" )
-	local enemies = findClosestEnemies( ship.transform, 4 )
-	enemies:zipWithIndex():foreach( function( target ) 
-		inTime( (target[2] - 1) * 0.1, function() 
-			player_fire_missile( ship, target[1] ) end ) end )
-end
-
-function findClosestEnemies( transform, count )
-	local targets = array.filter( interceptors, 
-	function ( interceptor )
-		if not vtransform_valid( interceptor.transform ) then return 1000000.0 end
-		local interceptor_position = vtransform_getWorldPosition( interceptor.transform )
-		local current_position = vtransform_getWorldPosition( transform )
-		interceptor_position:foreach( function( i_pos )
-			current_position:foreach( function( c_pos )
-				local displacement = vvector_subtract( i_pos, c_pos )
-				local direction = vtransformVector( transform, z_axis )
-				return vvector_dot( displacement, direction ) > 0 
-			end)
-		end)
-	end )
-	return list.fromArray( targets ):take(count)
-end
-
-function findClosestEnemy( transform )
-	local enemies = findClosestEnemies( transform, 1 )
-	return enemies.head
-end
-
-function player_fire_missile( ship, target )
-	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
-	local missile = fire_missile( ship, muzzle_position, player_missile )
-	missile.tick = homing_missile_tick( target.transform )
+function debugLocals( )
+  local idx = 1
+  while true do
+    local ln, lv = debug.getlocal(2, idx)
+    if ln ~= nil then
+      --variables[ln] = lv
+			vprint(ln .. lv)
+    else
+      break
+    end
+    idx = 1 + idx
+  end
 end
 
 function safeCleanup( value, cleanup )
@@ -231,49 +133,14 @@ function safeCleanup( value, cleanup )
 	return nil
 end
 
-function missile_collisionHandler( missile, other )
-	fx.spawn_missile_explosion( missile.transform )
-	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
-	missile.body = safeCleanup( missile.body, function () vdestroyBody( missile.body ) end )
-	missile.model = safeCleanup( missile.model, function () vdeleteModelInstance( missile.model ) end )
-	missile.tick = nil
-	inTime( 2.0, function() 
-		missile.trail = safeCleanup( missile.trail, function () vdeleteModelInstance( missile.trail ) end )
-		gameobject_delete( missile )
-	end
-	)
-end
-
 function setCollision_playerBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
 	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
-	--	vbody_setCollidableLayers( object.body, collision_layer_enemy )
 end
 
 function setCollision_enemyBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
-	--vbody_setCollidableLayers( object.body, collision_layer_player )
 	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_player, collision_layer_terrain ))
-end
-
-function create_projectile( source, offset, model, speed ) 
-	-- Position it at the correct muzzle position and rotation
-	local muzzle_world_pos = vtransformVector( source.transform, offset )
-	local muzzle_matrix = vtransformWorldMatrix( source.transform )
-	vmatrix_setTranslation ( muzzle_matrix, muzzle_world_pos )
-
-	-- Create a new Projectile
-	local projectile = gameobject_createAt( model, muzzle_matrix )
-	projectile.tick = nil
-
-	-- Apply initial velocity
-	local source_velocity = Vector( 0.0, 0.0, speed, 0.0 )
-	local world_v = vtransformVector( source.transform, source_velocity )
-	vphysic_setVelocity( projectile.physic, world_v );
-
-	-- Store the projectile so it doesn't get garbage collected
-	array.add( missiles, projectile )
-	return projectile
 end
 
 player_gunfire = { 
@@ -308,51 +175,6 @@ enemy_homing_missile = {
 	time_to_live = 3.0
 }
 
-function fire_missile( source, offset, bullet_type )
-	local projectile = create_projectile( source, offset, bullet_type.model, bullet_type.speed )
-
-	if bullet_type.trail then
-		projectile.trail = vcreateModelInstance( bullet_type.trail )
-		vmodel_setTransform( projectile.trail, projectile.transform )
-		vscene_addModel( scene, projectile.trail )
-	end
-
-	if bullet_type.collisionType == "player" then
-		setCollision_playerBullet( projectile )
-	elseif bullet_type.collisionType == "enemy" then
-		setCollision_enemyBullet( projectile )
-	end
-	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-
-	inTime( bullet_type.time_to_live, function () 
-		gameobject_destroy( projectile )
-		projectile.trail = safeCleanup( projectile.trail, function () vdeleteModelInstance( projectile.trail ) end )
-	end )
-
-	return projectile
-end
-
-function homing_missile_tick( target )
-	return function ( missile, dt )
-		if missile.physic and vtransform_valid( missile.transform ) then
-			vtransform_getWorldPosition( missile.transform ):foreach( function( p ) 
-			vtransform_getWorldPosition( target ):foreach( function ( t )
-				local current = vquaternion_fromTransform( missile.transform )
-				local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
-				local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_rps * dt )
-				vphysic_setVelocity( missile.physic, vquaternion_rotation( dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 )))
-				vtransform_setRotation( missile.transform, dir )
-			end )
-		end )
-		end
-	end
-end
-
-function fire_enemy_homing_missile( source, offset, bullet_type )
-	local projectile = fire_missile( source, offset, bullet_type )
-	projectile.tick = homing_missile_tick( player_ship.transform )
-end
-
 function inTime( time, action )
 	timers.add( timers.create( time, action ))
 end
@@ -360,37 +182,6 @@ end
 function triggerWhen( trigger, action )
 	triggers.add( triggers.create( trigger, action ))
 end
-
-function playership_cleanup( p )
-	if p and vtransform_valid( p.camera_transform ) then
-		vdestroyTransform( scene, p.camera_transform )
-	end
-end
-
--- Create a player. The player is a specialised form of Gameobject
-function playership_create()
-	local p = gameobject_create( player_ship_model )
-	p.speed = 0.0
-	p.cooldown = 0.0
-	p.missile_cooldown = 0.0
-	p.yaw = 0
-	p.target_yaw = 0
-	p.pitch = 0
-	p.roll = 0
-	p.aileron_roll = false
-	p.aileron_roll_time = 5.0
-	p.yaw_history = {}
-	p.yaw_history_index = 1
-	p.camera_transform = vcreateTransform()
-	
-	-- Init Collision
-	vbody_registerCollisionCallback( p.body, player_ship_collisionHandler )
-	vbody_setLayers( p.body, collision_layer_player )
-	vbody_setCollidableLayers( p.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
-
-	return p
-end
-
 starting = true
 
 -- Set up the Lua State
@@ -403,23 +194,6 @@ function init()
 	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
 	ui.splash_intro()
-end
-
-function ship_collisionHandler( ship, collider )
-	fx.spawn_explosion( ship.transform );
-	ship_destroy( ship )
-	ship.behaviour = ai.dead
-end
-
-function ship_destroy( ship )
-	array.remove( interceptors, ship )
-	gameobject_destroy( ship )
-end
-
-function ship_delete( ship )
-	array.remove( interceptors, ship )
-	gameobject_delete( ship )
-	ship.behaviour = ai.dead
 end
 
 function setup_controls()
@@ -466,37 +240,6 @@ end
 
 local restartFrame = nil
 
-function player_ship_collisionHandler( ship, collider )
-	if not debug_player_immortal then
-		-- stop the ship
-		ship.speed = 0.0
-		local no_velocity = Vector( 0.0, 0.0, 0.0, 0.0 )
-		vphysic_setVelocity( ship.physic, no_velocity )
-
-		-- destroy it
-		fx.spawn_explosion( ship.transform )
-
-		-- not using gameobject_destroy as we need to sync transform dying with camera rejig
-		inTime( 0.2, function () vdeleteModelInstance( ship.model ) 
-			vphysic_destroy( ship.physic )
-			ship.physic = nil
-		end )
-		vdestroyBody( ship.body )
-
-		-- queue a restart
-		inTime( 2.0, function ()
-			local alpha = 0.3	
-			restartFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
-			onKeyPress( input, key.space ):onComplete( function ()
-				ui.hide_splash( restartFrame )
-				vprint( "Restarting" )
-				vdestroyTransform( scene, ship.transform )
-				restart() 
-				gameplay_start()
-			end )
-		end )
-	end
-end
 
 function gameplay_start()
 	player_active = true
@@ -518,8 +261,8 @@ function restart()
 	entities_despawnAll()
 	-- We create a player object which is a game-specific Lua class
 	-- The player class itself creates several native C classes in the engine
-	playership_cleanup( player_ship )
-	player_ship = playership_create()
+	playr.ship_cleanup( player_ship )
+	player_ship = playr.ship_create()
 
 	-- Init position
 	local start_position = Vector( 0.0, 0.0, 20.0, 1.0 ) 
@@ -586,11 +329,7 @@ end
 wave_interval_time = 10.0
 
 function sign( x )
-	if x > 0 then
-		return 1.0
-	else
-		return -1.0
-	end
+	if x > 0 then return 1.0 else return -1.0 end
 end
 
 -- maps a touch input on the joypad into a joypad tilt
@@ -642,51 +381,11 @@ function steering_input_keyboard()
 	local yaw = 0.0
 	local pitch = 0.0
 	-- Steering
-	if vkeyHeld( input, key.left ) then
-		yaw = -1.0
-	end
-	if vkeyHeld( input, key.right ) then
-		yaw = 1.0
-	end
-	if vkeyHeld( input, key.up ) then
-		pitch = -1.0
-	end
-	if vkeyHeld( input, key.down ) then
-		pitch = 1.0
-	end
+	if vkeyHeld( input, key.left ) then yaw = -1.0 end
+	if vkeyHeld( input, key.right ) then yaw = 1.0 end
+	if vkeyHeld( input, key.up ) then pitch = -1.0 end
+	if vkeyHeld( input, key.down ) then pitch = 1.0 end
 	return yaw, pitch
-end
-
-function playership_weaponsTick( ship, dt )
-	-- Gunfire
-	local fired = false
-	if touch_enabled then
-		fired, joypad_x, joypad_y = vtouchPadTouched( ship.fire_trigger )
-	else
-		fired = vkeyPressed( input, key.space )
-	end
-	if fired then
-		player_fire( ship )
-	end
-	local missile_fired = false
-	if touch_enabled then
-		missile_fired = vgesture_performed( player_ship.fire_trigger, player_ship.missile_swipe )
-	else
-		missile_fired = vkeyPressed( input, key.q )
-	end
-	if missile_fired and ship.missile_cooldown <= 0.0 then
-		if ship.aileron_roll then
-			player_fire_missile_swarm( ship )
-		else
-			local target = findClosestEnemy( ship.transform )
-			if target ~= nil then
-				player_fire_missile( ship, target )
-			end
-		end
-		ship.missile_cooldown = player_missile_cooldown
-	end
-	ship.cooldown = ship.cooldown - dt
-	ship.missile_cooldown = ship.missile_cooldown - dt
 end
 
 function clamp( min, max, value )
@@ -697,172 +396,8 @@ function lerp( a, b, k )
 	return a + ( b - a ) * k
 end
 
-function ship_aileronRoll( ship, multiplier )
-	local aileron_roll_delta = two_pi * multiplier
-	ship.aileron_roll = true
-	ship.aileron_roll_time = aileron_roll_duration
-	ship.aileron_roll_multiplier = multiplier
-	ship.aileron_roll_target = library.roundf( ship.roll + aileron_roll_delta + pi, two_pi )
-	ship.aileron_roll_amount = ship.aileron_roll_target - ship.roll
-	-- preserve heading from when we enter the roll
-	ship.target_yaw = ship.yaw
-
-	local index = (ship.yaw_history_index - 10) % 10 + 1
-	--ship.target_yaw = ship.yaw_history[index]
-end
-
-function ship_aileronRollActive( ship ) 
-	local roll_offset = library.modf( ship.roll + pi, two_pi ) - pi
-	return not ( ship.aileron_roll_time < 0.0 and math.abs( roll_offset ) < 0.4 )
-end
-
-function ship_rollFromYawRate( ship, yaw_delta )
-	local last_roll = library.rolling_average.sample( ship.target_roll ) or 0.0
-	local offset = math.floor(( last_roll + pi ) / two_pi ) * two_pi
-	local yaw_to_roll = -45.0
-	return clamp( -max_allowed_roll, max_allowed_roll, yaw_delta * yaw_to_roll ) + offset
-end
-
-function ship_rollDeltaFromTarget( target, current )
-	local target_delta = target - current
-	local max_roll_delta = math.min( 4.0 * dt, math.abs( target_delta / 2.0 ))
-	return clamp( -max_roll_delta, max_roll_delta, target_delta )
-end
-
--- Distorted sin curve for quicker attack and longer decay
--- sin ( (pi-x)^2 / pi )
-function ship_strafeRate( ratio )
-	return clamp( 0.0, 1.0, math.sin( pi + ratio*ratio / pi - 2.0 * ratio ))
-end
-
-function yaw( ship, dt )
-	local target_yaw_delta = ship.target_yaw - ship.yaw
-	local max_yaw_delta = 2.0 * math.abs( ship.roll ) * 1.3 * dt
-	local actual_yaw_delta = clamp( -max_yaw_delta, max_yaw_delta, target_yaw_delta )
-	ship.yaw = ship.yaw + actual_yaw_delta
-	return target_yaw_delta
-end
-
-function playership_tick( ship, dt )
-	if ship == nil or ship.transform == nil then return end
-	local yaw_per_second = 1.5 
-	local pitch_per_second = 1.5
-
-	local input_yaw = 0.0
-	local input_pitch = 0.0
-	if debug_player_autofly then
-		vtransform_getWorldPosition( ship.transform ):foreach( function ( p )
-			local current_u, current_v = vcanyon_fromWorld( canyon, p )
-			local target_v = current_v + 50
-			local x, y, z = vcanyon_position( canyon, 0, target_v )
-			local target_pos = Vector( x, y, z, 1.0 )
-			local m = vmatrix_facing( target_pos, p )
-			local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
-			input_yaw = target_yaw - ship.yaw
-			input_pitch = target_pitch - ship.pitch
-		end )
-	else
-		input_yaw, input_pitch = ship.steering_input()
-	end
-
-	-- set to -1.0 to invert
-	local invert_pitch = 1.0
-	local pitch = invert_pitch * input_pitch * pitch_per_second * dt;
-	local yaw_delta = input_yaw * yaw_per_second * dt;
-
-	-- pitch
-	ship.pitch = ship.pitch + pitch
-
-	local strafe = 0.0
-
-	if not ship.aileron_roll then
-		local aileron_roll_left = false
-		local aileron_roll_right = false
-		if touch_enabled then
-			aileron_roll_left = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_left )
-			aileron_roll_right = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_right )
-		else
-			aileron_roll_left = vkeyPressed( input, key.a )
-			aileron_roll_right = vkeyPressed( input, key.d )
-		end
-
-		if aileron_roll_left then
-			ship_aileronRoll( ship, 1.0 )
-		elseif aileron_roll_right then
-			ship_aileronRoll( ship, -1.0 )
-		end
-	end
-
-	ship.yaw_history[ship.yaw_history_index ] = ship.yaw
-	ship.yaw_history_index = ( ship.yaw_history_index ) % 10 + 1
-
-	local camera_roll = 0.0
-	if ship.aileron_roll then
-		-- strafe
-		local roll_rate = ship_strafeRate( ship.aileron_roll_time / aileron_roll_duration )
-		local strafe_speed = -1500.0 * roll_rate
-		strafe = strafe_speed * dt * ship.aileron_roll_multiplier
-
-		-- roll
-		library.rolling_average.add( ship.target_roll, ship.aileron_roll_target )
-		--local roll_delta = ship_rollDeltaFromTarget( library.rolling_average.sample( ship.target_roll ), ship.roll )
-		local integral_total = 1.8 -- This is such a fudge - should be integral [0->1] of sin( pi^2 - x^2 / pi ) ( which is 1.58605 )
-		local roll_delta = roll_rate * dt * ship.aileron_roll_amount * integral_total
-		ship.roll = ship.roll + roll_delta
-
-		ship.aileron_roll_time = ship.aileron_roll_time - dt
-		ship.aileron_roll = ship_aileronRollActive( ship )
-		camera_roll = max_allowed_roll * camera_roll_scale * ship.aileron_roll_multiplier
-
-		yaw(ship,dt)
-
-	else
-		ship.target_yaw = ship.target_yaw + yaw_delta
-		local target_yaw_delta = yaw( ship, dt )
-
-		-- roll
-		local target_roll = ship_rollFromYawRate( ship, target_yaw_delta )
-		library.rolling_average.add( ship.target_roll, target_roll )
-		local roll_delta = ship_rollDeltaFromTarget( library.rolling_average.sample( ship.target_roll ), ship.roll )
-		ship.roll = ship.roll + roll_delta
-		local roll_offset = library.modf( ship.roll + pi, two_pi ) - pi
-		camera_roll = roll_offset * camera_roll_scale
-	end
-	
-	vtransform_eulerAngles( ship.transform, ship.yaw, ship.pitch, ship.roll )
-	-- Camera transform shares ship position and yaw, pitch; but not roll
-	vtransform_setWorldSpaceByTransform( ship.camera_transform, ship.transform )
-	local camera_target_position = vtransformVector( ship.transform, Vector( 0.0, 0.0, 20.0, 1.0 ))
-	vtransform_setWorldPosition( ship.camera_transform, camera_target_position )
-	vtransform_eulerAngles( ship.camera_transform, ship.yaw, ship.pitch, camera_roll )
-
-	-- throttle
-	width = 100
-	delta_speed = player_ship_acceleration * dt;
-	ship.speed = math.min( ship.speed + delta_speed, player_ship_max_speed )
-
-	playership_weaponsTick( ship, dt )
-
-	-- Physics
-	local forward_v = vtransformVector( ship.transform, Vector( 0.0, 0.0, ship.speed, 0.0 ))
-	local strafe_v = vtransformVector( ship.camera_transform, Vector( strafe, 0.0, 0.0, 0.0 ))
-	local world_v = vvector_add( forward_v, strafe_v )
-
-	if ship.physic then
-		vphysic_setVelocity( ship.physic, world_v )
-	end
-end
-
 function debug_tick( dt )
-	--[[
-	if touch_enabled and vtouchPadTouched( bloom_toggle ) then
-		vfx_toggleBloom()
-	end
-	--]]
-
-	if vkeyPressed( input, key.c ) then
-		toggle_camera()
-	end
+	if vkeyPressed( input, key.c ) then toggle_camera() end
 end
 
 function toggle_camera()
@@ -905,9 +440,7 @@ function tick( dt )
 	end
 
 
-	if player_active then
-		playership_tick( player_ship, dt )
-	end
+	if player_active then playr.ship_tick( player_ship, dt ) end
 
 	debug_tick( dt )
 
@@ -946,135 +479,12 @@ function terminate()
 	player = nil
 end
 
-function delay( time, command )
-	if time <= 0 then
-		command()
-	else
-		print( string.format( "Delay timer: %d", time ))
-		delay( time-1, command )
-	end
-end
-
-function spawn_index( pos )
-	return math.floor( ( pos - spawn_offset ) / spawn_interval )
-end
-
-function spawn_pos( i )
-	return i * spawn_interval + spawn_offset;
-end
-
-
-
-function turret_fire( turret )
-	-- right
-	local muzzle_position = Vector( 4.6, 5.0, 5.0, 1.0 )
-	fx.muzzle_flare_large( turret, muzzle_position )
-	fire_missile( turret, muzzle_position, enemy_gunfire )
-	-- left
-	muzzle_position = Vector( -4.6, 5.0, 5.0, 1.0 )
-	fx.muzzle_flare_large( turret, muzzle_position )
-	fire_missile( turret, muzzle_position, enemy_gunfire )
-end
-
-function turret_tick( turret, dt )
-	turret.behaviour = turret.behaviour( turret, dt )
-end
-
 function tick_array( arr, dt )
 	for element in array.iterator( arr ) do
 		if element.tick then
 			element.tick( element, dt )
 		end
 	end
-end
-
-function turret_collisionHandler( target, collider )
-	fx.spawn_explosion( target.transform )
-	gameobject_destroy( target )
-	target.behaviour = ai.dead
-end
-
-function spawn_atCanyon( u, v, model )
-	local x, y, z = vcanyon_position( canyon, u, v )
-	local position = Vector( x, y, z, 1.0 )
-	local obj = gameobject_create( model )
-	vtransform_setWorldPosition( obj.transform, position )
-end
-
-
--- Spawn all entities in the given range
-function entities_spawnRange( canyon, near, far )
-	local i = spawn_index( near ) + 1
-	local spawn_v = i * spawn_interval
-	while library.contains( spawn_v, near, far ) do
-		local interceptor_offset_u = 20.0
-		spawn.spawnGroup( spawn.spawnGroupForIndex( canyon, i, player_ship ), spawn_v )
-		i = i + 1
-		spawn_v = i * spawn_interval
-	end
-end
-
-function entities_despawnAll()
-	for unit in array.iterator( interceptors ) do
-		ship_delete( unit )
-		array.clear( interceptors )
-	end
-end
-
--- Spawn all entities that need to be spawned this frame
-function update_spawns( c, transform )
-	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( c, p )
-		local spawn_until = v + spawn_distance
-		entities_spawnRange( c, entities_spawned, spawn_until )
-		entities_spawned = spawn_until;
-	end )
-end
-
-function update_despawns( c, transform ) 
-	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( c, p )
-		local despawn_up_to = v - despawn_distance
-
-		for unit in array.iterator( interceptors ) do
-			-- TODO remove them properly
-			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-				u,v = vcanyon_fromWorld( c, p_ )
-				if v < despawn_up_to then
-					ship_delete( unit )
-					unit = nil
-				end
-			end )
-		end
-
-		for unit in array.iterator( turrets ) do
-			-- TODO remove them properly
-			if unit.transform then
-				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( c, p_ )
-					if v < despawn_up_to then
-						ship_delete( unit )
-						unit = nil
-					end
-				end)
-			end
-		end
-	end )
-end
-
-function interceptor_fire( interceptor )
-	-- Right
-	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
-	fx.muzzle_flare_large( interceptor, muzzle_position )
-	fire_missile( interceptor, muzzle_position, enemy_gunfire )
-	-- Left
-	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 );
-	fx.muzzle_flare_large( interceptor, muzzle_position )
-	fire_missile( interceptor, muzzle_position, enemy_gunfire )
-end
-
-function interceptor_fire_homing( interceptor )
-	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), enemy_homing_missile )
 end
 
 local keyHandlers = { count = 0 }

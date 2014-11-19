@@ -86,4 +86,10 @@ list.reverse = () =>
 list.append = ( otherList ) =>
 	self\reverse()\fold( otherList, (l, i) -> l\prepend(i))
 
+list.headOption = () =>
+	if self.head then
+		option\some(self.head)
+	else
+		option\none()
+
 list

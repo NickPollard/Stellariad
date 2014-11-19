@@ -1,6 +1,8 @@
 MOON_SRCS = color.moon \
 			doodads.moon \
 			entities.moon \
+			game.moon \
+			player.moon \
 			list.moon \
 			proc.moon \
 			timers.moon \
