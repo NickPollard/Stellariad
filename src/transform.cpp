@@ -268,10 +268,12 @@ transform* transform_fromHandle( transformHandle h ) {
 		t = NULL;
 	}
 	if( (uintptr_t)t <= 0xffff ) {
+		/*
 		printf( "Transform uid: %d.\n", (int)uid );
 		printf( "Transform index: %d.\n", (int)index );
 		printf( "Transform handle: 0x%x.\n", (int)h );
 		printf( "Transform t: 0x" xPTRf ".\n", (uintptr_t)t );
+		*/
 	}
 	return t;
 }

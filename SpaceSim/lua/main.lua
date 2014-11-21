@@ -110,6 +110,20 @@ C and only controlled remotely by Lua
 
 local spawning_active = false
 
+function debugLocals( )
+  local idx = 1
+  while true do
+    local ln, lv = debug.getlocal(2, idx)
+    if ln ~= nil then
+      --variables[ln] = lv
+			vprint(ln .. lv)
+    else
+      break
+    end
+    idx = 1 + idx
+  end
+end
+
 -- Create a spacesim Game object
 -- A gameobject has a visual representation (model), a physical entity for velocity and momentum (physic)
 -- and a transform for locating it in space (transform)
@@ -188,14 +202,13 @@ function player_fire( ship )
 	end
 end
 
+--[[
 function player_fire_missile_swarm( ship )
 	vprint( "Missile swarm!" )
-	--[[
 	local enemies = findClosestEnemies( ship.transform, 4 )
 	enemies:zipWithIndex():foreach( function( target ) 
 		inTime( (target[2] - 1) * 0.1, function() 
 			player_fire_missile( ship, target[1] ) end ) end )
-			--]]
 end
 
 function findClosestEnemies( transform, count )
@@ -208,30 +221,26 @@ function findClosestEnemies( transform, count )
 			return current_position:map( function( c_pos )
 				local displacement = vvector_subtract( i_pos, c_pos )
 				local direction = vtransformVector( transform, z_axis )
-				vprint('measuring distance' )
 				local valid = vvector_dot( displacement, direction ) > 0 
-				if valid then vprint('valid') else vprint('invalid') end
 				return valid
 			end)
 		end):getOrElse(false):getOrElse(false)
 	end)
 	local l = list.fromArray(targets)
-	vprint( 'num: ' .. l:length() )
 	return l:take(count)
 end
+--]]
 
+--[[
 function findClosestEnemy( transform )
 	local enemies = findClosestEnemies( transform, 1 )
-	vprint('found ' .. enemies:length() .. ' enemies.' )
 	return enemies:headOption()
 end
+--]]
 
 function player_fire_missile( ship, target )
-	vprint( 'missile fire' )
-	muzzle_position = Vector( 0.0, 0.0, 1.0, 1.0 );
-	local missile = fire_missile( ship, muzzle_position, player_missile )
-	if target.isSome then vprint("true") else vprint("false") end
-	missile.tick = homing_missile_tick( target:map(function(t) return t.transform end) )
+	local missile = fire_missile( ship, Vector( 0.0, 0.0, 1.0, 1.0 ), player_missile )
+	missile.tick = entities.homing_missile_tick( target:map(function(t) return t.transform end) )
 end
 
 function safeCleanup( value, cleanup )
@@ -241,6 +250,7 @@ function safeCleanup( value, cleanup )
 	return nil
 end
 
+--[[
 function missile_collisionHandler( missile, other )
 	fx.spawn_missile_explosion( missile.transform )
 	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
@@ -253,6 +263,7 @@ function missile_collisionHandler( missile, other )
 	end
 	)
 end
+--]]
 
 function setCollision_playerBullet( object )
 	vbody_setLayers( object.body, collision_layer_bullet )
@@ -332,7 +343,7 @@ function fire_missile( source, offset, bullet_type )
 	elseif bullet_type.collisionType == "enemy" then
 		setCollision_enemyBullet( projectile )
 	end
-	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
+	vbody_registerCollisionCallback( projectile.body, entities.missile_collisionHandler )
 
 	inTime( bullet_type.time_to_live, function () 
 		gameobject_destroy( projectile )
@@ -342,11 +353,16 @@ function fire_missile( source, offset, bullet_type )
 	return projectile
 end
 
-function homing_missile_tick( target )
+--[[
+function homing_missile_tick( ttt )
 	return function ( missile, dt )
 		if missile.physic and vtransform_valid( missile.transform ) then
 			vtransform_getWorldPosition( missile.transform ):foreach( function( p ) 
-				target:filter(function(t) return vtransform_valid(t) end):foreach(function(tt)
+				if type(ttt) ~= "table" then 
+					vprint('ttt is type ' .. type(ttt))
+					vprint('ttt ' .. ttt)
+				end
+				ttt:filter(function(t) return vtransform_valid(t) end):foreach(function(tt)
 					vtransform_getWorldPosition( tt ):foreach( function ( t )
 						local current = vquaternion_fromTransform( missile.transform )
 						local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
@@ -359,10 +375,11 @@ function homing_missile_tick( target )
 		end
 	end
 end
+--]]
 
 function fire_enemy_homing_missile( source, offset, bullet_type )
 	local projectile = fire_missile( source, offset, bullet_type )
-	projectile.tick = homing_missile_tick( player_ship.transform )
+	projectile.tick = entities.homing_missile_tick( option:some(player_ship.transform) )
 end
 
 function inTime( time, action )
@@ -689,10 +706,9 @@ function playership_weaponsTick( ship, dt )
 	if missile_fired and ship.missile_cooldown <= 0.0 then
 		vprint( 'fired' )
 		if ship.aileron_roll then
-			player_fire_missile_swarm( ship )
+			entities.player_fire_missile_swarm( ship )
 		else
-			local target = findClosestEnemy( ship.transform )
-			player_fire_missile( ship, target )
+			player_fire_missile( ship, entities.findClosestEnemy( ship.transform ))
 		end
 		ship.missile_cooldown = player_missile_cooldown
 	end

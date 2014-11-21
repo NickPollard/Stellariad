@@ -102,3 +102,6 @@ void lua_setGameLuaPath( const char* path );
 
 // Dump the lua call stack
 int lua_stacktrace( lua_State* l );
+
+// Handle a just-caught lua error
+int lua_errorHandler( lua_State* l );

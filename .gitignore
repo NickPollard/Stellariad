@@ -15,7 +15,9 @@ android/libs
 android/xxx.map
 android/gen
 *.d
-SpaceSim/lua/compiled
+SpaceSim/lua/compiled/
+SpaceSim/lua/compiled/*
+SpaceSim/lua/compiled/*.lua
 SpaceSim/moon/*.lua
 
 # profile output
