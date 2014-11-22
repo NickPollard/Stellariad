@@ -22,7 +22,7 @@ player.ship_weaponsTick = ( ship, dt ) ->
 	ship.cooldown = ship.cooldown - dt
 	ship.missile_cooldown = ship.missile_cooldown - dt
 
-player.autofly = () ->
+player.autofly = ( ship ) ->
 	input_yaw = 0.0
 	input_pitch = 0.0
 	vtransform_getWorldPosition( ship.transform )\foreach( ( p ) ->
@@ -41,7 +41,7 @@ player.ship_tick = ( ship, dt ) ->
 	yaw_per_second = 1.5
 	pitch_per_second = 1.5
 
-	input_yaw, input_pitch = if debug_player_autofly then player.autofly() else ship.steering_input()
+	input_yaw, input_pitch = if debug_player_autofly then player.autofly( ship ) else ship.steering_input()
 
 	-- set to -1.0 to invert
 	invert_pitch = 1.0

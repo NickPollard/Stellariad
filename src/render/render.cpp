@@ -60,7 +60,7 @@ struct renderPass_s {
 
 // Rendering API declaration
 bool	render_initialised = false;
-bool	render_bloom_enabled = true;
+bool	render_bloom_enabled = false;
 
 #ifdef GRAPH_GPU_FPS
 	#define kMaxGpuFPSFrames 512
@@ -734,7 +734,7 @@ void render_draw( window* w, engine* e ) {
 		render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
 	} detachFrameBuffer();
 
-	const bool drawSsao = !render_bloom_enabled;
+	const bool drawSsao = false;//!render_bloom_enabled;
 	if ( drawSsao ) {
 		render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
 	} else {

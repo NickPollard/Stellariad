@@ -19,11 +19,11 @@ C and only controlled remotely by Lua
 -- Debug settings
 	debug_spawning_disabled	= false
 	debug_doodads_disabled	= false
-	debug_player_immortal	= true
-	debug_player_autofly	= false
-	debug_player_immobile	= false
-	debug_auto_start		= true
-	debug_no_pause_fade		= true
+	debug_player_immortal		= true
+	debug_player_autofly		= true
+	debug_player_immobile		= false
+	debug_auto_start				= true
+	debug_no_pause_fade			= true
 
 -- Load Modules
 	--package.path = "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua"
@@ -44,7 +44,7 @@ C and only controlled remotely by Lua
 	ui				= require "ui"
 
 -- player - this object contains general data about the player
-	player = nil
+	plyr = nil
 
 -- player_ship - the actual ship entity flying around
 	player_ship = nil
@@ -315,7 +315,7 @@ function test()
 	--list.test()
 end
 
-local canyon = nil
+canyon = nil
 
 function start()
 	fx.preload()
@@ -356,7 +356,6 @@ function steering_input_joypad()
 	return yaw, pitch
 end
 
-
 function steering_input_drag()
 	-- Using Joypad
 	local yaw = 0.0
@@ -375,7 +374,6 @@ function drag_map()
 		return x / x_scale, y / y_scale
 	end
 end
-
 
 function steering_input_keyboard()
 	local yaw = 0.0
@@ -476,7 +474,7 @@ end
 
 -- Called on termination to clean up after itself
 function terminate()
-	player = nil
+	plyr = nil
 end
 
 function tick_array( arr, dt )

@@ -151,6 +151,7 @@ void engine_tick( engine* e ) {
 	frame_times[9] = dt;
 	time += dt;
 	time = time / 10.f;
+	printf( "frame time: %.4f, fps: %.2f\n", time, 1.f/time );
 
 	debugdraw_preTick( dt );
 	lua_preTick( e->lua, dt );

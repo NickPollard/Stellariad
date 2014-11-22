@@ -354,7 +354,7 @@ end
 
 function entities_despawnAll()
 	for unit in array.iterator( interceptors ) do
-		ship_delete( unit )
+		entities.ship_delete( unit )
 		array.clear( interceptors )
 	end
 end
@@ -379,7 +379,7 @@ function update_despawns( c, transform )
 			vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
 				u,v = vcanyon_fromWorld( c, p_ )
 				if v < despawn_up_to then
-					ship_delete( unit )
+					entities.ship_delete( unit )
 					unit = nil
 				end
 			end )
@@ -391,7 +391,7 @@ function update_despawns( c, transform )
 				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
 					u,v = vcanyon_fromWorld( c, p_ )
 					if v < despawn_up_to then
-						ship_delete( unit )
+						entities.ship_delete( unit )
 						unit = nil
 					end
 				end)

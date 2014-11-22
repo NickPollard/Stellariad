@@ -32,6 +32,13 @@ const vec4 directional_light_diffuse = vec4( 1.0, 1.0, 0.8, 1.0 );
 const vec4 directional_light_specular = vec4( 0.4, 0.4, 0.4, 1.0 );
 
 void main() {
+#if 0
+	vec4 normal = cameraSpace_frag_normal;
+	float diffuse = max( 0.0, dot( -directional_light_direction, normal ));
+	vec4 total_light_color = (light_ambient + directional_light_diffuse * diffuse);
+	gl_FragColor = total_light_color;
+	//gl_FragColor = vec4( diffuse, diffuse, diffuse, 1.0 ) + light_ambient;
+#else
 	// light-invariant calculations
 	float ssao = texture2D( ssao_tex, screenCoord ).x;
 	vec4 cliff_color_2 = texture2D( tex_d, cliff_texcoord ); // TODO - like above!
@@ -61,4 +68,5 @@ void main() {
 	//vec4 fragColor = vec4( 0.5, 0.5, 0.5, 1.0 );
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
 	gl_FragColor.w = 1.0;
+#endif
 }
