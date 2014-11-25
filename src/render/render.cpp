@@ -60,7 +60,7 @@ struct renderPass_s {
 
 // Rendering API declaration
 bool	render_initialised = false;
-bool	render_bloom_enabled = false;
+bool	render_bloom_enabled = true;
 
 #ifdef GRAPH_GPU_FPS
 	#define kMaxGpuFPSFrames 512
