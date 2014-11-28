@@ -109,7 +109,7 @@ void engine_input( engine* e ) {
 	engine_inputInputs( e );
 }
 
-float frame_times[10];
+float frame_times[30];
 
 void countVisibleParticleEmitters( engine* e ) {
 	int count = 0;
@@ -144,13 +144,13 @@ void engine_tick( engine* e ) {
 	float dt = e->paused ? 0.f : real_dt;
 
 	float time = 0.f;
-	for ( int i = 0; i < 9; i++ ) {
+	for ( int i = 0; i < 29; i++ ) {
 		frame_times[i] = frame_times[i+1];
 		time += frame_times[i];
 	}
-	frame_times[9] = dt;
+	frame_times[29] = dt;
 	time += dt;
-	time = time / 10.f;
+	time = time / 30.f;
 	printf( "frame time: %.4f, fps: %.2f\n", time, 1.f/time );
 
 	debugdraw_preTick( dt );

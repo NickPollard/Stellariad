@@ -31,6 +31,7 @@ float sun_fog( vec4 local_sun_dir, vec4 view_direction ) {
 }
 
 void main() {
+#if 1
 	vec4 ssao = texture2D( ssao_tex, screenCoord * 0.5 + vec2( 0.5, 0.5 ) );
 	// light-invariant calculations
 	vec4 view_direction = vec4( normalize( frag_position ).xyz, 0.0 );
@@ -56,4 +57,7 @@ void main() {
 	vec4 fragColor = total_light_color * material_diffuse + reflection * fresnel;
 	vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, view_direction ));
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
+#else
+	gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0);
+#endif
 }

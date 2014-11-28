@@ -28,7 +28,7 @@ void main() {
 	texcoord = uv.xy;
 	ui_color = color;
 
-	float radius = 8.0;
+	float radius = 2.0;
 	float m = 0.30;
 
 	float p1 = 1.46 * radius / screen_size.x;

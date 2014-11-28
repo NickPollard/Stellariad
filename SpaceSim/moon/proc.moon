@@ -29,15 +29,20 @@ s = (spwn) -> spawner( () -> spwn()())
 
 -----------------------------------
 
-block = model("dat/model/block4.s") ^ model("dat/model/block3.s")
-smallblock = model("dat/model/smallblock.s")
-pyramid = model("dat/model/edge.s") ^ model("dat/model/pyramid2.s")
+--block = model("dat/model/block4.s") ^ model("dat/model/block3.s")
+--smallblock = model("dat/model/smallblock.s")
+--pyramid = model("dat/model/edge.s") ^ model("dat/model/pyramid2.s")
+
+block = model("dat/model/block3.s") ^ model("dat/model/block3.s")
+smallblock = model("dat/model/block3.s")
+pyramid = model("dat/model/block3.s") ^ model("dat/model/block3.s")
 empty = spawner(() -> list.empty())
 
 ------------------------------------
 
 spire = () -> empty ^ (smallblock .. s(spire))
 skyscraper = () -> (block .. s(spire)) ^ (block .. s(skyscraper)) ^ (block .. block .. pyramid) ^ empty
+--skyscraper = () -> (block)
 
 proc.skyscraper = () -> skyscraper()()
 

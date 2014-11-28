@@ -1,0 +1,15 @@
+
+
+depth-test for DoF - 0.0491 vs 0.0497 ( 0.6ms )
+simpler building shader - 0.0497 vs 0.0485 ( 1ms )
+no doodads - 0.0485 vs 0.0419 ( 6.6ms ) !!!
+skybox fuck all difference
+downscale 4 instead of 2 - 0.0419 vs 0.0417(?) (0.2ms, maybe even nothing)
+no particles on ship - 0.0419 vs 0.0404 (1.5ms)
+no ssao calc - 0.0404 to 0.0363 ( 4.1ms )
+half canyon res (x4 reduction) 0.0363 to 0.0293 ( 7ms )
+3/4 canyon res (16/9 reduction) 0.0355
+no canyon shading - 0.0355 to 0.0278 ( 7ms )
+no particles on ship - 0.0278 to 0.0267 ( 1.1ms )
+simple shading on ship - 0.0267 to 0.0263 ( 0.4ms )
+0.0336 - 0.0284 ( 5.2ms )

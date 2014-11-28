@@ -151,14 +151,14 @@ void mesh_buildBuffers( mesh* m ) {
 }
 
 void mesh_renderCached( mesh* m ) {
-	if( m->texture_diffuse->gl_tex == kInvalidGLTexture)
+	if (m->texture_diffuse->gl_tex == kInvalidGLTexture)
 		return; // Early out if we don't have a texture to render with
 	if (m->cachedDraw && m->cachedDraw->vitae_shader != *m->_shader)
 		printf( "Shader has changed, invalidating cached call.\n" );
 
 	if (!m->cachedDraw || m->cachedDraw->vitae_shader != *m->_shader) {
 		drawCall* draw = drawCall_createCached( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-//		printf( "Building cached draw " xPTRf " for mesh " xPTRf ".\n", (uintptr_t)draw, (uintptr_t)m);
+		printf( "Building cached draw " xPTRf " for mesh " xPTRf ".\n", (uintptr_t)draw, (uintptr_t)m);
 		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 		draw->vertex_VBO = *m->vertex_VBO;

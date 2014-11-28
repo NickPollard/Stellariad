@@ -52,7 +52,7 @@ typedef struct sceneParams_s sceneParams;
 
 #define VERTEX_ATTRIB_POINTER( attrib ) \
 	if ( *resources.attributes.attrib >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, attrib) ); \
+		glVertexAttribPointer( *resources.attributes.attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, attrib )); \
 		glEnableVertexAttribArray( *resources.attributes.attrib ); \
 	}
 
@@ -91,6 +91,7 @@ struct vertex_s {
 	vector	uv;
 	vector	color;
 	//float	padding; // Do I need this? Think I put this here for 32-byte padding at some point
+	// TODO - Should these be smaller than 32bit floats in these vectors? UVs/Colors at least? (And normals?)
 };
 
 typedef struct vertex_s particle_vertex;

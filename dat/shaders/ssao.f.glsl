@@ -59,9 +59,9 @@ void main() {
 	//gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
 	
 #else
-	gl_FragColor = ssao();
-	//float f = 1.0;
-//	gl_FragColor = vec4(f, f, f, 1.0);
+	//gl_FragColor = ssao();
+	float f = 1.0;
+	gl_FragColor = vec4(f, f, f, 1.0);
 #endif
 }
 
