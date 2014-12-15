@@ -45,7 +45,7 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 }
 
 void main() {
-#if 0
+#if 1
 	// light-invariant calculations
 	vec4 view_direction = vec4( normalize( frag_position ).xyz, 0.0 );
 	vec4 material_diffuse = texture2D( tex, texcoord );

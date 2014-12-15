@@ -41,8 +41,8 @@ empty = spawner(() -> list.empty())
 ------------------------------------
 
 spire = () -> empty ^ (smallblock .. s(spire))
-skyscraper = () -> (block .. s(spire)) ^ (block .. s(skyscraper)) ^ (block .. block .. pyramid) ^ empty
---skyscraper = () -> (block)
+--skyscraper = () -> (block .. s(spire)) ^ (block .. s(skyscraper)) ^ (block .. block .. pyramid) ^ empty
+skyscraper = () -> (block)
 
 proc.skyscraper = () -> skyscraper()()
 

@@ -70,6 +70,12 @@ bool	render_bloom_enabled = true;
 #endif // GRAPH_GPU_FPS
 
 #define kMaxVertexArrayCount 1024
+#define kMaxInstanceVertCount 16384
+
+	// TODO - move these inside render struct
+	// Temp instancing stuff
+	GLuint instance_vertex_VBO[2];
+	GLuint instance_element_VBO[2];
 
 // *** Shader Pipeline
 	matrix modelview, camera_mtx, camera_inverse, camera_matrix;
@@ -315,6 +321,12 @@ void render_init( void* app ) {
 		resources.vertex_buffer[i]	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxVertexArrayCount);
 		resources.element_buffer[i]	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxVertexArrayCount);
 	}
+
+	// TODO - move this? temp instance buffers
+	instance_vertex_VBO[0] = render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxInstanceVertCount);
+	instance_element_VBO[0] = render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxInstanceVertCount);
+	instance_vertex_VBO[1] = render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxInstanceVertCount);
+	instance_element_VBO[1] = render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxInstanceVertCount);
 
 	callbatch_map = map_create( kCallBufferCount, sizeof( unsigned int ));
 
@@ -567,6 +579,13 @@ int compareTexture( const void* a_, const void* b_ ) {
 	return ((int)a->texture) - ((int)b->texture);
 }
 
+void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
+		render_current_VBO = vertexBuffer;
+		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
+		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+}
+
 void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
@@ -576,37 +595,93 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	render_setUniform_matrix( *resources.uniforms.camera_to_world, camera_matrix );
 	render_setUniform_vector( *resources.uniforms.viewspace_up, &viewspace_up );
 	vector light = Vector( 1.f, -0.5f, 0.5f, 0.f );
-	bool isDepth = calls[0].vitae_shader == resources.shader_depth;
-	if (!isDepth) {
-		render_setUniform_vectorI( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
-		render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
-		render_sceneParams( &sceneParams_main );
-	}
+	render_setUniform_vectorI( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
+	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	render_sceneParams( &sceneParams_main );
 
 	drawCall* sorted = (drawCall*)alloca( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
 	bool ui_shader = calls[0].vitae_shader == resources.shader_ui;
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
 
-	// Reset the current texture unit so we have as many as we need for this batch
-	render_current_texture_unit = 0;
-	// Only draw if we have a valid texture
-	GLuint current_texture = -1;
-	drawCall* draw = &sorted[0];
-	if ( draw->texture != kInvalidGLTexture ) {
-		for ( int i = 0; i < count; i++ ) {
-			drawCall* draw = &sorted[i];
-			if (draw->texture != current_texture || ui_shader) {
-				current_texture = draw->texture;
-				render_current_texture_unit = 0;
-				render_setUniform_texture( *resources.uniforms.tex, draw->texture );
-				render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
-				render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
-				render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
-				render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
-				render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+	bool instanced = calls[0].vitae_shader == *render_shaderByName( "dat/shaders/refl_normal.s" );
+	if (true && instanced) {
+
+		// Activate buffer, copy over data
+		static int instance_index = 0;
+		render_useBuffers( instance_vertex_VBO[instance_index], instance_element_VBO[instance_index] );
+
+		static bool first = true;
+		static int indexCount = 0;
+
+		const GLuint elementsMode = calls[0].elements_mode;
+		// Draw the instance
+		//GLushort* elementBuffer = (GLushort*)alloca( sizeof( GLushort ) * kMaxInstanceVertCount );
+		//vertex* vertexBuffer = (vertex*)alloca( sizeof( vertex ) * kMaxInstanceVertCount );
+		if (first) {
+			GLushort* elementBuffer = (GLushort*)mem_alloc( sizeof( GLushort ) * kMaxInstanceVertCount );
+			vertex* vertexBuffer = (vertex*)mem_alloc( sizeof( vertex ) * kMaxInstanceVertCount );
+
+			for ( int i = 0; i < count; ++i ) {
+				if (indexCount + calls[i].element_count >= kMaxInstanceVertCount) break;
+				const int vertCount = calls[i].element_count; // Is this right? Might be less if we're indexed
+				for ( int j = 0; j < vertCount; ++j ) {
+					vertexBuffer[indexCount + j] = calls[i].vertex_buffer[j];
+					// Pre-transform (doing this means we probably actually need a separate model position for the drawcalls, right?)
+					vertexBuffer[indexCount + j].position = matrix_vecMul(calls[i].modelview, &vertexBuffer[indexCount + j].position);
+					// Offset indices
+					elementBuffer[indexCount + j] = calls[i].element_buffer[j] + indexCount;
+				}
+				indexCount += calls[i].element_count;
 			}
-			render_drawTextureBatch( &sorted[i] );
+			GLsizei vertex_buffer_size	= indexCount * sizeof( vertex );
+			GLsizei element_buffer_size	= indexCount * sizeof( GLushort );
+			glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertexBuffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+			glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, elementBuffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
+		}
+		first = false;
+		//instance_index = 1 - instance_index;
+
+		// Texture
+		drawCall* draw = &calls[0];
+		render_current_texture_unit = 0;
+		render_setUniform_texture( *resources.uniforms.tex, draw->texture );
+		render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
+		render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
+		render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
+		render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
+		render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+
+
+		// Activate identity matrix as modelview (verts have been pre-transformed)
+		render_setUniform_matrix( *resources.uniforms.modelview, matrix_identity );
+		// Draw
+		//printf( "Drawing %d instanced indices.\n", indexCount );
+		glDrawElements( elementsMode, indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
+//		mem_free( elementBuffer );
+//		mem_free( vertexBuffer );
+	}
+	else {
+		// Reset the current texture unit so we have as many as we need for this batch
+		render_current_texture_unit = 0;
+		// Only draw if we have a valid texture
+		GLuint current_texture = -1;
+		drawCall* draw = &sorted[0];
+		if ( draw->texture != kInvalidGLTexture ) {
+			for ( int i = 0; i < count; i++ ) {
+				drawCall* draw = &sorted[i];
+				if (draw->texture != current_texture || ui_shader) {
+					current_texture = draw->texture;
+					render_current_texture_unit = 0;
+					render_setUniform_texture( *resources.uniforms.tex, draw->texture );
+					render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
+					render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
+					render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
+					render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
+					render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+				}
+				render_drawTextureBatch( &sorted[i] );
+			}
 		}
 	}
 }
