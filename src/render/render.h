@@ -82,14 +82,14 @@ typedef struct gl_resources_s {
 	shader* shader_debug;
 	shader* shader_debug_2d;
 	shader* shader_depth;
-	shader* shader_ssao;
+	//shader* shader_ssao;
 } RenderResources;
 
 struct vertex_s {
-	vector	position;
-	vector	normal;
-	vector	uv;
-	vector	color;
+	vector	position; // 4 x 32bit = 128bit
+	vector	normal;		// 4 x 32bit = 128bit
+	vec2		uv;				// 2 x 32bit = 64bit // Maybe 2 x 16bit?
+	uint32_t	color;		// 4 x 8bit = 32bit
 	//float	padding; // Do I need this? Think I put this here for 32-byte padding at some point
 	// TODO - Should these be smaller than 32bit floats in these vectors? UVs/Colors at least? (And normals?)
 };

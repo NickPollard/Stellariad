@@ -124,6 +124,7 @@ void render_buildShaders() {
 	shaderLoad( "dat/shaders/gaussian_vert.s", true );
 	shaderLoad( "dat/shaders/ui.s", true );
 	shaderLoad( "dat/shaders/dof.s", true );
+	shaderLoad( "dat/shaders/ssao.s", true );
 
 	// Load Shaders					Vertex												Fragment
 	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
@@ -137,7 +138,7 @@ void render_buildShaders() {
 	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
 	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
 	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
-	resources.shader_ssao			= shader_load( "dat/shaders/ssao.v.glsl",			"dat/shaders/ssao.f.glsl" );
+	//resources.shader_ssao			= shader_load( "dat/shaders/ssao.v.glsl",			"dat/shaders/ssao.f.glsl" );
 
 #define GET_UNIFORM_LOCATION( var ) \
 	resources.uniforms.var = shader_findConstant( mhash( #var )); \
@@ -531,16 +532,37 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 	return draw;
 }
 
+void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
+		render_current_VBO = vertexBuffer;
+		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+		// TEMP
+	if ( *resources.attributes.position >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+		glEnableVertexAttribArray( *resources.attributes.position ); \
+	}
+	if ( *resources.attributes.normal >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+		glEnableVertexAttribArray( *resources.attributes.normal ); \
+	}
+	// UV - only 2 elements
+	if ( *resources.attributes.uv >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+		glEnableVertexAttribArray( *resources.attributes.uv ); \
+	}
+	// Color as 8/8/8/8 RGBA
+	if ( *resources.attributes.color >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+		glEnableVertexAttribArray( *resources.attributes.color ); \
+	}
+}
+
 void render_drawCall_draw( drawCall* draw ) {
 	vAssert( draw->element_count > 0 );
-	if ( draw->vertex_VBO != render_current_VBO ) {
-		render_current_VBO = draw->vertex_VBO;
-		glBindBuffer( GL_ARRAY_BUFFER, draw->vertex_VBO );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, draw->element_VBO );
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-	}	else {
-		//printf( "Not Setting vert attribs.\n" );
-	}
+	if ( draw->vertex_VBO != render_current_VBO )
+		render_useBuffers( draw->vertex_VBO, draw->element_VBO );
 	
 	// If required, copy our data to the GPU
 	if ( draw->vertex_VBO == resources.vertex_buffer[0] ) {
@@ -579,13 +601,6 @@ int compareTexture( const void* a_, const void* b_ ) {
 	return ((int)a->texture) - ((int)b->texture);
 }
 
-void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
-		render_current_VBO = vertexBuffer;
-		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-}
-
 void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
@@ -605,7 +620,8 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
 
 	bool instanced = calls[0].vitae_shader == *render_shaderByName( "dat/shaders/refl_normal.s" );
-	if (true && instanced) {
+	if (false && instanced) {
+		//printf( "size: %lu.\n", sizeof(vertex));
 
 		// Activate buffer, copy over data
 		static int instance_index = 0;
@@ -734,14 +750,14 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
 	vertex_buffer[2].position = Vector(0.f, height, 0.f, 1.f);
 	vertex_buffer[3].position = Vector(width, height, 0.f, 1.f);
-	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
-	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
-	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
-	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
-	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[0].uv = Vec2(0.f, 0.f);
+	vertex_buffer[1].uv = Vec2(1.f, 0.f);
+	vertex_buffer[2].uv = Vec2(0.f, 1.f);
+	vertex_buffer[3].uv = Vec2(1.f, 1.f);
+	vertex_buffer[0].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[1].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[2].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[3].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
@@ -756,7 +772,31 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+		// TEMP
+	if ( *resources.attributes.position >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+		glEnableVertexAttribArray( *resources.attributes.position ); \
+	}
+	if ( *resources.attributes.normal >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+		glEnableVertexAttribArray( *resources.attributes.normal ); \
+	}
+	// UV - only 2 elements
+	if ( *resources.attributes.uv >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+		glEnableVertexAttribArray( *resources.attributes.uv ); \
+	}
+	// Color as 8/8/8/8 RGBA
+	if ( *resources.attributes.color >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+		glEnableVertexAttribArray( *resources.attributes.color ); \
+	}
+
+
+
+
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
@@ -775,14 +815,14 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
 	vertex_buffer[2].position = Vector(0.f, height, 0.f, 1.f);
 	vertex_buffer[3].position = Vector(width, height, 0.f, 1.f);
-	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
-	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
-	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
-	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
-	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[0].uv = Vec2(0.f, 0.f);
+	vertex_buffer[1].uv = Vec2(1.f, 0.f);
+	vertex_buffer[2].uv = Vec2(0.f, 1.f);
+	vertex_buffer[3].uv = Vec2(1.f, 1.f);
+	vertex_buffer[0].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[1].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[2].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[3].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
@@ -797,7 +837,31 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+//		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+
+		// TEMP
+	if ( *resources.attributes.position >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+		glEnableVertexAttribArray( *resources.attributes.position ); \
+	}
+	if ( *resources.attributes.normal >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+		glEnableVertexAttribArray( *resources.attributes.normal ); \
+	}
+	// UV - only 2 elements
+	if ( *resources.attributes.uv >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+		glEnableVertexAttribArray( *resources.attributes.uv ); \
+	}
+	// Color as 8/8/8/8 RGBA
+	if ( *resources.attributes.color >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+		glEnableVertexAttribArray( *resources.attributes.color ); \
+	}
+
+
+
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
@@ -827,10 +891,11 @@ void render_draw( window* w, engine* e ) {
 		render_colorMask = true;
 		render_clear();
 
-		render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
+		shader** ssao = render_shaderByName( "dat/shaders/ssao.s" );
+		render_drawFrameBuffer_depth( w, render_buffers[0], *ssao, 1.f );
 	} detachFrameBuffer();
 
-	const bool drawSsao = false;//!render_bloom_enabled;
+	const bool drawSsao = !render_bloom_enabled;
 	if ( drawSsao ) {
 		render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
 	} else {

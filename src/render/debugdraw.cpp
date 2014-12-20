@@ -27,8 +27,8 @@ void debugdraw_line2d_gradient( vector from, vector to, vector color, vector col
 
 	vertex_buffer[0].position = from;
 	vertex_buffer[1].position = to;
-	vertex_buffer[0].color = color;
-	vertex_buffer[1].color = color_to;
+	vertex_buffer[0].color = intFromVector(color);
+	vertex_buffer[1].color = intFromVector(color_to);
 
 	element_buffer[0] = 0;
 	element_buffer[1] = 1;
@@ -53,8 +53,8 @@ void debugdraw_line3d( vector from, vector to, vector color ) {
 
 	vertex_buffer[0].position = from;
 	vertex_buffer[1].position = to;
-	vertex_buffer[0].color = color;
-	vertex_buffer[1].color = color;
+	vertex_buffer[0].color = intFromVector(color);
+	vertex_buffer[1].color = intFromVector(color);
 
 	// TODO - this could be static const
 	element_buffer[0] = 0;
@@ -101,12 +101,12 @@ void debugdraw_sphere( vector origin, float radius, vector color ) {
 	Sub( &vertex_buffer[5].position, &origin, &offset );
 
 	// Colors
-	vertex_buffer[0].color = color;
-	vertex_buffer[1].color = color;
-	vertex_buffer[2].color = color;
-	vertex_buffer[3].color = color;
-	vertex_buffer[4].color = color;
-	vertex_buffer[5].color = color;
+	vertex_buffer[0].color = intFromVector(color);
+	vertex_buffer[1].color = intFromVector(color);
+	vertex_buffer[2].color = intFromVector(color);
+	vertex_buffer[3].color = intFromVector(color);
+	vertex_buffer[4].color = intFromVector(color);
+	vertex_buffer[5].color = intFromVector(color);
 
 	// TODO - this could be static const
 	element_buffer[0] = 0;
@@ -155,7 +155,7 @@ void debugdraw_wireframeMesh( int vert_count, vector* verts, int index_count, ui
 
 	for ( int i = 0; i < vert_count; ++i ) {
 		vertex_buffer[i].position = verts[i];
-		vertex_buffer[i].color = color;
+		vertex_buffer[i].color = intFromVector(color);
 	}
 
 	// For each triangle (3 indices), we draw 3 lines (6 indices)

@@ -49,15 +49,15 @@ void main() {
 	vec4 total_light_color = (light_ambient + directional_light_diffuse * diffuse) * ssao; 
 	total_light_color += directional_light_specular * specular;
 
-	vec4 ground_color = vec4(0.0, 1.0, 0.0, 1.0 ); //texture2D( tex, texcoord );
-	vec4 cliff_color = vec4(1.0, 0.0, 0.0, 1.0 ); //mix( texture2D( tex_b, cliff_texcoord ),
-			//texture2D( tex_b, cliff_texcoord_b ),
-			//smoothstep(0.2, 0.8, (abs(frag_normal.z) / ( abs(frag_normal.x) + abs(frag_normal.z)))));
+	vec4 ground_color = texture2D( tex, texcoord );
+	vec4 cliff_color = mix( texture2D( tex_b, cliff_texcoord ),
+			texture2D( tex_b, cliff_texcoord_b ),
+			smoothstep(0.2, 0.8, (abs(frag_normal.z) / ( abs(frag_normal.x) + abs(frag_normal.z)))));
 	float darken = smoothstep(0.0, 1.0, clamp(0.6 + abs(cliff - 0.4), 0.0, 1.0));
 	vec4 tex_color = mix( ground_color, cliff_color, cliff ) * darken;
 
-	vec4 ground_color_2 = vec4(0.0, 1.0, 0.0, 1.0 ); //texture2D( tex_c, texcoord );
-	vec4 cliff_color_2 = vec4(1.0, 0.0, 0.0, 1.0 ); //texture2D( tex_d, cliff_texcoord ); // TODO - like above!
+	vec4 ground_color_2 = texture2D( tex_c, texcoord );
+	vec4 cliff_color_2 = texture2D( tex_d, cliff_texcoord ); // TODO - like above!
 	vec4 tex_color_2 = mix( ground_color_2, cliff_color_2, cliff ) * darken;
 
 	vec4 fragColor = total_light_color * mix( tex_color, tex_color_2, vert_color.x );

@@ -42,8 +42,10 @@ int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v ) 
 int canyonTerrainBlock_triangleCount( canyonTerrainBlock* b ) { return ( b->u_samples - 1 ) * ( b->v_samples - 1 ) * 2; }
 
 vector calcUV(canyonTerrainBlock* b, vector* v, float v_pos) {
+	(void)b;
+	(void)v_pos;
 	return Vector( v->coord.x * texture_scale,
-					v->coord.y * texture_scale, 
+					v->coord.y * texture_scale,
 					v->coord.z * texture_scale, 
 					canyon_uvMapped( b->v_min * texture_scale, v_pos * texture_scale ));
 }
@@ -287,9 +289,11 @@ void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, 
 				vAssert( buffer_index < canyonTerrainBlock_renderVertCount( b ));
 				vAssert( buffer_index >= 0 );
 				r->vertex_buffer[buffer_index].position = verts[i];
-				r->vertex_buffer[buffer_index].uv = calcUV( b, &verts[i], v );
-				r->vertex_buffer[buffer_index].color = Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f );
+				vector uv = calcUV( b, &verts[i], v );
+				r->vertex_buffer[buffer_index].uv = Vec2( uv.coord.x, uv.coord.y );
+				r->vertex_buffer[buffer_index].color = intFromVector(Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f ));
 				r->vertex_buffer[buffer_index].normal = normals[i];
+				r->vertex_buffer[buffer_index].normal.coord.w = uv.coord.z;
 			}
 		}
 	}

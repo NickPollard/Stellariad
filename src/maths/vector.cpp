@@ -247,3 +247,23 @@ void test_vector() {
 	// Vector tests
 }
 #endif // UNIT_TEST
+
+// Vec2
+
+vec2 Vec2( float x, float y ) {
+	vec2 v = { x, y };
+	return v;
+}
+
+uint8_t as8bit(float f ) {
+	return (uint8_t)(fclamp(f, 0, 1.f) * 255.f);
+}
+
+uint32_t intFromVector( vector v ) {
+	const int mask = 0x00ff;
+	return 
+		((as8bit(v.coord.x) & mask) << 0) |
+		((as8bit(v.coord.y) & mask) << 8) |
+		((as8bit(v.coord.z) & mask) << 16) |
+		((as8bit(v.coord.w) & mask) << 24);
+}

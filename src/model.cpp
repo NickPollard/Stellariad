@@ -138,7 +138,8 @@ void mesh_buildBuffers( mesh* m ) {
 			// Copy the required vertex position, normal, and uv
 			m->vertex_buffer[i].position = m->verts[m->indices[i]];
 			m->vertex_buffer[i].normal = m->normals[m->normal_indices[i]];
-			m->vertex_buffer[i].uv = m->uvs[m->uv_indices[i]];
+			m->vertex_buffer[i].uv.x = m->uvs[m->uv_indices[i]].coord.x;
+			m->vertex_buffer[i].uv.y = m->uvs[m->uv_indices[i]].coord.y;
 			m->element_buffer[i] = i;
 		}
 	}
