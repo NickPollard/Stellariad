@@ -129,16 +129,12 @@ void render_buildShaders() {
 	// Load Shaders					Vertex												Fragment
 	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
 	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
-	//resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
 	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
 	resources.shader_ui				= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
-	//resources.shader_gaussian		= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
-//	resources.shader_gaussian_vert	= shader_load( "dat/shaders/gaussian_vert.v.glsl",	"dat/shaders/gaussian_vert.f.glsl" );
 	resources.shader_filter			= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
 	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
 	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
 	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
-	//resources.shader_ssao			= shader_load( "dat/shaders/ssao.v.glsl",			"dat/shaders/ssao.f.glsl" );
 
 #define GET_UNIFORM_LOCATION( var ) \
 	resources.uniforms.var = shader_findConstant( mhash( #var )); \
@@ -147,12 +143,10 @@ void render_buildShaders() {
 	VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
 }
 
-// TODO - hashmap
 shader** render_shaderByName( const char* name ) {
 	shader** s = shaderGet( name );
 	if (s) return s; else return &resources.shader_default;
 }
-
 
 GLuint render_colorMask = GL_INVALID_ENUM;
 GLuint render_depthMask = GL_INVALID_ENUM;
@@ -174,8 +168,7 @@ void render_clearCallBuffer( ) {
 }
 
 void render_setViewport( int w, int h ) {
-	if (render_current_viewport_x != w ||
-			render_current_viewport_y != h ) { 
+	if (render_current_viewport_x != w || render_current_viewport_y != h ) { 
 		render_current_viewport_x = w;
 		render_current_viewport_y = h;
 		glViewport(0, 0, w, h);
@@ -206,9 +199,8 @@ void render_scene(scene* s) {
 	sceneParams_main.fog_color = scene_fogColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sky_color = scene_skyColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sun_color = scene_sunColor( s, transform_getWorldPosition( s->cam->trans ));
-	for (int i = 0; i < s->model_count; i++) {
+	for (int i = 0; i < s->model_count; i++)
 		modelInstance_draw( scene_model( s, i ), s->cam );
-	}
 }
 
 void render_lighting( scene* s ) {
@@ -233,13 +225,6 @@ typedef struct frameBuffer_s {
 #define kRenderBufferCount 4
 FrameBuffer* render_buffers[kRenderBufferCount];
 FrameBuffer* ssaoBuffer = NULL;
-
-/*
-FrameBuffer* render_first_buffer	= nullptr;
-FrameBuffer* render_second_buffer	= nullptr;
-FrameBuffer* render_third_buffer	= nullptr;
-FrameBuffer* render_fourth_buffer	= nullptr;
-*/
 
 GLuint frameBuffer() {
 	GLuint buffer;
@@ -590,11 +575,6 @@ void render_drawCall_draw( drawCall* draw ) {
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
 }
 
-void render_drawTextureBatch( drawCall* draw ) {
-	render_setUniform_matrix( *resources.uniforms.modelview, draw->modelview );
-	render_drawCall_draw( draw );
-}
-
 int compareTexture( const void* a_, const void* b_ ) {
 	const drawCall* a = (drawCall*)a_;
 	const drawCall* b = (drawCall*)b_;
@@ -632,8 +612,6 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 
 		const GLuint elementsMode = calls[0].elements_mode;
 		// Draw the instance
-		//GLushort* elementBuffer = (GLushort*)alloca( sizeof( GLushort ) * kMaxInstanceVertCount );
-		//vertex* vertexBuffer = (vertex*)alloca( sizeof( vertex ) * kMaxInstanceVertCount );
 		if (first) {
 			GLushort* elementBuffer = (GLushort*)mem_alloc( sizeof( GLushort ) * kMaxInstanceVertCount );
 			vertex* vertexBuffer = (vertex*)mem_alloc( sizeof( vertex ) * kMaxInstanceVertCount );
@@ -668,14 +646,9 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 		render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
 		render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 
-
 		// Activate identity matrix as modelview (verts have been pre-transformed)
 		render_setUniform_matrix( *resources.uniforms.modelview, matrix_identity );
-		// Draw
-		//printf( "Drawing %d instanced indices.\n", indexCount );
 		glDrawElements( elementsMode, indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-//		mem_free( elementBuffer );
-//		mem_free( vertexBuffer );
 	}
 	else {
 		// Reset the current texture unit so we have as many as we need for this batch
@@ -696,7 +669,8 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 					render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
 					render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 				}
-				render_drawTextureBatch( &sorted[i] );
+				render_setUniform_matrix( *resources.uniforms.modelview, sorted[i].modelview );
+				render_drawCall_draw( &sorted[i] );
 			}
 		}
 	}
@@ -711,10 +685,8 @@ void render_drawPass( window* w, renderPass* pass ) {
 		render_alphaBlend = pass->alphaBlend;
 	}
 	if ( pass->colorMask != render_colorMask ) {
-		if ( pass->colorMask )
-			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		else
-			glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+		if ( pass->colorMask ) glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+											else glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 		render_colorMask = pass->colorMask;
 	}
 	if ( pass->depthMask != render_depthMask ) {
