@@ -10,14 +10,15 @@ uniform vec4 screen_size;
 varying vec2 texcoord;
 varying vec4 ui_color;
 
-const float aoFract = 0.250;
-const float e = 0.5;
-const float max = 0.001;
+//const float aoFract = 0.250;
+const float e = 10.5;
+//const float max = 0.001;
 
-const float r = 200.0; // Max radius
+//const float r = 1.0; // Max radius
 const float u = 1.5; // occlusion constant
 const float samples = 8.0;
 const float pi = 3.14159265358979;
+const float beta = 0.0001;
 
 // TODO - uniforms
 const float near = -1.0;
@@ -29,11 +30,13 @@ const float aspect = 3.0/4.0;
 
 vec4 ssao();
 
+/*
 float occlusion( vec4 p, vec4 pp ) {
 	float d = p.z - pp.z;
 	if (d > max) return 0.0;
 	return clamp(d / e, 0.0, 1.0) * aoFract;
 }
+*/
 
 void main() {
 #if 0
@@ -59,9 +62,9 @@ void main() {
 	//gl_FragColor = vec4(0.5, 0.0, 0.0, 1.0);
 	
 #else
-	//gl_FragColor = ssao();
-	float f = 1.0;
-	gl_FragColor = vec4(f, f, f, 1.0);
+	gl_FragColor = ssao();
+	//float f = 1.0;
+	//gl_FragColor = vec4(f, f, f, 1.0);
 #endif
 }
 
@@ -99,7 +102,6 @@ float pointOcclusion( vec2 p, vec4 centre, vec4 centreNormal ) {
 	vec4 world = screenToWorld( p );
 	vec4 diff = world - centre;
 	float d = dot( diff, diff );
-	const float beta = 0.0001;
 	float proj = max(0.0, dot( diff, centreNormal )) + beta * world.z;
 	// Don't need heaviside; fall-off effectively covers this
 //	float occlusion = heaviside(r - sqrt(d)) * proj / ( d + e );
@@ -115,8 +117,8 @@ vec4 ssao() {
 	vec4 centre = screenToWorld( texcoord );
 	float normalDelta = 4.0 / screen_size.x;
 	vec4 above = screenToWorld( texcoord + vec2( 0.0, normalDelta ));
-	vec4 r = screenToWorld( texcoord + vec2( normalDelta, 0.0 ));
-	vec4 v = r - centre;
+	vec4 right = screenToWorld( texcoord + vec2( normalDelta, 0.0 ));
+	vec4 v = right - centre;
 	vec4 v2 = above - centre;
 
 	float delta = 16.0 / screen_size.x;

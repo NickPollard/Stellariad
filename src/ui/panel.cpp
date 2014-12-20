@@ -7,6 +7,7 @@
 #include "particle.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/shader.h"
 #include "render/texture.h"
 #include "system/hash.h"
@@ -58,21 +59,21 @@ void panel_draw( panel* p, float x, float y ) {
 	p->vertex_buffer[2].position = Vector( p->x,			p->y + p->height,	0.1f, 1.f );
 	p->vertex_buffer[3].position = Vector( p->x + p->width,	p->y + p->height,	0.1f, 1.f );
 
-	p->vertex_buffer[0].uv = Vector( 0.f, 0.f, 0.f, 0.f );
-	p->vertex_buffer[1].uv = Vector( 1.f, 0.f, 0.f, 0.f );
-	p->vertex_buffer[2].uv = Vector( 0.f, 1.f, 0.f, 0.f );
-	p->vertex_buffer[3].uv = Vector( 1.f, 1.f, 0.f, 0.f );
+	p->vertex_buffer[0].uv = Vec2( 0.f, 0.f );
+	p->vertex_buffer[1].uv = Vec2( 1.f, 0.f );
+	p->vertex_buffer[2].uv = Vec2( 0.f, 1.f );
+	p->vertex_buffer[3].uv = Vec2( 1.f, 1.f );
 
 	vector color = vector_scaled( p->color, p->color.coord.w );
 	color.coord.w = p->color.coord.w;
-	p->vertex_buffer[0].color = color;
-	p->vertex_buffer[1].color = color;
-	p->vertex_buffer[2].color = color;
-	p->vertex_buffer[3].color = color;
+	p->vertex_buffer[0].color = intFromVector(color);
+	p->vertex_buffer[1].color = intFromVector(color);
+	p->vertex_buffer[2].color = intFromVector(color);
+	p->vertex_buffer[3].color = intFromVector(color);
 
 	// Copy our data to the GPU
 	// There are now <index_count> vertices, as we have unrolled them
-	drawCall* draw = drawCall_create( &renderPass_ui, resources.shader_ui, element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
+	drawCall* draw = drawCall_create( &renderPass_ui, *Shader::byName( "dat/shaders/ui.s" ), element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
 	draw->depth_mask = GL_FALSE;
 }
 

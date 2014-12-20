@@ -6,6 +6,7 @@
 #include "model.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
 #include "render/shader.h"
@@ -86,10 +87,10 @@ particleEmitter* particleEmitter_create() {
 	array_add( (void**)active_particles, &active_particle_count, (void*)p );
 
 	for ( int i = 0; i < kMaxParticleVerts; i+=4 ) {
-		p->vertex_buffer[i+0].uv = Vector( 1.f, 1.f, 0.f, 0.f );
-		p->vertex_buffer[i+1].uv = Vector( 0.f, 0.f, 0.f, 0.f );
-		p->vertex_buffer[i+2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
-		p->vertex_buffer[i+3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
+		p->vertex_buffer[i+0].uv = Vec2( 1.f, 1.f );
+		p->vertex_buffer[i+1].uv = Vec2( 0.f, 0.f );
+		p->vertex_buffer[i+2].uv = Vec2( 1.f, 0.f );
+		p->vertex_buffer[i+3].uv = Vec2( 0.f, 1.f );
 	}
 
 #ifdef DEBUG
@@ -217,15 +218,17 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 	matrix_rotZ( m, rotation );
 	offset = matrix_vecMul( m, &offset );
 
+	// TODO maybe particle vertices shouldn't have normals then?
+	// or even UVs? Use offset as a UV index?
 	Add( &dst[0].position, &p, &offset );
 	//dst[0].normal = Vector( 0.f, 0.f, 1.f, 0.f );
 	//dst[0].uv = Vector( 1.f, 1.f, 0.f, 0.f );
-	dst[0].color = color;
+	dst[0].color = intFromVector(color);
 
 	Sub( &dst[1].position, &p, &offset );
 	//dst[1].normal = Vector( 0.f, 0.f, 1.f, 0.f );
 	//dst[1].uv = Vector( 0.f, 0.f, 0.f, 0.f );
-	dst[1].color = color;
+	dst[1].color = intFromVector(color);
 
 	offset = Vector( size, -size, 0.f, 0.f );
 	offset = matrix_vecMul( m, &offset );
@@ -233,12 +236,12 @@ void particle_quad( particleEmitter* e, vertex* dst, vector* point, float rotati
 	Add( &dst[2].position, &p, &offset );
 	//dst[2].normal = Vector( 0.f, 0.f, 1.f, 0.f );
 	//dst[2].uv = Vector( 1.f, 0.f, 0.f, 0.f );
-	dst[2].color = color;
+	dst[2].color = intFromVector(color);
 
 	Sub( &dst[3].position, &p, &offset );
 	//dst[3].normal = Vector( 0.f, 0.f, 1.f, 0.f );
 	//dst[3].uv = Vector( 0.f, 1.f, 0.f, 0.f );
-	dst[3].color = color;
+	dst[3].color = intFromVector(color);
 }
 
 // Render a particleEmitter system
@@ -274,7 +277,7 @@ void particleEmitter_render( void* data, scene* s ) {
 	int index_count = 6 * p->count;
 	// We only need to send this to the GPU if we actually have something to draw (i.e. particles have been emitted)
 	if ( index_count > 0 ) {
-		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, static_particle_element_buffer, p->vertex_buffer, 
+		drawCall* draw = drawCall_create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, static_particle_element_buffer, p->vertex_buffer, 
 											p->definition->texture_diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
 	}

@@ -6,8 +6,10 @@
 #include "transform.h"
 #include "maths/matrix.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
+#include "render/shader.h"
 #include "render/texture.h"
 #include "script/sexpr.h"
 #include "system/file.h"
@@ -55,8 +57,8 @@ ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def ) {
 	ribbonEmitter* r = pool_ribbonEmitter_allocate( static_ribbon_pool );
 	memset( r, 0, sizeof( ribbonEmitter ));
 	for ( int i = 0; i < kMaxRibbonPairs * 2; i+=2 ) {
-		r->vertex_buffer[i].uv = Vector( 0.f, 0.f, 0.f, 1.f );
-		r->vertex_buffer[i+1].uv = Vector( 1.f, 0.f, 0.f, 1.f );
+		r->vertex_buffer[i].uv = Vec2( 0.f, 0.f );
+		r->vertex_buffer[i+1].uv = Vec2( 1.f, 0.f );
 	}
 	r->next_tex_v = 0.f;
 
@@ -142,9 +144,9 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 		const int right = left + 1;
 
 		if ( r->vertex_ages[ths] < r->definition->lifetime ) {
-			r->vertex_buffer[left].uv.coord.y = ( r->definition->static_texture ? r->tex_v[ths] : v );
-			r->vertex_buffer[left].color = property_samplev( r->definition->color, v );
-			r->vertex_buffer[right].uv.coord.y = r->vertex_buffer[left].uv.coord.y;
+			r->vertex_buffer[left].uv.y = ( r->definition->static_texture ? r->tex_v[ths] : v );
+			r->vertex_buffer[left].color = intFromVector(property_samplev( r->definition->color, v ));
+			r->vertex_buffer[right].uv.y = r->vertex_buffer[left].uv.y;
 			r->vertex_buffer[right].color = r->vertex_buffer[j*2+0].color;
 
 			if ( !r->definition->billboard ) {
@@ -186,7 +188,7 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 		// Reset modelview; our positions are in world space
 		render_resetModelView();
 		int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
-		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
+		drawCall* draw = drawCall_create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, ribbon_element_buffer, r->vertex_buffer, 
 				r->definition->diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
 	}

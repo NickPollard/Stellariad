@@ -43,7 +43,7 @@ void skybox_init( ) {
 
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
-	skybox_model->meshes[0]->_shader = &resources.shader_skybox;
+	skybox_model->meshes[0]->_shader = Shader::byName( "dat/shaders/skybox.s" );
 	skybox_model->meshes[0]->cachedDraw = NULL;
 	skybox_model->meshes[0]->dontCache = true;
 }

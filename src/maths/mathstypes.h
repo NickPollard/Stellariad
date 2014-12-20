@@ -74,3 +74,9 @@ struct quaternion_s {
 	float z;
 };
 
+
+/* vec2 - a 2d vector of 32-bit floats */
+struct vec2 {
+	float x;
+	float y;
+};

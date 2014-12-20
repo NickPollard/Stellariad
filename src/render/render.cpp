@@ -14,6 +14,7 @@
 #include "debug/debuggraph.h"
 #include "maths/vector.h"
 #include "render/debugdraw.h"
+#include "render/drawcall.h"
 #include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
 #include "render/renderwindow.h"
@@ -24,6 +25,8 @@
 #include "system/string.h"
 // temp
 #include "engine.h"
+
+using Shader::Uniform;
 
 #ifdef LINUX_X
 #include <render/render_linux.h>
@@ -94,12 +97,6 @@ bool	render_bloom_enabled = true;
 	GLuint* postProcess_VBO = 0;
 	GLuint* postProcess_EBO = 0;
 
-// *** Properties of the GL implementation
-	typedef struct GraphicsSystem_s {
-		GLint maxTextureUnits;
-		GLint maxVaryingParams;
-	} GraphicsSystem;
-
 	GraphicsSystem graphicsSystem = { 0, 0 };
 
 // *** RenderPasses
@@ -115,53 +112,12 @@ bool	render_bloom_enabled = true;
 // *** SceneParams
 	sceneParams sceneParams_main;
 
-void render_buildShaders() {
-	shaderLoad( "dat/shaders/default.s", true );
-	shaderLoad( "dat/shaders/refl_normal.s", true );
-	shaderLoad( "dat/shaders/reflective.s", true );
-	shaderLoad( "dat/shaders/terrain.s", true );
-	shaderLoad( "dat/shaders/gaussian.s", true );
-	shaderLoad( "dat/shaders/gaussian_vert.s", true );
-	shaderLoad( "dat/shaders/ui.s", true );
-	shaderLoad( "dat/shaders/dof.s", true );
-
-	// Load Shaders					Vertex												Fragment
-	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
-	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
-	//resources.shader_terrain		= shader_load( "dat/shaders/terrain.v.glsl",		"dat/shaders/terrain.f.glsl" );
-	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
-	resources.shader_ui				= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
-	//resources.shader_gaussian		= shader_load( "dat/shaders/gaussian.v.glsl",		"dat/shaders/gaussian.f.glsl" );
-//	resources.shader_gaussian_vert	= shader_load( "dat/shaders/gaussian_vert.v.glsl",	"dat/shaders/gaussian_vert.f.glsl" );
-	resources.shader_filter			= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
-	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
-	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
-	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
-	resources.shader_ssao			= shader_load( "dat/shaders/ssao.v.glsl",			"dat/shaders/ssao.f.glsl" );
-
-#define GET_UNIFORM_LOCATION( var ) \
-	resources.uniforms.var = shader_findConstant( mhash( #var )); \
-	assert( resources.uniforms.var != NULL );
-	SHADER_UNIFORMS( GET_UNIFORM_LOCATION )
-	VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
-}
-
-// TODO - hashmap
-shader** render_shaderByName( const char* name ) {
-	shader** s = shaderGet( name );
-	if (s) return s; else return &resources.shader_default;
-}
-
-
 GLuint render_colorMask = GL_INVALID_ENUM;
 GLuint render_depthMask = GL_INVALID_ENUM;
 GLuint render_alphaBlend = GL_INVALID_ENUM;
 
 void renderPass_clearBuffers( renderPass* pass ) {
 	memset( pass->next_call_index, 0, sizeof( int ) * kCallBufferCount );
-#if debug
-	memset( pass->call_buffer, 0, sizeof( drawCall ) * kMaxDrawCalls * kCallBufferCount );
-#endif
 }
 
 void render_clearCallBuffer( ) {
@@ -173,8 +129,7 @@ void render_clearCallBuffer( ) {
 }
 
 void render_setViewport( int w, int h ) {
-	if (render_current_viewport_x != w ||
-			render_current_viewport_y != h ) { 
+	if (render_current_viewport_x != w || render_current_viewport_y != h ) { 
 		render_current_viewport_x = w;
 		render_current_viewport_y = h;
 		glViewport(0, 0, w, h);
@@ -205,9 +160,8 @@ void render_scene(scene* s) {
 	sceneParams_main.fog_color = scene_fogColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sky_color = scene_skyColor( s, transform_getWorldPosition( s->cam->trans ));
 	sceneParams_main.sun_color = scene_sunColor( s, transform_getWorldPosition( s->cam->trans ));
-	for (int i = 0; i < s->model_count; i++) {
+	for (int i = 0; i < s->model_count; i++)
 		modelInstance_draw( scene_model( s, i ), s->cam );
-	}
 }
 
 void render_lighting( scene* s ) {
@@ -232,13 +186,6 @@ typedef struct frameBuffer_s {
 #define kRenderBufferCount 4
 FrameBuffer* render_buffers[kRenderBufferCount];
 FrameBuffer* ssaoBuffer = NULL;
-
-/*
-FrameBuffer* render_first_buffer	= nullptr;
-FrameBuffer* render_second_buffer	= nullptr;
-FrameBuffer* render_third_buffer	= nullptr;
-FrameBuffer* render_fourth_buffer	= nullptr;
-*/
 
 GLuint frameBuffer() {
 	GLuint buffer;
@@ -313,7 +260,6 @@ void render_init( void* app ) {
 
 	texture_staticInit();
 	shader_init();
-	render_buildShaders();
 	skybox_init();
 	
 	// Allocate space for buffers
@@ -398,32 +344,6 @@ void render_resetModelView( ) {
 	matrix_cpy( modelview, camera_inverse );
 }
 
-void render_setUniform_matrix( GLuint uniform, matrix m ) {
-	glUniformMatrix4fv( uniform, 1, /*transpose*/false, (GLfloat*)m );
-}
-
-// Takes a uniform and an OpenGL texture name (GLuint)
-// Binds the given texture to an available texture unit and sets the uniform
-void render_setUniform_texture( GLuint uniform, GLuint texture ) {
-	if ((int)uniform >= 0 ) {
-		vAssert( render_current_texture_unit < graphicsSystem.maxTextureUnits );
-		glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
-		glBindTexture( GL_TEXTURE_2D, texture );
-		glUniform1i( uniform, render_current_texture_unit );
-		render_current_texture_unit++;
-	}
-}
-
-void render_setUniform_vector( GLuint uniform, vector* v ) {
-	// Only set uniforms if we definitely have them - otherwise we might override aliased constants
-	// in the current shader
-	if ( uniform != kShaderConstantNoLocation ) glUniform4fv( uniform, 1, (GLfloat*)v );
-}
-
-void render_setUniform_vectorI( GLuint uniform, vector v ) {
-	render_setUniform_vector( uniform, &v );
-}
-
 float window_aspect( window* w ) {
 	return ((float)w->width) / ((float)w->height);
 }
@@ -450,12 +370,12 @@ void render( window* w, scene* s ) {
 }
 
 void render_sceneParams( sceneParams* params ) {
-	render_setUniform_vector( *resources.uniforms.fog_color,		&params->fog_color );
-	render_setUniform_vector( *resources.uniforms.sky_color_bottom, &params->fog_color );
-	render_setUniform_vector( *resources.uniforms.sky_color_top,	&params->sky_color );
-	render_setUniform_vector( *resources.uniforms.sun_color,		&params->sun_color );
+	Uniform( *resources.uniforms.fog_color,					&params->fog_color );
+	Uniform( *resources.uniforms.sky_color_bottom,	&params->fog_color );
+	Uniform( *resources.uniforms.sky_color_top,			&params->sky_color );
+	Uniform( *resources.uniforms.sun_color,					&params->sun_color );
 	const vector world_space_sun_dir = {{ 0.f, 0.f, 1.f, 0.f }};
-	render_setUniform_vectorI( *resources.uniforms.camera_space_sun_direction, matrix_vecMul( modelview, &world_space_sun_dir ));
+	Uniform( *resources.uniforms.camera_space_sun_direction, matrix_vecMul( modelview, &world_space_sun_dir ));
 }
 
 int render_findDrawCallBuffer( shader* vshader ) {
@@ -531,16 +451,37 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 	return draw;
 }
 
+void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
+		render_current_VBO = vertexBuffer;
+		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+		// TEMP
+	if ( *resources.attributes.position >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+		glEnableVertexAttribArray( *resources.attributes.position ); \
+	}
+	if ( *resources.attributes.normal >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+		glEnableVertexAttribArray( *resources.attributes.normal ); \
+	}
+	// UV - only 2 elements
+	if ( *resources.attributes.uv >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+		glEnableVertexAttribArray( *resources.attributes.uv ); \
+	}
+	// Color as 8/8/8/8 RGBA
+	if ( *resources.attributes.color >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+		glEnableVertexAttribArray( *resources.attributes.color ); \
+	}
+}
+
 void render_drawCall_draw( drawCall* draw ) {
 	vAssert( draw->element_count > 0 );
-	if ( draw->vertex_VBO != render_current_VBO ) {
-		render_current_VBO = draw->vertex_VBO;
-		glBindBuffer( GL_ARRAY_BUFFER, draw->vertex_VBO );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, draw->element_VBO );
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-	}	else {
-		//printf( "Not Setting vert attribs.\n" );
-	}
+	if ( draw->vertex_VBO != render_current_VBO )
+		render_useBuffers( draw->vertex_VBO, draw->element_VBO );
 	
 	// If required, copy our data to the GPU
 	if ( draw->vertex_VBO == resources.vertex_buffer[0] ) {
@@ -568,44 +509,33 @@ void render_drawCall_draw( drawCall* draw ) {
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
 }
 
-void render_drawTextureBatch( drawCall* draw ) {
-	render_setUniform_matrix( *resources.uniforms.modelview, draw->modelview );
-	render_drawCall_draw( draw );
-}
-
 int compareTexture( const void* a_, const void* b_ ) {
 	const drawCall* a = (drawCall*)a_;
 	const drawCall* b = (drawCall*)b_;
 	return ((int)a->texture) - ((int)b->texture);
 }
 
-void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
-		render_current_VBO = vertexBuffer;
-		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-}
-
 void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
 	render_lighting( theScene );
-	render_setUniform_matrix( *resources.uniforms.projection,	perspective );
-	render_setUniform_matrix( *resources.uniforms.worldspace,	modelview );
-	render_setUniform_matrix( *resources.uniforms.camera_to_world, camera_matrix );
-	render_setUniform_vector( *resources.uniforms.viewspace_up, &viewspace_up );
+	Uniform( *resources.uniforms.projection,	perspective );
+	Uniform( *resources.uniforms.worldspace,	modelview );
+	Uniform( *resources.uniforms.camera_to_world, camera_matrix );
+	Uniform( *resources.uniforms.viewspace_up, &viewspace_up );
 	vector light = Vector( 1.f, -0.5f, 0.5f, 0.f );
-	render_setUniform_vectorI( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 	render_sceneParams( &sceneParams_main );
 
 	drawCall* sorted = (drawCall*)alloca( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
-	bool ui_shader = calls[0].vitae_shader == resources.shader_ui;
+	bool ui_shader = calls[0].vitae_shader == *Shader::byName( "dat/shaders/ui.s" );
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
 
-	bool instanced = calls[0].vitae_shader == *render_shaderByName( "dat/shaders/refl_normal.s" );
-	if (true && instanced) {
+	bool instanced = calls[0].vitae_shader == *Shader::byName( "dat/shaders/refl_normal.s" );
+	if (false && instanced) {
+		//printf( "size: %lu.\n", sizeof(vertex));
 
 		// Activate buffer, copy over data
 		static int instance_index = 0;
@@ -616,8 +546,6 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 
 		const GLuint elementsMode = calls[0].elements_mode;
 		// Draw the instance
-		//GLushort* elementBuffer = (GLushort*)alloca( sizeof( GLushort ) * kMaxInstanceVertCount );
-		//vertex* vertexBuffer = (vertex*)alloca( sizeof( vertex ) * kMaxInstanceVertCount );
 		if (first) {
 			GLushort* elementBuffer = (GLushort*)mem_alloc( sizeof( GLushort ) * kMaxInstanceVertCount );
 			vertex* vertexBuffer = (vertex*)mem_alloc( sizeof( vertex ) * kMaxInstanceVertCount );
@@ -645,21 +573,16 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 		// Texture
 		drawCall* draw = &calls[0];
 		render_current_texture_unit = 0;
-		render_setUniform_texture( *resources.uniforms.tex, draw->texture );
-		render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
-		render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
-		render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
-		render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
-		render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
-
+		Uniform( *resources.uniforms.tex, draw->texture );
+		Uniform( *resources.uniforms.tex_b, draw->texture_b );
+		Uniform( *resources.uniforms.tex_c, draw->texture_c );
+		Uniform( *resources.uniforms.tex_d, draw->texture_d );
+		Uniform( *resources.uniforms.tex_normal, draw->texture_normal );
+		Uniform( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 
 		// Activate identity matrix as modelview (verts have been pre-transformed)
-		render_setUniform_matrix( *resources.uniforms.modelview, matrix_identity );
-		// Draw
-		//printf( "Drawing %d instanced indices.\n", indexCount );
+		Uniform( *resources.uniforms.modelview, matrix_identity );
 		glDrawElements( elementsMode, indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-//		mem_free( elementBuffer );
-//		mem_free( vertexBuffer );
 	}
 	else {
 		// Reset the current texture unit so we have as many as we need for this batch
@@ -673,14 +596,15 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 				if (draw->texture != current_texture || ui_shader) {
 					current_texture = draw->texture;
 					render_current_texture_unit = 0;
-					render_setUniform_texture( *resources.uniforms.tex, draw->texture );
-					render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
-					render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
-					render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
-					render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
-					render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+					Uniform( *resources.uniforms.tex, draw->texture );
+					Uniform( *resources.uniforms.tex_b, draw->texture_b );
+					Uniform( *resources.uniforms.tex_c, draw->texture_c );
+					Uniform( *resources.uniforms.tex_d, draw->texture_d );
+					Uniform( *resources.uniforms.tex_normal, draw->texture_normal );
+					Uniform( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 				}
-				render_drawTextureBatch( &sorted[i] );
+				Uniform( *resources.uniforms.modelview, sorted[i].modelview );
+				render_drawCall_draw( &sorted[i] );
 			}
 		}
 	}
@@ -695,10 +619,8 @@ void render_drawPass( window* w, renderPass* pass ) {
 		render_alphaBlend = pass->alphaBlend;
 	}
 	if ( pass->colorMask != render_colorMask ) {
-		if ( pass->colorMask )
-			glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		else
-			glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+		if ( pass->colorMask ) glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+											else glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 		render_colorMask = pass->colorMask;
 	}
 	if ( pass->depthMask != render_depthMask ) {
@@ -723,9 +645,9 @@ void detachFrameBuffer() {
 
 void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
-	render_setUniform_texture( *resources.uniforms.tex,	buffer->texture );
-	render_setUniform_texture( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.tex,	buffer->texture );
+	Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 
 	vertex vertex_buffer[4];
 	float width = w->width;
@@ -734,14 +656,14 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
 	vertex_buffer[2].position = Vector(0.f, height, 0.f, 1.f);
 	vertex_buffer[3].position = Vector(width, height, 0.f, 1.f);
-	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
-	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
-	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
-	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
-	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[0].uv = Vec2(0.f, 0.f);
+	vertex_buffer[1].uv = Vec2(1.f, 0.f);
+	vertex_buffer[2].uv = Vec2(0.f, 1.f);
+	vertex_buffer[3].uv = Vec2(1.f, 1.f);
+	vertex_buffer[0].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[1].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[2].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[3].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
@@ -756,17 +678,36 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+		// TEMP
+		if ( *resources.attributes.position >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+				glEnableVertexAttribArray( *resources.attributes.position ); \
+		}
+		if ( *resources.attributes.normal >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+				glEnableVertexAttribArray( *resources.attributes.normal ); \
+		}
+		// UV - only 2 elements
+		if ( *resources.attributes.uv >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+				glEnableVertexAttribArray( *resources.attributes.uv ); \
+		}
+		// Color as 8/8/8/8 RGBA
+		if ( *resources.attributes.color >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+				glEnableVertexAttribArray( *resources.attributes.color ); \
+		}
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
 	}
 }
 
 void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
-	render_setUniform_texture( *resources.uniforms.tex,	buffer->depth_texture );
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.tex,	buffer->depth_texture );
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 
 	vertex vertex_buffer[4];
 	float width = w->width;
@@ -775,14 +716,14 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 	vertex_buffer[1].position = Vector(width, 0.f, 0.f, 1.f);
 	vertex_buffer[2].position = Vector(0.f, height, 0.f, 1.f);
 	vertex_buffer[3].position = Vector(width, height, 0.f, 1.f);
-	vertex_buffer[0].uv = Vector(0.f, 0.f, 0.f, 1.f);
-	vertex_buffer[1].uv = Vector(1.f, 0.f, 0.f, 1.f);
-	vertex_buffer[2].uv = Vector(0.f, 1.f, 0.f, 1.f);
-	vertex_buffer[3].uv = Vector(1.f, 1.f, 0.f, 1.f);
-	vertex_buffer[0].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[1].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[2].color = Vector(alpha, alpha, alpha, alpha);
-	vertex_buffer[3].color = Vector(alpha, alpha, alpha, alpha);
+	vertex_buffer[0].uv = Vec2(0.f, 0.f);
+	vertex_buffer[1].uv = Vec2(1.f, 0.f);
+	vertex_buffer[2].uv = Vec2(0.f, 1.f);
+	vertex_buffer[3].uv = Vec2(1.f, 1.f);
+	vertex_buffer[0].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[1].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[2].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
+	vertex_buffer[3].color = intFromVector(Vector(alpha, alpha, alpha, alpha));
 	short element_buffer[6] = {0, 2, 1, 1, 2, 3};
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
@@ -797,9 +738,32 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+//		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
+
+
+		// TEMP
+	if ( *resources.attributes.position >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+		glEnableVertexAttribArray( *resources.attributes.position ); \
+	}
+	if ( *resources.attributes.normal >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+		glEnableVertexAttribArray( *resources.attributes.normal ); \
+	}
+	// UV - only 2 elements
+	if ( *resources.attributes.uv >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+		glEnableVertexAttribArray( *resources.attributes.uv ); \
+	}
+	// Color as 8/8/8/8 RGBA
+	if ( *resources.attributes.color >= 0 ) { \
+		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+		glEnableVertexAttribArray( *resources.attributes.color ); \
+	}
+
+
+
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
 	}
 }
@@ -827,12 +791,13 @@ void render_draw( window* w, engine* e ) {
 		render_colorMask = true;
 		render_clear();
 
-		render_drawFrameBuffer_depth( w, render_buffers[0], resources.shader_ssao, 1.f );
+		shader** ssao = Shader::byName( "dat/shaders/ssao.s" );
+		render_drawFrameBuffer_depth( w, render_buffers[0], *ssao, 1.f );
 	} detachFrameBuffer();
 
-	const bool drawSsao = false;//!render_bloom_enabled;
+	const bool drawSsao = !render_bloom_enabled;
 	if ( drawSsao ) {
-		render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
+		render_drawFrameBuffer( w, ssaoBuffer, *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 	} else {
 		attachFrameBuffer( render_buffers[0] ); {
 			render_clear();
@@ -844,7 +809,7 @@ void render_draw( window* w, engine* e ) {
 		} detachFrameBuffer();
 		render_setViewport(w->width, w->height);
 
-		render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+		render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 
 		// No depth-test for ui
 		glDisable( GL_DEPTH_TEST );
@@ -853,24 +818,24 @@ void render_draw( window* w, engine* e ) {
 			render_current_texture_unit = 0;
 			// downscale pass
 			attachFrameBuffer( render_buffers[1] ); {
-				render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+				render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 			} detachFrameBuffer();
 			// horizontal pass
 			attachFrameBuffer( render_buffers[2] ); {
-				shader** gaussian = render_shaderByName( "dat/shaders/gaussian.s" );
+				shader** gaussian = Shader::byName( "dat/shaders/gaussian.s" );
 				render_drawFrameBuffer( w, render_buffers[1], *gaussian, 1.f );
 			} detachFrameBuffer();
 			// vertical pass
 			attachFrameBuffer( render_buffers[3] ); {
-				shader** gaussian_vert = render_shaderByName( "dat/shaders/gaussian_vert.s" );
+				shader** gaussian_vert = Shader::byName( "dat/shaders/gaussian_vert.s" );
 				render_drawFrameBuffer( w, render_buffers[2], *gaussian_vert, 1.f );
 			} detachFrameBuffer();
 
 			render_setViewport(w->width, w->height);
-			shader** dof = render_shaderByName( "dat/shaders/dof.s" );
+			shader** dof = Shader::byName( "dat/shaders/dof.s" );
 
 			// Attach depth as a texture
-			//render_setUniform_texture( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
+			//Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
 			render_drawFrameBuffer( w, render_buffers[3], *dof, 0.3f );
 		}
 	}

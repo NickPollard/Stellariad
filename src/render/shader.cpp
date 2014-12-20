@@ -22,6 +22,62 @@
 map* shader_constants = NULL;
 #define kShaderMaxLogLength (16 << 10)
 
+namespace Shader {
+	// Lookup by filename
+	shader** byName( const char* name ) {
+		shader** s = shaderGet( name );
+		if (s) return s; else return shaderGet("dat/shaders/default.s");
+	}
+
+	shader** defaultShader() { return byName( "dat/shaders/default.s" ); }
+	shader** depth() { return byName( "dat/shaders/depth.s" ); }
+
+	// Only set uniforms if we definitely have them - otherwise we might override aliased constants
+	// in the current shader
+	void Uniform( GLuint uniform, matrix m ) {
+		if ( uniform != kShaderConstantNoLocation ) glUniformMatrix4fv( uniform, 1, /*transpose*/false, (GLfloat*)m ); 
+	}
+
+	// Takes a uniform and an OpenGL texture name (GLuint)
+	// Binds the given texture to an available texture unit and sets the uniform
+	void Uniform( GLuint uniform, GLuint texture ) {
+		if ((int)uniform >= 0 ) {
+			vAssert( render_current_texture_unit < graphicsSystem.maxTextureUnits );
+			glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
+			glBindTexture( GL_TEXTURE_2D, texture );
+			glUniform1i( uniform, render_current_texture_unit );
+			render_current_texture_unit++;
+		}
+	}
+
+	void Uniform( GLuint uniform, vector* v ) {
+		if ( uniform != kShaderConstantNoLocation ) glUniform4fv( uniform, 1, (GLfloat*)v );
+	}
+
+	void Uniform( GLuint uniform, vector v ) { Uniform( uniform, &v ); }
+
+	void loadShaders() {
+		shaderLoad( "dat/shaders/default.s", true );
+		shaderLoad( "dat/shaders/depth.s", true );
+		shaderLoad( "dat/shaders/refl_normal.s", true );
+		shaderLoad( "dat/shaders/reflective.s", true );
+		shaderLoad( "dat/shaders/terrain.s", true );
+		shaderLoad( "dat/shaders/gaussian.s", true );
+		shaderLoad( "dat/shaders/gaussian_vert.s", true );
+		shaderLoad( "dat/shaders/ui.s", true );
+		shaderLoad( "dat/shaders/dof.s", true );
+		shaderLoad( "dat/shaders/ssao.s", true );
+		shaderLoad( "dat/shaders/skybox.s", true );
+		shaderLoad( "dat/shaders/particle.s", true );
+
+#define GET_UNIFORM_LOCATION( var ) \
+		resources.uniforms.var = shader_findConstant( mhash( #var )); \
+		assert( resources.uniforms.var != NULL );
+		SHADER_UNIFORMS( GET_UNIFORM_LOCATION )
+			VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
+	}
+}
+
 // Find the program location for a named Uniform variable in the given program
 GLint shader_getUniformLocation( GLuint program, const char* name ) { return glGetUniformLocation( program, name ); }
 
@@ -162,6 +218,7 @@ GLuint buildShader( const char* vertex_path, const char* fragment_path, const ch
 
 void shader_init() {
 	shader_constants = map_create( kMaxShaderConstants, sizeof( GLint ));
+	Shader::loadShaders();
 }
 
 void shader_bindConstant( shaderConstantBinding binding ) {

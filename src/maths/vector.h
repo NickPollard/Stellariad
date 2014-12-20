@@ -64,3 +64,6 @@ void vector_printf( const char* label, const vector* v );
 #ifdef UNIT_TEST
 void test_vector();
 #endif // UNIT_TEST
+
+vec2 Vec2( float x, float y );
+uint32_t intFromVector( vector v );

@@ -2,6 +2,7 @@
 #pragma once
 #include "scene.h"
 #include "system/thread.h"
+#include "render/shader_attributes.h"
 
 // External
 #include "EGL/egl.h"
@@ -9,92 +10,29 @@
 #define kVboCount 1
 #define kInvalidBuffer 0
 
+// *** Forward Declaration
+struct drawCall;
+
 typedef struct renderPass_s renderPass;
 typedef struct sceneParams_s sceneParams;
 
-#define SHADER_UNIFORMS( f ) \
-	f( projection ) \
-	f( modelview ) \
-	f( worldspace ) \
-	f( camera_to_world ) \
-	f( light_position ) \
-	f( light_diffuse ) \
-	f( light_specular ) \
-	f( tex ) \
-	f( tex_b ) \
-	f( tex_c ) \
-	f( tex_d ) \
-	f( tex_normal ) \
-	f( ssao_tex ) \
-	f( fog_color ) \
-	f( sky_color_top ) \
-	f( sky_color_bottom ) \
-	f( camera_space_sun_direction ) \
-	f( sun_color ) \
-	f( viewspace_up ) \
-	f( directional_light_direction ) \
-	f( screen_size )
-
-#define DECLARE_AS_GLINT_P( var ) \
-	GLint* var;
-
-#define VERTEX_ATTRIBS( f ) \
-	f( position ) \
-	f( normal ) \
-	f( uv ) \
-	f( color )
-
-#define VERTEX_ATTRIB_DISABLE_ARRAY( attrib ) \
-	glDisableVertexAttribArray( *resources.attributes.attrib );
-
-#define VERTEX_ATTRIB_LOOKUP( attrib ) \
-	resources.attributes.attrib = (shader_findConstant( mhash( #attrib )));
-
-#define VERTEX_ATTRIB_POINTER( attrib ) \
-	if ( *resources.attributes.attrib >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, attrib )); \
-		glEnableVertexAttribArray( *resources.attributes.attrib ); \
-	}
-
-typedef struct gl_resources_s {
+struct RenderResources {
+	// TODO - do these even need to be arrays now? We spawn individual buffers for models, only one general one
 	GLuint vertex_buffer[kVboCount];
 	GLuint element_buffer[kVboCount];
-	//GLuint texture;
 
-	struct { SHADER_UNIFORMS( DECLARE_AS_GLINT_P ) } uniforms;
-	struct { SHADER_UNIFORMS( DECLARE_AS_GLINT_P ) } particle_uniforms;
-	struct { VERTEX_ATTRIBS( DECLARE_AS_GLINT_P ) } attributes;
-
-	// Shader objects
-	GLuint vertex_shader, fragment_shader, program;
-	GLuint particle_vertex_shader, particle_fragment_shader, particle_program;
-
-	shader* shader_default;
-	shader* shader_reflective;
-//	shader* shader_refl_normal;
-	shader* shader_particle;
-	shader* shader_terrain;
-	shader* shader_skybox;
-	shader* shader_ui;
-	shader* shader_gaussian;
-	shader* shader_gaussian_vert;
-	shader* shader_filter;
-	shader* shader_debug;
-	shader* shader_debug_2d;
-	shader* shader_depth;
-	shader* shader_ssao;
-} RenderResources;
-
-struct vertex_s {
-	vector	position;
-	vector	normal;
-	vector	uv;
-	vector	color;
-	//float	padding; // Do I need this? Think I put this here for 32-byte padding at some point
-	// TODO - Should these be smaller than 32bit floats in these vectors? UVs/Colors at least? (And normals?)
+	ShaderUniforms uniforms;
+	VertexAttribs attributes;
 };
 
-typedef struct vertex_s particle_vertex;
+struct vertex_s {
+	vector		position; // 4 x 32bit = 128bit
+	vector		normal;		// 4 x 32bit = 128bit
+	vec2			uv;				// 2 x 32bit = 64bit // Maybe 2 x 16bit?
+	uint32_t	color;		// 4 x 8bit = 32bit
+	// TODO - Should these be smaller than 32bit floats in these vectors? UVs/Colors at least? (And normals?)
+	// What's the smallest feasible size? 10x 32bit?
+};
 
 struct window_s {
 	int width;
@@ -105,13 +43,25 @@ struct window_s {
 	bool open;
 };
 
+// *** Properties of the GL implementation/Hardware/Device we are running on
+struct GraphicsSystem {
+	GLint maxTextureUnits;
+	GLint maxVaryingParams;
+};
+
+// *** Parameters for the whole render scene
+struct sceneParams_s {
+	vector	fog_color;
+	vector	sky_color;
+	vector	sun_color;
+};
+
 extern RenderResources resources;
 extern matrix modelview;
 extern matrix camera_inverse;
 extern matrix camera_mtx;
 extern matrix perspective;
 extern bool	render_initialised;
-//extern vmutex	gl_mutex;
 extern renderPass renderPass_main;
 extern renderPass renderPass_depth;
 extern renderPass renderPass_alpha;
@@ -120,6 +70,8 @@ extern renderPass renderPass_debug;
 extern sceneParams sceneParams_main;
 extern window window_main;
 extern bool render_bloom_enabled;
+extern int render_current_texture_unit;
+extern GraphicsSystem graphicsSystem;
 
 void render_setBuffers( float* vertex_buffer, int vertex_buffer_size, int* element_buffer, int element_buffer_size );
 
@@ -163,47 +115,11 @@ void render_setUniform_vector( GLuint uniform, vector* v );
 
 void render_validateMatrix( matrix m );
 
+// TODO - move this debugging stuff out somewhere?
 typedef void (*func_getIV)( GLuint, GLenum, GLint* );
 typedef void (*func_getInfoLog)( GLuint, GLint, GLint*, GLchar* );
-
 void gl_dumpInfoLog( GLuint object, func_getIV getIV, func_getInfoLog getInfoLog );
 
-// Draw Calls
-typedef struct drawCall_s {
-	// Shader
-	shader*		vitae_shader;
-	// Uniforms
-	matrix		modelview;
-	GLuint		texture;
-	GLuint		texture_b;
-	GLuint		texture_c;
-	GLuint		texture_d;
-	GLuint		texture_normal;
-	GLuint		texture_b_normal;
-	GLuint		texture_lookup;
-	vector		fog_color;
-
-	// Buffer data
-	GLushort*	element_buffer;
-	vertex*		vertex_buffer;
-
-	GLuint		vertex_VBO;
-	GLuint		element_VBO;
-	unsigned int	element_count;
-	unsigned int	element_buffer_offset;
-	GLenum		depth_mask;
-	GLenum		elements_mode;
-} drawCall;
-
-// Parameters for the whole render scene
-struct sceneParams_s {
-	vector	fog_color;
-	vector	sky_color;
-	vector	sun_color;
-};
-
-drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
-void render_drawCall( drawCall* draw );
 void* render_bufferAlloc( size_t size );
 
 //
@@ -214,9 +130,8 @@ void* render_renderThreadFunc( void* args );
 // Manage render windows
 void render_destroyWindow( window* w );
 
-// Find a shader by it's name
-shader** render_shaderByName( const char* name );
-
+// *** drawCalls
+drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
+void render_drawCall( drawCall* draw );
 drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
 drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix mv );
-

@@ -172,7 +172,7 @@ mesh* sexpr_loadMesh( sexpr* s ) {
 	sexpr* shader_term = sexpr_findChildNamed( "shader", s );
 	if ( shader_term ) {
 		vAssert( shader_term->child );
-		m->_shader = render_shaderByName( shader_term->child->value );
+		m->_shader = Shader::byName( shader_term->child->value );
 	}
 	
 	return m;

@@ -8,7 +8,7 @@ precision highp float;
 // Attributes
 attribute vec4 position;
 attribute vec4 normal;
-attribute vec4 uv;
+attribute vec2 uv;
 attribute vec4 color;
 
 // Varying
@@ -54,10 +54,11 @@ void main() {
 	gl_Position = projection * modelview * position;
 	screenCoord = (gl_Position.xy / gl_Position.w) * 0.5 + vec2(0.5, 0.5);
 	frag_position = modelview * position;
-	cameraSpace_frag_normal = modelview * normal;
-	frag_normal = normal;
-	texcoord = uv.xz;
-	cliff_texcoord = uv.zy;
+	vec4 n = vec4( normal.xyz, 0.0 );
+	cameraSpace_frag_normal = modelview * n;
+	frag_normal = n;
+	texcoord = vec2(uv.x, normal.w);
+	cliff_texcoord = vec2( normal.w, uv.y );
 	cliff_texcoord_b = uv.xy;
 
 	vert_color = vec4( color.xyz, 1.0 );
@@ -93,7 +94,7 @@ void main() {
 	// Cliff
 	float edge_ground = 0.03;
 	float edge_cliff = 0.15;
-	float d = 1.0 - max( normal.y, 0.0 );
+	float d = 1.0 - max( n.y, 0.0 );
 	cliff = smoothstep( edge_ground, edge_cliff, d );
 
 	// lighting
