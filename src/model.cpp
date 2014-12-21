@@ -8,6 +8,7 @@
 #include "maths/maths.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
 #include "render/render.h"
@@ -72,7 +73,7 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 
 	m->texture_diffuse = static_texture_default;
 	m->texture_normal = static_texture_default;
-	m->_shader = &resources.shader_default;
+	m->_shader = Shader::defaultShader();
 	vAssert( m->_shader );
 
 	m->vertex_VBO = kInvalidBuffer;
@@ -164,7 +165,7 @@ void mesh_renderCached( mesh* m ) {
 		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
-		drawCall* drawDepth = drawCall_createCached( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		drawCall* drawDepth = drawCall_createCached( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 		drawDepth->vertex_VBO = *m->vertex_VBO;
 		drawDepth->element_VBO = *m->element_VBO;
 		m->cachedDraw = draw;
@@ -175,7 +176,7 @@ void mesh_renderCached( mesh* m ) {
 //		printf("(mesh: " xPTRf ") cached: %d, mesh: %d\n", (uintptr_t)m, m->cachedDraw->texture, m->texture_diffuse->gl_tex);
 
 	drawCall_callCached( &renderPass_main, *m->_shader, m->cachedDraw, modelview );
-	drawCall_callCached( &renderPass_depth, resources.shader_depth, m->cachedDepthDraw, modelview );
+	drawCall_callCached( &renderPass_depth, *Shader::depth(), m->cachedDepthDraw, modelview );
 }
 
 void mesh_renderUncached( mesh* m ) {
@@ -184,7 +185,7 @@ void mesh_renderUncached( mesh* m ) {
 	draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 	draw->vertex_VBO = *m->vertex_VBO;
 	draw->element_VBO = *m->element_VBO;
-	drawCall* drawDepth = drawCall_create( &renderPass_depth, resources.shader_depth, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+	drawCall* drawDepth = drawCall_create( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 	drawDepth->vertex_VBO = *m->vertex_VBO;
 	drawDepth->element_VBO = *m->element_VBO;
 }

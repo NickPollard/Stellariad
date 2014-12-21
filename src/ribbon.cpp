@@ -6,8 +6,10 @@
 #include "transform.h"
 #include "maths/matrix.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/debugdraw.h"
 #include "render/render.h"
+#include "render/shader.h"
 #include "render/texture.h"
 #include "script/sexpr.h"
 #include "system/file.h"
@@ -186,7 +188,7 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 		// Reset modelview; our positions are in world space
 		render_resetModelView();
 		int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
-		drawCall* draw = drawCall_create( &renderPass_alpha, resources.shader_particle, index_count, ribbon_element_buffer, r->vertex_buffer, 
+		drawCall* draw = drawCall_create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, ribbon_element_buffer, r->vertex_buffer, 
 				r->definition->diffuse->gl_tex, modelview );
 		draw->depth_mask = GL_FALSE;
 	}

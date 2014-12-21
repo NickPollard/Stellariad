@@ -68,3 +68,14 @@ GLint shader_getAttributeLocation( GLuint program, const char* name );
 void shader_activate( shader* s );
 
 GLint* shader_findConstant( int key );
+
+// *** Shader System
+namespace Shader {
+	shader** byName( const char* name );
+	shader** defaultShader();
+	shader** depth();
+	void Uniform( GLuint uniform, matrix m );
+	void Uniform( GLuint uniform, GLuint texture );
+	void Uniform( GLuint uniform, vector* v );
+	void Uniform( GLuint uniform, vector v );
+}

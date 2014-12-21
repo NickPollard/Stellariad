@@ -7,6 +7,7 @@
 #include "particle.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/drawcall.h"
 #include "render/shader.h"
 #include "render/texture.h"
 #include "system/hash.h"
@@ -72,7 +73,7 @@ void panel_draw( panel* p, float x, float y ) {
 
 	// Copy our data to the GPU
 	// There are now <index_count> vertices, as we have unrolled them
-	drawCall* draw = drawCall_create( &renderPass_ui, resources.shader_ui, element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
+	drawCall* draw = drawCall_create( &renderPass_ui, *Shader::byName( "dat/shaders/ui.s" ), element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
 	draw->depth_mask = GL_FALSE;
 }
 

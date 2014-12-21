@@ -5,6 +5,8 @@
 //-----------------------
 #include "maths/maths.h"
 #include "maths/vector.h"
+#include "render/drawcall.h"
+#include "render/shader.h"
 #include "render/render.h"
 
 #include "render/vgl.h"
@@ -35,7 +37,7 @@ void debugdraw_line2d_gradient( vector from, vector to, vector color, vector col
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, resources.shader_debug_2d, vert_count, element_buffer, vertex_buffer, no_texture, modelview );
+	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug2d.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
 	draw->elements_mode = GL_LINES;
 }
 
@@ -64,7 +66,7 @@ void debugdraw_line3d( vector from, vector to, vector color ) {
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, resources.shader_debug, vert_count, element_buffer, vertex_buffer, no_texture, modelview );
+	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
 	draw->elements_mode = GL_LINES;
 }
 
@@ -140,7 +142,7 @@ void debugdraw_sphere( vector origin, float radius, vector color ) {
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, resources.shader_debug, vert_count, element_buffer, vertex_buffer, no_texture, modelview );
+	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
 	draw->elements_mode = GL_LINES;
 }
 
@@ -175,7 +177,7 @@ void debugdraw_wireframeMesh( int vert_count, vector* verts, int index_count, ui
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, resources.shader_debug, index_count*2, element_buffer, vertex_buffer, no_texture, modelview );
+	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), index_count*2, element_buffer, vertex_buffer, no_texture, modelview );
 	draw->elements_mode = GL_LINES;
 }
 

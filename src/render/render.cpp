@@ -14,6 +14,7 @@
 #include "debug/debuggraph.h"
 #include "maths/vector.h"
 #include "render/debugdraw.h"
+#include "render/drawcall.h"
 #include "render/graphicsbuffer.h"
 #include "render/modelinstance.h"
 #include "render/renderwindow.h"
@@ -24,6 +25,8 @@
 #include "system/string.h"
 // temp
 #include "engine.h"
+
+using Shader::Uniform;
 
 #ifdef LINUX_X
 #include <render/render_linux.h>
@@ -94,12 +97,6 @@ bool	render_bloom_enabled = true;
 	GLuint* postProcess_VBO = 0;
 	GLuint* postProcess_EBO = 0;
 
-// *** Properties of the GL implementation
-	typedef struct GraphicsSystem_s {
-		GLint maxTextureUnits;
-		GLint maxVaryingParams;
-	} GraphicsSystem;
-
 	GraphicsSystem graphicsSystem = { 0, 0 };
 
 // *** RenderPasses
@@ -115,48 +112,12 @@ bool	render_bloom_enabled = true;
 // *** SceneParams
 	sceneParams sceneParams_main;
 
-void render_buildShaders() {
-	shaderLoad( "dat/shaders/default.s", true );
-	shaderLoad( "dat/shaders/refl_normal.s", true );
-	shaderLoad( "dat/shaders/reflective.s", true );
-	shaderLoad( "dat/shaders/terrain.s", true );
-	shaderLoad( "dat/shaders/gaussian.s", true );
-	shaderLoad( "dat/shaders/gaussian_vert.s", true );
-	shaderLoad( "dat/shaders/ui.s", true );
-	shaderLoad( "dat/shaders/dof.s", true );
-	shaderLoad( "dat/shaders/ssao.s", true );
-
-	// Load Shaders					Vertex												Fragment
-	resources.shader_default		= shader_load( "dat/shaders/phong.v.glsl",			"dat/shaders/phong.f.glsl" );
-	resources.shader_particle		= shader_load( "dat/shaders/textured_phong.v.glsl",	"dat/shaders/textured_phong.f.glsl" );
-	resources.shader_skybox			= shader_load( "dat/shaders/skybox.v.glsl",			"dat/shaders/skybox.f.glsl" );
-	resources.shader_ui				= shader_load( "dat/shaders/ui.v.glsl",				"dat/shaders/ui.f.glsl" );
-	resources.shader_filter			= shader_load( "dat/shaders/filter.v.glsl",			"dat/shaders/filter.f.glsl" );
-	resources.shader_debug			= shader_load( "dat/shaders/debug_lines.v.glsl",	"dat/shaders/debug_lines.f.glsl" );
-	resources.shader_debug_2d		= shader_load( "dat/shaders/debug_lines_2d.v.glsl",	"dat/shaders/debug_lines_2d.f.glsl" );
-	resources.shader_depth			= shader_load( "dat/shaders/depth_pass.v.glsl",		"dat/shaders/depth_pass.f.glsl" );
-
-#define GET_UNIFORM_LOCATION( var ) \
-	resources.uniforms.var = shader_findConstant( mhash( #var )); \
-	assert( resources.uniforms.var != NULL );
-	SHADER_UNIFORMS( GET_UNIFORM_LOCATION )
-	VERTEX_ATTRIBS( VERTEX_ATTRIB_LOOKUP );
-}
-
-shader** render_shaderByName( const char* name ) {
-	shader** s = shaderGet( name );
-	if (s) return s; else return &resources.shader_default;
-}
-
 GLuint render_colorMask = GL_INVALID_ENUM;
 GLuint render_depthMask = GL_INVALID_ENUM;
 GLuint render_alphaBlend = GL_INVALID_ENUM;
 
 void renderPass_clearBuffers( renderPass* pass ) {
 	memset( pass->next_call_index, 0, sizeof( int ) * kCallBufferCount );
-#if debug
-	memset( pass->call_buffer, 0, sizeof( drawCall ) * kMaxDrawCalls * kCallBufferCount );
-#endif
 }
 
 void render_clearCallBuffer( ) {
@@ -299,7 +260,6 @@ void render_init( void* app ) {
 
 	texture_staticInit();
 	shader_init();
-	render_buildShaders();
 	skybox_init();
 	
 	// Allocate space for buffers
@@ -384,32 +344,6 @@ void render_resetModelView( ) {
 	matrix_cpy( modelview, camera_inverse );
 }
 
-void render_setUniform_matrix( GLuint uniform, matrix m ) {
-	glUniformMatrix4fv( uniform, 1, /*transpose*/false, (GLfloat*)m );
-}
-
-// Takes a uniform and an OpenGL texture name (GLuint)
-// Binds the given texture to an available texture unit and sets the uniform
-void render_setUniform_texture( GLuint uniform, GLuint texture ) {
-	if ((int)uniform >= 0 ) {
-		vAssert( render_current_texture_unit < graphicsSystem.maxTextureUnits );
-		glActiveTexture( GL_TEXTURE0 + render_current_texture_unit );
-		glBindTexture( GL_TEXTURE_2D, texture );
-		glUniform1i( uniform, render_current_texture_unit );
-		render_current_texture_unit++;
-	}
-}
-
-void render_setUniform_vector( GLuint uniform, vector* v ) {
-	// Only set uniforms if we definitely have them - otherwise we might override aliased constants
-	// in the current shader
-	if ( uniform != kShaderConstantNoLocation ) glUniform4fv( uniform, 1, (GLfloat*)v );
-}
-
-void render_setUniform_vectorI( GLuint uniform, vector v ) {
-	render_setUniform_vector( uniform, &v );
-}
-
 float window_aspect( window* w ) {
 	return ((float)w->width) / ((float)w->height);
 }
@@ -436,12 +370,12 @@ void render( window* w, scene* s ) {
 }
 
 void render_sceneParams( sceneParams* params ) {
-	render_setUniform_vector( *resources.uniforms.fog_color,		&params->fog_color );
-	render_setUniform_vector( *resources.uniforms.sky_color_bottom, &params->fog_color );
-	render_setUniform_vector( *resources.uniforms.sky_color_top,	&params->sky_color );
-	render_setUniform_vector( *resources.uniforms.sun_color,		&params->sun_color );
+	Uniform( *resources.uniforms.fog_color,					&params->fog_color );
+	Uniform( *resources.uniforms.sky_color_bottom,	&params->fog_color );
+	Uniform( *resources.uniforms.sky_color_top,			&params->sky_color );
+	Uniform( *resources.uniforms.sun_color,					&params->sun_color );
 	const vector world_space_sun_dir = {{ 0.f, 0.f, 1.f, 0.f }};
-	render_setUniform_vectorI( *resources.uniforms.camera_space_sun_direction, matrix_vecMul( modelview, &world_space_sun_dir ));
+	Uniform( *resources.uniforms.camera_space_sun_direction, matrix_vecMul( modelview, &world_space_sun_dir ));
 }
 
 int render_findDrawCallBuffer( shader* vshader ) {
@@ -585,21 +519,21 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 	glDepthMask( calls[0].depth_mask );
 	shader_activate( calls[0].vitae_shader );
 	render_lighting( theScene );
-	render_setUniform_matrix( *resources.uniforms.projection,	perspective );
-	render_setUniform_matrix( *resources.uniforms.worldspace,	modelview );
-	render_setUniform_matrix( *resources.uniforms.camera_to_world, camera_matrix );
-	render_setUniform_vector( *resources.uniforms.viewspace_up, &viewspace_up );
+	Uniform( *resources.uniforms.projection,	perspective );
+	Uniform( *resources.uniforms.worldspace,	modelview );
+	Uniform( *resources.uniforms.camera_to_world, camera_matrix );
+	Uniform( *resources.uniforms.viewspace_up, &viewspace_up );
 	vector light = Vector( 1.f, -0.5f, 0.5f, 0.f );
-	render_setUniform_vectorI( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.directional_light_direction, normalized( matrix_vecMul( modelview, &light )));
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 	render_sceneParams( &sceneParams_main );
 
 	drawCall* sorted = (drawCall*)alloca( sizeof(drawCall) * count );
 	memcpy( sorted, calls, sizeof(drawCall) * count );
-	bool ui_shader = calls[0].vitae_shader == resources.shader_ui;
+	bool ui_shader = calls[0].vitae_shader == *Shader::byName( "dat/shaders/ui.s" );
 	if ( !ui_shader ) qsort( sorted, count, sizeof(drawCall), &compareTexture );
 
-	bool instanced = calls[0].vitae_shader == *render_shaderByName( "dat/shaders/refl_normal.s" );
+	bool instanced = calls[0].vitae_shader == *Shader::byName( "dat/shaders/refl_normal.s" );
 	if (false && instanced) {
 		//printf( "size: %lu.\n", sizeof(vertex));
 
@@ -639,15 +573,15 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 		// Texture
 		drawCall* draw = &calls[0];
 		render_current_texture_unit = 0;
-		render_setUniform_texture( *resources.uniforms.tex, draw->texture );
-		render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
-		render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
-		render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
-		render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
-		render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+		Uniform( *resources.uniforms.tex, draw->texture );
+		Uniform( *resources.uniforms.tex_b, draw->texture_b );
+		Uniform( *resources.uniforms.tex_c, draw->texture_c );
+		Uniform( *resources.uniforms.tex_d, draw->texture_d );
+		Uniform( *resources.uniforms.tex_normal, draw->texture_normal );
+		Uniform( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 
 		// Activate identity matrix as modelview (verts have been pre-transformed)
-		render_setUniform_matrix( *resources.uniforms.modelview, matrix_identity );
+		Uniform( *resources.uniforms.modelview, matrix_identity );
 		glDrawElements( elementsMode, indexCount, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 	}
 	else {
@@ -662,14 +596,14 @@ void render_drawShaderBatch( window* w, int count, drawCall* calls ) {
 				if (draw->texture != current_texture || ui_shader) {
 					current_texture = draw->texture;
 					render_current_texture_unit = 0;
-					render_setUniform_texture( *resources.uniforms.tex, draw->texture );
-					render_setUniform_texture( *resources.uniforms.tex_b, draw->texture_b );
-					render_setUniform_texture( *resources.uniforms.tex_c, draw->texture_c );
-					render_setUniform_texture( *resources.uniforms.tex_d, draw->texture_d );
-					render_setUniform_texture( *resources.uniforms.tex_normal, draw->texture_normal );
-					render_setUniform_texture( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
+					Uniform( *resources.uniforms.tex, draw->texture );
+					Uniform( *resources.uniforms.tex_b, draw->texture_b );
+					Uniform( *resources.uniforms.tex_c, draw->texture_c );
+					Uniform( *resources.uniforms.tex_d, draw->texture_d );
+					Uniform( *resources.uniforms.tex_normal, draw->texture_normal );
+					Uniform( *resources.uniforms.ssao_tex, ssaoBuffer->texture );
 				}
-				render_setUniform_matrix( *resources.uniforms.modelview, sorted[i].modelview );
+				Uniform( *resources.uniforms.modelview, sorted[i].modelview );
 				render_drawCall_draw( &sorted[i] );
 			}
 		}
@@ -711,9 +645,9 @@ void detachFrameBuffer() {
 
 void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
-	render_setUniform_texture( *resources.uniforms.tex,	buffer->texture );
-	render_setUniform_texture( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.tex,	buffer->texture );
+	Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 
 	vertex vertex_buffer[4];
 	float width = w->width;
@@ -747,38 +681,33 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 
 		// TEMP
-	if ( *resources.attributes.position >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
-		glEnableVertexAttribArray( *resources.attributes.position ); \
-	}
-	if ( *resources.attributes.normal >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
-		glEnableVertexAttribArray( *resources.attributes.normal ); \
-	}
-	// UV - only 2 elements
-	if ( *resources.attributes.uv >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
-		glEnableVertexAttribArray( *resources.attributes.uv ); \
-	}
-	// Color as 8/8/8/8 RGBA
-	if ( *resources.attributes.color >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
-		glEnableVertexAttribArray( *resources.attributes.color ); \
-	}
-
-
-
-
+		if ( *resources.attributes.position >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
+				glEnableVertexAttribArray( *resources.attributes.position ); \
+		}
+		if ( *resources.attributes.normal >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
+				glEnableVertexAttribArray( *resources.attributes.normal ); \
+		}
+		// UV - only 2 elements
+		if ( *resources.attributes.uv >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
+				glEnableVertexAttribArray( *resources.attributes.uv ); \
+		}
+		// Color as 8/8/8/8 RGBA
+		if ( *resources.attributes.color >= 0 ) { \
+			glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
+				glEnableVertexAttribArray( *resources.attributes.color ); \
+		}
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
 	}
 }
 
 void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
-	render_setUniform_texture( *resources.uniforms.tex,	buffer->depth_texture );
-	render_setUniform_vectorI( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
+	Uniform( *resources.uniforms.tex,	buffer->depth_texture );
+	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
 
 	vertex vertex_buffer[4];
 	float width = w->width;
@@ -835,7 +764,6 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 
 
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_DISABLE_ARRAY );
 		render_current_VBO = *postProcess_VBO;
 	}
 }
@@ -863,13 +791,13 @@ void render_draw( window* w, engine* e ) {
 		render_colorMask = true;
 		render_clear();
 
-		shader** ssao = render_shaderByName( "dat/shaders/ssao.s" );
+		shader** ssao = Shader::byName( "dat/shaders/ssao.s" );
 		render_drawFrameBuffer_depth( w, render_buffers[0], *ssao, 1.f );
 	} detachFrameBuffer();
 
 	const bool drawSsao = !render_bloom_enabled;
 	if ( drawSsao ) {
-		render_drawFrameBuffer( w, ssaoBuffer, resources.shader_ui, 1.f );
+		render_drawFrameBuffer( w, ssaoBuffer, *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 	} else {
 		attachFrameBuffer( render_buffers[0] ); {
 			render_clear();
@@ -881,7 +809,7 @@ void render_draw( window* w, engine* e ) {
 		} detachFrameBuffer();
 		render_setViewport(w->width, w->height);
 
-		render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+		render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 
 		// No depth-test for ui
 		glDisable( GL_DEPTH_TEST );
@@ -890,24 +818,24 @@ void render_draw( window* w, engine* e ) {
 			render_current_texture_unit = 0;
 			// downscale pass
 			attachFrameBuffer( render_buffers[1] ); {
-				render_drawFrameBuffer( w, render_buffers[0], resources.shader_ui, 1.f );
+				render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
 			} detachFrameBuffer();
 			// horizontal pass
 			attachFrameBuffer( render_buffers[2] ); {
-				shader** gaussian = render_shaderByName( "dat/shaders/gaussian.s" );
+				shader** gaussian = Shader::byName( "dat/shaders/gaussian.s" );
 				render_drawFrameBuffer( w, render_buffers[1], *gaussian, 1.f );
 			} detachFrameBuffer();
 			// vertical pass
 			attachFrameBuffer( render_buffers[3] ); {
-				shader** gaussian_vert = render_shaderByName( "dat/shaders/gaussian_vert.s" );
+				shader** gaussian_vert = Shader::byName( "dat/shaders/gaussian_vert.s" );
 				render_drawFrameBuffer( w, render_buffers[2], *gaussian_vert, 1.f );
 			} detachFrameBuffer();
 
 			render_setViewport(w->width, w->height);
-			shader** dof = render_shaderByName( "dat/shaders/dof.s" );
+			shader** dof = Shader::byName( "dat/shaders/dof.s" );
 
 			// Attach depth as a texture
-			//render_setUniform_texture( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
+			//Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
 			render_drawFrameBuffer( w, render_buffers[3], *dof, 0.3f );
 		}
 	}
