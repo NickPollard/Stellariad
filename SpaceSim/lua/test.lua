@@ -24,19 +24,19 @@ C and only controlled remotely by Lua
 	debug_player_immobile	= true
 
 -- Load Modules
-	package.path = "./SpaceSim/lua/?.lua"
-	ai			= require "ai"
-	array		= require "array"
+	--package.path = "./SpaceSim/lua/?.lua"
+	ai				= require "ai"
+	array			= require "array"
 	entities	= require "entities"
-	fx			= require "fx"
+	fx				= require "fx"
 	future		= require "future"
 	library		= require "library"
-	list		= require "list"
+	list			= require "list"
 	option		= require "option"
-	spawn		= require "spawn"
+	spawn			= require "spawn"
 	timers		= require "timers"
 	triggers	= require "triggers"
-	ui			= require "ui"
+	ui				= require "ui"
 
 -- player - this object contains general data about the player
 	player = nil
@@ -62,7 +62,7 @@ C and only controlled remotely by Lua
 	all_doodads			= { count = 0 }
 
 -- Settings
-	player_ship_model = "dat/model/skyscraper_blocks.s"
+	player_ship_model = "dat/model/ship_green.s"
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
@@ -408,7 +408,6 @@ function init()
 	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
 	inTime( 1.0, function () 
-				ui.show_crosshair()
 				gameplay_start()
 			end )
 	--splash_intro_new()
@@ -498,12 +497,14 @@ function gameplay_start()
 	player_active = true
 	inTime( 2.0, function () 
 		player_ship.speed = player_ship_initial_speed
+		ui.crosshair = ui.create_crosshair()
+		ui.show( ui.crosshair )
+		ui.panelFadeIn( ui.crosshair, 0.5 )
 		--playership_addEngineGlows( player_ship )
 		if not debug_spawning_disabled then
 			spawning_active = true
 		end
 		entities_spawned = 0.0
-		--doodads_spawned = 0.0
 	end )
 end
 
