@@ -103,10 +103,10 @@ entities.turret_collisionHandler = ( target, collider ) ->
 	target.behaviour = ai.dead
 
 entities.interceptor_fire = ( interceptor ) ->
-	muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 )
+	muzzle_position = Vector( 3.2, 0.0, 1.0, 1.0 )
 	fx.muzzle_flare_large( interceptor, muzzle_position )
 	entities.fire_missile( interceptor, muzzle_position, enemy_gunfire )
-	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 )
+	muzzle_position	= Vector( -3.2, 0.0, 1.0, 1.0 )
 	fx.muzzle_flare_large( interceptor, muzzle_position )
 	entities.fire_missile( interceptor, muzzle_position, enemy_gunfire )
 
