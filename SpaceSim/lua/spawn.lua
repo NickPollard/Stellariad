@@ -215,7 +215,7 @@ end
 local type_interceptor = {
 	speed = 0.0,
 	acceleration = 30.0,
-	model = "dat/model/ship_green.s",
+	model = "dat/model/ship_diamond.s",
 	attack_type = interceptor_attack_gun
 }
 
