@@ -53,6 +53,7 @@ SRCS =	src/bounds.cpp \
 		src/mem/passthrough.cpp \
 		src/mem/bitpool.cpp \
 		src/render/debugdraw.cpp \
+		src/render/drawcall.cpp \
 		src/render/graphicsbuffer.cpp \
 		src/render/render_android.cpp \
 		src/render/render_linux.cpp \

@@ -73,7 +73,8 @@ int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b ) {
 void canyonTerrain_renderInit() {
 	static_renderable_pool = pool_terrainRenderable_create( PoolMaxBlocks );
 	initialiseDefaultElementBuffer();
-	if ( !terrain_texture ) 		{ terrain_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
+	//if ( !terrain_texture ) 		{ terrain_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
+	if ( !terrain_texture ) 		{ terrain_texture		= texture_load( "dat/img/terrain/cliff_normal.tga" ); }
 	if ( !terrain_texture_cliff )	{ terrain_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
 	if ( !terrain_texture_2 )		{ terrain_texture_2		= texture_load( "dat/img/terrain/ground_industrial.tga" ); }
 	if ( !terrain_texture_cliff_2 )	{ terrain_texture_cliff_2 = texture_load( "dat/img/terrain/cliff_industrial.tga" ); }
@@ -253,6 +254,8 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 		draw->texture_b = b->_canyon->zones[first].texture_cliff->gl_tex;
 		draw->texture_c = b->_canyon->zones[second].texture_ground->gl_tex;
 		draw->texture_d = b->_canyon->zones[second].texture_cliff->gl_tex;
+		draw->texture_normal = terrain_texture->gl_tex;
+		draw->texture_b_normal = terrain_texture->gl_tex;
 		draw->vertex_VBO = *r->vertex_VBO;
 		draw->element_VBO = *r->element_VBO;
 

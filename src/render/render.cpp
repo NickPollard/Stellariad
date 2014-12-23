@@ -44,22 +44,12 @@ using Shader::Uniform;
 	#define kGlMaxVaryingParams GL_MAX_VARYING_VECTORS
 #endif
 
-#define kMaxDrawCalls 2048
-#define kCallBufferCount 24		// Needs to be at least as many as we have shaders
 // Each shader has it's own buffer for drawcalls
 // This means drawcalls get batched by shader
-drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
+//drawCall	call_buffer[kCallBufferCount][kMaxDrawCalls];
 // We store a list of the nextfree index for each buffer, so we can append new calls to the correct place
 // This gets zeroed on each frame
-int			next_call_index[kCallBufferCount];
-
-struct renderPass_s {
-	GLuint		alphaBlend;
-	GLuint		colorMask;
-	GLuint		depthMask;
-	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
-	int			next_call_index[ kCallBufferCount ];
-};
+//int			next_call_index[kCallBufferCount];
 
 // Rendering API declaration
 bool	render_initialised = false;
@@ -263,10 +253,8 @@ void render_init( void* app ) {
 	skybox_init();
 	
 	// Allocate space for buffers
-	for ( int i = 0; i < kVboCount; i++ ) {
-		resources.vertex_buffer[i]	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxVertexArrayCount);
-		resources.element_buffer[i]	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxVertexArrayCount);
-	}
+	resources.vertex_buffer	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxVertexArrayCount);
+	resources.element_buffer	= render_bufferCreate( GL_ELEMENT_ARRAY_BUFFER, NULL, sizeof( GLushort ) * kMaxVertexArrayCount);
 
 	// TODO - move this? temp instance buffers
 	instance_vertex_VBO[0] = render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxInstanceVertCount);
@@ -403,8 +391,8 @@ drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, G
 	draw->element_count = count;
 	draw->texture = tex;
 	draw->element_buffer_offset = 0;
-	draw->vertex_VBO	= resources.vertex_buffer[0];
-	draw->element_VBO	= resources.element_buffer[0];
+	draw->vertex_VBO	= resources.vertex_buffer;
+	draw->element_VBO	= resources.element_buffer;
 	draw->depth_mask = GL_TRUE;
 	draw->elements_mode = GL_TRIANGLES;
 
@@ -442,8 +430,8 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 	draw->element_count = count;
 	draw->texture = tex;
 	draw->element_buffer_offset = 0;
-	draw->vertex_VBO	= resources.vertex_buffer[0];
-	draw->element_VBO	= resources.element_buffer[0];
+	draw->vertex_VBO	= resources.vertex_buffer;
+	draw->element_VBO	= resources.element_buffer;
 	draw->depth_mask = GL_TRUE;
 	draw->elements_mode = GL_TRIANGLES;
 
@@ -484,7 +472,7 @@ void render_drawCall_draw( drawCall* draw ) {
 		render_useBuffers( draw->vertex_VBO, draw->element_VBO );
 	
 	// If required, copy our data to the GPU
-	if ( draw->vertex_VBO == resources.vertex_buffer[0] ) {
+	if ( draw->vertex_VBO == resources.vertex_buffer ) {
 		GLsizei vertex_buffer_size	= draw->element_count * sizeof( vertex );
 		GLsizei element_buffer_size	= draw->element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, draw->vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
@@ -668,7 +656,7 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
 		postProcess_VBO = (GLuint*)mem_alloc(sizeof(GLuint));
-		*postProcess_VBO = resources.vertex_buffer[0];
+		*postProcess_VBO = resources.vertex_buffer;
 	}
 	if ( !postProcess_EBO ) postProcess_EBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
 	if ( *postProcess_VBO != kInvalidBuffer && *postProcess_EBO != kInvalidBuffer ) {
@@ -728,7 +716,7 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 	const int element_count = 6;
 	if ( !postProcess_VBO ) {
 		postProcess_VBO = (GLuint*)mem_alloc(sizeof(GLuint));
-		*postProcess_VBO = resources.vertex_buffer[0];
+		*postProcess_VBO = resources.vertex_buffer;
 	}
 	if ( !postProcess_EBO ) postProcess_EBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, element_buffer, element_count * sizeof(GLushort));
 	if ( *postProcess_VBO != kInvalidBuffer && *postProcess_EBO != kInvalidBuffer ) {

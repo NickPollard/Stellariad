@@ -144,6 +144,9 @@ void shader_buildDictionary( shaderDictionary* dict, GLuint shader_program, cons
 	}
 }
 
+typedef void (*func_getIV)( GLuint, GLenum, GLint* );
+typedef void (*func_getInfoLog)( GLuint, GLint, GLint*, GLchar* );
+
 void gl_dumpInfoLog( GLuint object, func_getIV getIV, func_getInfoLog getInfoLog ) {
 	GLint length = -1;
 	char* log;
