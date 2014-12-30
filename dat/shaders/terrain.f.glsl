@@ -2,7 +2,7 @@
 precision highp float;
 #endif
 
-#define NORMAL_MAPPING
+//#define NORMAL_MAPPING
 
 // Varying
 varying vec4 frag_position;

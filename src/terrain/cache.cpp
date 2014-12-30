@@ -102,10 +102,7 @@ cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
 		return old;
 	}
 	else {
-		if (old) {
-//			printf( "ToDelete: 0x" xPTRf "(%d, %d, lod: %d, new: (%d, %d))\n", (uintptr_t)old, old->uMin, old->vMin, old->lod, b->uMin, b->vMin );
-			terrain_deleteBlock( t, old );
-		}
+		if (old) terrain_deleteBlock( t, old );
 		gridSetBlock( g, b, b->uMin, b->vMin );
 		takeRef( b );
 		return b;
@@ -294,19 +291,22 @@ bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, f
 	return empty;
 }
 
+int offset( int absolute, int stride ) {
+	return absolute > 0 
+		? (absolute % stride) 
+		: stride - (abs(absolute) % stride); 
+	//	: (stride + (absolute % stride)) % stride; // TODO - potential overflow problems here?
+}
+
 void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
 	const int r = 4 / lodRatio(b);
 	const int uReal = b->uMin + r*uRelative;
 	const int vReal = b->vMin + r*vRelative;
-	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
-	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
-	*uCache = uReal - uOffset;
-	*vCache = vReal - vOffset;
+	*uCache = uReal - offset( uReal, CacheBlockSize );
+	*vCache = vReal - offset( vReal, CacheBlockSize );
 }
 
-cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) {
-	return gridBlock( gridFor( cache, uMin, vMin ), uMin, vMin );
-}
+cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) { return gridBlock( gridFor( cache, uMin, vMin ), uMin, vMin ); }
 
 cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
@@ -322,6 +322,4 @@ cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
 	return caches;
 }
 
-bool cacheBlockContains( cacheBlock* b, int u, int v ) {
-	return ( b->uMin == u && b->vMin == v );
-}
+bool cacheBlockContains( cacheBlock* b, int u, int v ) { return ( b->uMin == u && b->vMin == v ); }
