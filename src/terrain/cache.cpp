@@ -46,8 +46,8 @@ void* takeCacheRef( const void* value, void* args ) {
 
 // Find the grid in the list, else NULL
 cacheGrid* gridFor( terrainCache* cache, int uMin, int vMin ) {
-	const int uGrid = minPeriod(uMin, GridCapacity);
-	const int vGrid = minPeriod(vMin, GridCapacity);
+	const int uGrid = minStride(uMin, GridCapacity);
+	const int vGrid = minStride(vMin, GridCapacity);
 	for( cacheGridlist* g = cache->grids; g && g->head; g = g->tail )
 		if ( g->head->uMin == uGrid && g->head->vMin == vGrid )
 			return g->head;
@@ -80,7 +80,7 @@ void terrain_deleteBlock( terrainCache* cache, cacheBlock* b ) {
 }
 
 cacheGrid* gridForIndex( int u, int v ) {
-	return cacheGrid_create( minPeriod( u, GridCapacity ), minPeriod( v, GridCapacity ));
+	return cacheGrid_create( minStride( u, GridCapacity ), minStride( v, GridCapacity ));
 }
 cacheGrid* gridForBlock( cacheBlock* b ) {
 	return gridForIndex( b->uMin, b->vMin );
@@ -102,10 +102,7 @@ cacheBlock* terrainCacheAddInternal( terrainCache* t, cacheBlock* b ) {
 		return old;
 	}
 	else {
-		if (old) {
-//			printf( "ToDelete: 0x" xPTRf "(%d, %d, lod: %d, new: (%d, %d))\n", (uintptr_t)old, old->uMin, old->vMin, old->lod, b->uMin, b->vMin );
-			terrain_deleteBlock( t, old );
-		}
+		if (old) terrain_deleteBlock( t, old );
 		gridSetBlock( g, b, b->uMin, b->vMin );
 		takeRef( b );
 		return b;
@@ -295,23 +292,25 @@ bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, f
 }
 
 void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
-	const int r = 4 / lodRatio(b);
-	const int uReal = b->uMin + r*uRelative;
-	const int vReal = b->vMin + r*vRelative;
-	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
-	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
-	*uCache = uReal - uOffset;
-	*vCache = vReal - vOffset;
+	const int uReal = b->uMin + uRelative;
+	const int vReal = b->vMin + vRelative;
+	*uCache = uReal - offset( uReal, CacheBlockSize );
+	*vCache = vReal - offset( vReal, CacheBlockSize );
 }
 
-cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) {
-	return gridBlock( gridFor( cache, uMin, vMin ), uMin, vMin );
+cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) { return gridBlock( gridFor( cache, uMin, vMin ), uMin, vMin ); }
+
+void getCacheExtents( canyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV ) {
+	const int maxStride = 4;
+	const int stride = lodStride( b );
+	cacheBlockFor( b, -maxStride, -maxStride, &cacheMinU, &cacheMinV );
+	cacheBlockFor( b, b->u_samples * stride + maxStride, b->v_samples * stride + maxStride, &cacheMaxU, &cacheMaxV );
 }
 
 cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
-	cacheBlockFor( b, -1, -1, &cacheMinU, &cacheMinV );
-	cacheBlockFor( b, b->u_samples, b->v_samples, &cacheMaxU, &cacheMaxV );
+	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
+
 	cacheBlocklist* caches = NULL;
 	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
 		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
@@ -322,6 +321,4 @@ cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
 	return caches;
 }
 
-bool cacheBlockContains( cacheBlock* b, int u, int v ) {
-	return ( b->uMin == u && b->vMin == v );
-}
+bool cacheBlockContains( cacheBlock* b, int u, int v ) { return ( b->uMin == u && b->vMin == v ); }

@@ -24,21 +24,21 @@ cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
 
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
 	(void)c;
-	(void)caches;
-	const int r = 4 / lodRatio(b);
-	const int uReal = b->uMin + r*uRelative;
-	const int vReal = b->vMin + r*vRelative;
-	const int uOffset = uReal > 0 ? uReal % CacheBlockSize : (CacheBlockSize + (uReal % CacheBlockSize)) % CacheBlockSize;
-	const int vOffset = vReal > 0 ? vReal % CacheBlockSize : (CacheBlockSize + (vReal % CacheBlockSize)) % CacheBlockSize;
+	(void)b;
+	//const int r = 4 / lodRatio(b);
+//	const int uReal = uRelative == -1 ? b->uMin-4 : b->uMin + uRelative;
+//	const int vReal = vRelative == -1 ? b->vMin-4 : b->vMin + vRelative;
+	const int uReal = b->uMin + uRelative;
+	const int vReal = b->vMin + vRelative;
+	const int uOffset = offset( uReal, CacheBlockSize );
+	const int vOffset = offset( vReal, CacheBlockSize );
 	const int uMin = uReal - uOffset;
 	const int vMin = vReal - vOffset;
 
 	cacheBlock* cache = terrainCachedFromList( caches, uMin, vMin );
 	if ( !cache ) printf( "Missing cache block %d %d.\n", uMin, vMin );
 	vAssert( cache && cache->lod <= b->lod_level );
-	vector p = cache->positions[uOffset][vOffset];
-	//cacheBlockFree( cache ); // TODO - this now happens after all
-	return p;
+	return cache->positions[uOffset][vOffset];
 }
 
 // if it's in p, return the cached version

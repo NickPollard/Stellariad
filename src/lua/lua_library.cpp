@@ -936,7 +936,11 @@ int LUA_createCanyon(lua_State* l) {
 	theCanyon = c;
 	startTick( e, c, canyon_tick );
 	
-	canyonTerrain* t = canyonTerrain_create( c, 13, 17, 48, 48, 640.f, 960.f );
+	const int uBlocks = 9;
+	const int vBlocks = 17;
+	const int uSamples = 64;
+	const int vSamples = 48;
+	canyonTerrain* t = canyonTerrain_create( c, uBlocks, vBlocks, uSamples, vSamples, 640.f, 960.f );
 	//canyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
 	canyonTerrain_setLodIntervals( t, 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );

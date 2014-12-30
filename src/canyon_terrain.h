@@ -109,6 +109,7 @@ float canyonTerrain_sample( canyon* c, float u, float v );
 float canyonTerrain_sampleUV( float u, float v );
 
 int lodRatio( canyonTerrainBlock* b );
+int lodStride( canyonTerrainBlock* b );
 int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v );
 
 // To move to terrain_generate

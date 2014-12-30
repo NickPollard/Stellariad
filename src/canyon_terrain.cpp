@@ -286,6 +286,7 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 }
 
 int lodRatio( canyonTerrainBlock* b ) { return b->u_samples / ( b->terrain->uSamplesPerBlock / 4 ); }
+int lodStride( canyonTerrainBlock* b ) { return 4 / lodRatio(b); }
 
 void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	(void)dt; (void)eng;

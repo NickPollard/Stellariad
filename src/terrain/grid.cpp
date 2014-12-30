@@ -10,43 +10,43 @@
 int gridIndex( int i, int grid ) { return (i - grid) / CacheBlockSize; }
 
 cacheBlock* gridBlock( cacheGrid* g, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	return g->blocks[uMin][vMin];
 }
 void gridSetBlock( cacheGrid* g, cacheBlock* b, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	g->blocks[uMin][vMin] = b;
 }
 void gridSetLod( cacheGrid* g, int lod, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	g->neededLods[uMin][vMin] = lod;
 }
 int gridLod( cacheGrid* g, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	return g->neededLods[uMin][vMin];
 }
 void gridSetFuture( cacheGrid* g, future* f, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	g->futures[uMin][vMin] = f;
 }
 future* gridFuture( cacheGrid* g, int u, int v ) {
-	const int uMin = gridIndex(u, minPeriod(u, GridCapacity));
-	const int vMin = gridIndex(v, minPeriod(v, GridCapacity));
+	const int uMin = gridIndex(u, minStride(u, GridCapacity));
+	const int vMin = gridIndex(v, minStride(v, GridCapacity));
 	vAssert( uMin >= 0 && uMin < GridSize );
 	vAssert( vMin >= 0 && vMin < GridSize );
 	return g->futures[uMin][vMin];

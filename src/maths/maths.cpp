@@ -67,8 +67,16 @@ bool isPowerOf2( unsigned int n ) {
 	return (n & (n - 1)) == 0;
 }
 
-int minPeriod( int i, int period ) {
-	return i - (i >= 0 ? i % period : ((i + 1) % period)+period - 1);
+int minStride( int i, int stride ) {
+	return i - (i >= 0 
+								? i % stride 
+								: ((i + 1) % stride) + stride - 1);
+}
+
+int offset( int absolute, int stride ) {
+	return absolute >= 0 
+		? (absolute % stride) 
+		: (stride - (abs(absolute) % stride)) % stride; 
 }
 
 #if UNIT_TEST

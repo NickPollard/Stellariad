@@ -60,11 +60,16 @@ void releaseAllCaches( cacheBlocklist* caches ) {
 void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBlocklist* caches ) {
 	vector* verts = vertSources->positions;
 	const int max = vertCount( b );
-	for ( int v = -1; v < b->v_samples + 1; ++v )
-		for ( int u = -1; u < b->u_samples + 1; ++u ) {
+	for ( int v = -1; v < b->v_samples+1; ++v )
+		for ( int u = -1; u < b->u_samples+1; ++u ) {
 			const int index = indexFromUV(b, u, v);
 			vAssert( index >= 0 && index < max );
-			verts[index] = terrainPointCached( b->_canyon, b, caches, u, v );
+			const int strideMax = 4;
+			const int stride = lodStride(b);
+			int uu = (u == -1) ? -strideMax : (u == b->u_samples ? ((b->u_samples - 1) * stride + strideMax) : u * stride);
+			int vv = (v == -1) ? -strideMax : (v == b->v_samples ? ((b->v_samples - 1) * stride + strideMax) : v * stride);
+			//int vv = (v == -1) ? -strideMax : v * lodStride(b);
+			verts[index] = terrainPointCached( b->_canyon, b, caches, uu, vv );
 		}
 
 	releaseAllCaches( caches );
@@ -73,22 +78,20 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 
 void* worker_generateVerts( void* args ) {
 	cacheBlocklist* caches = cachesForBlock( (canyonTerrainBlock*)_1(args) );
-	generateVerts( (canyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches/*_3(args)*/ );
+	generateVerts( (canyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches );
 	mem_free(args);
 	return NULL;
 }
 
 futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
-	cacheBlockFor( b, -1, -1, &cacheMinU, &cacheMinV );
-	cacheBlockFor( b, b->u_samples, b->v_samples, &cacheMaxU, &cacheMaxV );
+	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
 
 	futurelist* fs = NULL;
-	for (int u = cacheMinU; u <= cacheMaxU; u+=CacheBlockSize )
-		for (int v = cacheMinV; v <= cacheMaxV; v+=CacheBlockSize ) {
+	for (int u = cacheMinU; u <= cacheMaxU; u += CacheBlockSize )
+		for (int v = cacheMinV; v <= cacheMaxV; v += CacheBlockSize ) {
 			future* f = requestCache( b, u, v );
-			if ( !f->complete )
-				fs = futurelist_cons( f, fs );
+			fs = f->complete ? fs : futurelist_cons( f, fs );
 		}
 	return fs;
 }
@@ -118,8 +121,7 @@ void generatePositions( canyonTerrainBlock* b) {
 	vertSources->positions = (vector*)mem_alloc( sizeof( vector ) * vertCount( b ));
 
 	future* f = buildCache( b );
-	cacheBlocklist* caches = NULL;//cachesForBlock( b );
-	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Triple( b, vertSources, caches )));
+	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
 }
 
 void* generateVertices_( void* args ) {

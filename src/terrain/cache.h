@@ -54,4 +54,7 @@ cacheBlocklist* cachesForBlock( canyonTerrainBlock* b );
 // Calculate the cacheblock indices for a given point coord
 void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache );
 
+// Get cache extents needed to build a given block
+void getCacheExtents( canyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV );
+
 bool cacheBlockContains( cacheBlock* b, int u, int v );

@@ -53,15 +53,24 @@ vec4 screenToWorld( vec2 p ) {
 }
 
 void main() {
-	float depth = screenToWorld( texcoord ).z / 1000.f;
+	//float depth = screenToWorld( texcoord ).z / 1000.f;
 	//float depth = 0.0;
 	//gl_FragColor = texture2D( tex_b, texcoord ) * vec4(0.5, 0.5, 0.5, 0.5);
 	float near = 0.05;
 	float far = 0.7;
-	float maxBlur = 0.9;
-	float blur = clamp((depth - near) / ( far - near ), 0.0, 1.0) * maxBlur;
-	float mask = depth > near ? 1.0 : 0.0;
-	//gl_FragColor = vec4(blur, 0.0, 0.0, 1.0);
-	float a = blur;
-	gl_FragColor = texture2D( tex, texcoord ) * vec4(a, a, a, a);
+	float maxBlur = 0.99;
+	//float bl = clamp((depth - near) / ( far - near ), 0.0, 1.0) * maxBlur;
+	//float mask = depth > near ? 1.0 : 0.0;
+	//gl_FragColor = vec4(bl, 0.0, 0.0, 1.0);
+	vec4 color = texture2D( tex, texcoord );
+	float bloomFactor = 4.0;
+	float minBloom = 0.9;
+	float bloomAmount = clamp(((( color.x + color.y + color.z ) / 3.0) - minBloom) / (1.0 - minBloom), 0.0, 1.0);
+	float bloom = pow( bloomAmount, bloomFactor);
+	float blur = 0.3;
+	gl_FragColor = color * 
+		vec4(blur + bloom,
+					blur + bloom,
+		 			blur + bloom,
+		 			blur);
 }

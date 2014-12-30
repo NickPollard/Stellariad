@@ -13,7 +13,7 @@ IMPLEMENT_LIST(handler)
 IMPLEMENT_LIST(future)
 
 //futurelist* futures = NULL;
-#define MaxFutures 8192
+#define MaxFutures 16384
 int futureCount = 0;
 future* futures[MaxFutures];
 

@@ -823,7 +823,6 @@ void render_draw( window* w, engine* e ) {
 			shader** dof = Shader::byName( "dat/shaders/dof.s" );
 
 			// Attach depth as a texture
-			//Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
 			render_drawFrameBuffer( w, render_buffers[3], *dof, 0.3f );
 		}
 	}
