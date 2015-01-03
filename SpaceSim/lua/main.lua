@@ -413,13 +413,7 @@ end
 local paused = false
 local pauseFrame = nil
 
--- Called once per frame to update the current Lua State
-function tick( dt )
-	if starting then
-		starting = false
-		start()
-	end
-
+function tickPause( dt )
 	local togglePause = vkeyPressed( input, key.p )
 	if togglePause then
 		if paused then
@@ -436,7 +430,16 @@ function tick( dt )
 			end
 		end
 	end
+end
 
+-- Called once per frame to update the current Lua State
+function tick( dt )
+	if starting then
+		starting = false
+		start()
+	end
+
+	tickPause( dt )
 
 	if player_active then playr.ship_tick( player_ship, dt ) end
 

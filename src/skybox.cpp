@@ -15,6 +15,7 @@
 uint8_t* skybox_generateSkybox( vector sky_color_bottom, vector sky_color_top, uint8_t* image );
 
 model*		skybox_model = NULL;
+model*		inverted_model = NULL;
 texture*	skybox_texture = NULL;
 
 uint8_t*	skybox_image = NULL;	// For offline CPU rendering
@@ -46,6 +47,12 @@ void skybox_init( ) {
 	skybox_model->meshes[0]->_shader = Shader::byName( "dat/shaders/skybox.s" );
 	skybox_model->meshes[0]->cachedDraw = NULL;
 	skybox_model->meshes[0]->dontCache = true;
+	
+	inverted_model = model_load( "dat/model/skydome_inverted.s" );
+	inverted_model->meshes[0]->texture_diffuse = skybox_texture;
+	inverted_model->meshes[0]->_shader = Shader::byName( "dat/shaders/skybox.s" );
+	inverted_model->meshes[0]->cachedDraw = NULL;
+	inverted_model->meshes[0]->dontCache = true;
 }
 
 #define SKYBOX_VERTEX_ATTRIB_POINTER( attrib ) \
@@ -64,8 +71,10 @@ void skybox_render( void* data ) {
 	// TEMP: Force texture again as delayed tex loading from model can override this
 	//skybox_model->meshes[0]->cachedDraw = NULL;
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
+	inverted_model->meshes[0]->texture_diffuse = skybox_texture;
 
 	mesh_render( skybox_model->meshes[0] );
+	mesh_render( inverted_model->meshes[0] );
 }
 
 vector skybox_fragmentShader( vector src_color, vector sky_color_bottom, vector sky_color_top ) {

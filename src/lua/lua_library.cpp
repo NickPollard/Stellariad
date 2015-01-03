@@ -238,6 +238,29 @@ int LUA_scene_removeModel( lua_State* l ) {
 	return 0;
 }
 
+int LUA_scene_setSkyColor( lua_State* l ) {
+	scene* s = (scene*)lua_toptr( l, 1 );
+	vector* v = (vector*)lua_toptr( l, 2 );
+	scene_setSkyColor(s, v);
+	return 0;
+}
+
+int LUA_scene_setSunColor( lua_State* l ) {
+	scene* s = (scene*)lua_toptr( l, 1 );
+	vector* v = (vector*)lua_toptr( l, 2 );
+	scene_setSunColor(s, v);
+	return 0;
+}
+
+int LUA_scene_setFogColor( lua_State* l ) {
+	scene* s = (scene*)lua_toptr( l, 1 );
+	vector* v = (vector*)lua_toptr( l, 2 );
+	scene_setFogColor(s, v);
+	return 0;
+}
+
+
+
 int LUA_model_setTransform( lua_State* l ) {
 	LUA_DEBUG_PRINT( "lua model set transform\n" );
 	lua_assertnumber( l, 1 );
@@ -1243,6 +1266,9 @@ void luaLibrary_import( lua_State* l ) {
 	lua_registerFunction( l, LUA_setWorldSpacePosition, "vsetWorldSpacePosition" );
 	lua_registerFunction( l, LUA_scene_addModel, "vscene_addModel" );
 	lua_registerFunction( l, LUA_scene_removeModel, "vscene_removeModel" );
+	lua_registerFunction( l, LUA_scene_setSkyColor, "vscene_setSkyColor" );
+	lua_registerFunction( l, LUA_scene_setFogColor, "vscene_setFogColor" );
+	lua_registerFunction( l, LUA_scene_setSunColor, "vscene_setSunColor" );
 	lua_registerFunction( l, LUA_texturePreload, "vtexture_preload" );
 
 	// *** Terrain

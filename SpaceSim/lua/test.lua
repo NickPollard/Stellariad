@@ -10,6 +10,7 @@ Lua should be able to do everything C can, but where performance is necessary, c
 C and only controlled remotely by Lua
 
 ]]--
+	testModel = "dat/model/ship_diamond.s"
 
 	pi = math.pi
 	two_pi = 2.0 * pi
@@ -22,6 +23,7 @@ C and only controlled remotely by Lua
 	debug_player_immortal	= true
 	debug_player_autofly	= false
 	debug_player_immobile	= true
+	debug_no_pause_fade = true
 
 -- Load Modules
 	--package.path = "./SpaceSim/lua/?.lua"
@@ -62,7 +64,6 @@ C and only controlled remotely by Lua
 	all_doodads			= { count = 0 }
 
 -- Settings
-	player_ship_model = "dat/model/ship_green.s"
 	-- Weapons
 	player_gun_cooldown		= 0.15
 	player_missile_cooldown	= 1.0
@@ -373,7 +374,7 @@ end
 
 -- Create a player. The player is a specialised form of Gameobject
 function playership_create()
-	local p = gameobject_create( player_ship_model )
+	local p = gameobject_create( testModel )
 	p.speed = 0.0
 	p.cooldown = 0.0
 	p.missile_cooldown = 0.0
@@ -512,6 +513,11 @@ function restart()
 	spawning_active = false
 	player_active = false
 	entities_despawnAll()
+
+	vscene_setSkyColor( scene, Vector(0.3, 0.4, 0.5, 1.0))
+	vscene_setFogColor( scene, Vector(0.4, 0.4, 0.3, 1.0))
+	vscene_setSunColor( scene, Vector(0.0, 0.0, 0.0, 1.0))
+
 	-- We create a player object which is a game-specific Lua class
 	-- The player class itself creates several native C classes in the engine
 	playership_cleanup( player_ship )
@@ -796,7 +802,8 @@ end
 
 function yaw( ship, dt )
 	local target_yaw_delta = ship.target_yaw - ship.yaw
-	local max_yaw_delta = 2.0 * math.abs( ship.roll ) * 1.3 * dt
+	--local max_yaw_delta = 2.0 * math.abs( ship.roll ) * 1.3 * dt
+	local max_yaw_delta = 2.0
 	local actual_yaw_delta = clamp( -max_yaw_delta, max_yaw_delta, target_yaw_delta )
 	ship.yaw = ship.yaw + actual_yaw_delta
 	return target_yaw_delta
@@ -809,22 +816,6 @@ function playership_tick( ship, dt )
 
 	local input_yaw = 0.0
 	local input_pitch = 0.0
-	--[[
-	if debug_player_autofly then
-		vtransform_getWorldPosition( ship.transform ):foreach( function ( p )
-			local current_u, current_v = vcanyon_fromWorld( p )
-			local target_v = current_v + 50
-			local x, y, z = vcanyon_position( 0, target_v )
-			local target_pos = Vector( x, y, z, 1.0 )
-			local m = vmatrix_facing( target_pos, p )
-			local target_yaw, target_pitch, target_roll = vmatrix_toEulerAngles( m )
-			input_yaw = target_yaw - ship.yaw
-			input_pitch = target_pitch - ship.pitch
-		end )
-	else
-		input_yaw, input_pitch = ship.steering_input()
-	end
-	--]]
 
 	-- set to -1.0 to invert
 	local invert_pitch = 1.0
@@ -835,26 +826,6 @@ function playership_tick( ship, dt )
 	ship.pitch = ship.pitch + pitch
 
 	local strafe = 0.0
-
-	--[[
-	if not ship.aileron_roll then
-		local aileron_roll_left = false
-		local aileron_roll_right = false
-		if touch_enabled then
-			aileron_roll_left = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_left )
-			aileron_roll_right = vgesture_performed( player_ship.joypad, player_ship.aileron_swipe_right )
-		else
-			aileron_roll_left = vkeyPressed( input, key.a )
-			aileron_roll_right = vkeyPressed( input, key.d )
-		end
-
-		if aileron_roll_left then
-			ship_aileronRoll( ship, 1.0 )
-		elseif aileron_roll_right then
-			ship_aileronRoll( ship, -1.0 )
-		end
-	end
-	--]]
 
 	ship.yaw_history[ship.yaw_history_index ] = ship.yaw
 	ship.yaw_history_index = ( ship.yaw_history_index ) % 10 + 1
@@ -868,7 +839,6 @@ function playership_tick( ship, dt )
 
 		-- roll
 		library.rolling_average.add( ship.target_roll, ship.aileron_roll_target )
-		--local roll_delta = ship_rollDeltaFromTarget( library.rolling_average.sample( ship.target_roll ), ship.roll )
 		local integral_total = 1.8 -- This is such a fudge - should be integral [0->1] of sin( pi^2 - x^2 / pi ) ( which is 1.58605 )
 		local roll_delta = roll_rate * dt * ship.aileron_roll_amount * integral_total
 		ship.roll = ship.roll + roll_delta
@@ -912,10 +882,6 @@ function playership_tick( ship, dt )
 	local forward_v = vtransformVector( ship.transform, Vector( 0.0, 0.0, ship.speed, 0.0 ))
 	local strafe_v = vtransformVector( ship.camera_transform, Vector( strafe, 0.0, 0.0, 0.0 ))
 	local world_v = vvector_add( forward_v, strafe_v )
-
-	if ship.physic then
-		--vphysic_setVelocity( ship.physic, world_v )
-	end
 end
 
 function toggle_camera()
@@ -938,12 +904,33 @@ end
 
 spawning_active = false
 
+function tickPause( dt )
+	local togglePause = vkeyPressed( input, key.p )
+	if togglePause then
+		if paused then
+			paused = false
+			if pauseFrame then ui.hide_splash( pauseFrame ) end
+			vunpause( engine )
+		else
+			paused = true
+			vpause( engine )
+			if pauseFrame then ui.hide_splash( pauseFrame ) end
+			local alpha = 0.3	
+			if not debug_no_pause_fade then
+				pauseFrame = ui.show_splash_withColor( "dat/img/black.tga", screen_width, screen_height, Vector( 1.0, 1.0, 1.0, alpha ))
+			end
+		end
+	end
+end
+
 -- Called once per frame to update the current Lua State
 function tick( dt )
 	if starting then
 		starting = false
 		start()
 	end
+
+	tickPause( dt )
 
 	if player_active then
 		playership_tick( player_ship, dt )
