@@ -65,6 +65,7 @@ enum key {
 	KEY_LEFT,
 	KEY_RIGHT,
 	KEY_SHIFT,
+	KEY_CTRL,
 	KEY_SPACE,
 	kMaxKeyCodes
 };

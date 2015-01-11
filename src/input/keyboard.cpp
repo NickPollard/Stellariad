@@ -111,6 +111,7 @@ void input_initKeyCodes( xwindow* xwin ) {
 	key_codes[KEY_T] = XKeysymToKeycode( xwin->display, XK_T );
 	key_codes[KEY_W] = XKeysymToKeycode( xwin->display, XK_W );
 	key_codes[KEY_SHIFT] = XKeysymToKeycode( xwin->display, XK_Shift_L );
+	key_codes[KEY_CTRL] = XKeysymToKeycode( xwin->display, XK_Control_L );
 	
 	
 	key_codes[KEY_SPACE] = XKeysymToKeycode( xwin->display, XK_space );

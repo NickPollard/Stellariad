@@ -35,6 +35,8 @@ void flycam_input( void* data, input* in  ) {
 
 	if ( input_keyHeld( in, KEY_SHIFT ) )
 		delta = 10.f;
+	if ( input_keyHeld( in, KEY_CTRL ) )
+		delta = 0.01f;
 
 	// Cam now looks down the positive Z axis
 	if ( input_keyHeld( in, KEY_W ))
