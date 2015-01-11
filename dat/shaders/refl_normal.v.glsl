@@ -22,7 +22,7 @@ uniform	mat4 modelview;
 
 void main() {
 	gl_Position = projection * modelview * position;
-	screenCoord = gl_Position.xy / gl_Position.w;
+	screenCoord = (gl_Position.xy / gl_Position.w) * 0.5 + vec2(0.5, 0.5);
 	frag_position = modelview * position;
 	cameraSpace_frag_normal = modelview * normal;
 	frag_normal = normal;

@@ -11,6 +11,7 @@ C and only controlled remotely by Lua
 
 ]]--
 	testModel = "dat/model/ship_diamond.s"
+	--testModel = "dat/model/cube.s"
 
 	pi = math.pi
 	two_pi = 2.0 * pi

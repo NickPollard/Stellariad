@@ -96,12 +96,4 @@ void main() {
 	float edge_cliff = 0.15;
 	float d = 1.0 - max( n.y, 0.0 );
 	cliff = smoothstep( edge_ground, edge_cliff, d );
-
-	// lighting
-	// Specular
-#ifdef NORMAL_MAPPING
-#else
-	vec4 spec_bounce = reflect( directional_light_direction, cameraSpace_frag_normal );
-	specular = max( 0.0, dot( spec_bounce, -view_direction ));
-#endif // NORMAL_MAPPING
 }

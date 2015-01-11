@@ -196,12 +196,18 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 	GLint program_ok;
 
 	GLuint program = glCreateProgram();
+	printf( "1.\n" );
 	glAttachShader( program, vertex_shader );
+	printf( "2.\n" );
 	glAttachShader( program, fragment_shader );
+	printf( "3.\n" );
 	glLinkProgram( program );
+	printf( "4.\n" );
 	glValidateProgram( program );
 
+	printf( "5.\n" );
 	glGetProgramiv( program, GL_LINK_STATUS, &program_ok );
+	printf( "6.\n" );
 	if ( !program_ok ) {
 		printf( "Failed to link shader program.\n" );
 		gl_dumpInfoLog( program, glGetProgramiv, glGetProgramInfoLog );
@@ -213,9 +219,12 @@ GLuint shader_link( GLuint vertex_shader, GLuint fragment_shader ) {
 
 // Build a GLSL shader program from given vertex and fragment shader source pathnames
 GLuint buildShader( const char* vertex_path, const char* fragment_path, const char* vertex_file, const char* fragment_file ) {
+	printf( "compiling vertex.\n" );
 	GLuint vertex_shader = shader_compile( GL_VERTEX_SHADER, vertex_path, vertex_file );
+	printf( "compiling fragment.\n" );
 	GLuint fragment_shader = shader_compile( GL_FRAGMENT_SHADER, fragment_path, fragment_file );
 	bool err = (vertex_shader == 0 || fragment_shader == 0); 
+	printf( "linking.\n" );
 	return err ? 0 : shader_link( vertex_shader, fragment_shader );
 }
 
@@ -311,13 +320,16 @@ shader* shader_load( const char* vertex_name, const char* fragment_name ) {
 	const char* vertex_file = (const char*)vfile_contents( vertex_name, &length );
 	const char* fragment_file = (const char*)vfile_contents( fragment_name, &length );
 
+	printf( "building shader.\n" );
 	s->program = buildShader( vertex_name, fragment_name, vertex_file, fragment_file );
 	if (s->program == 0) { // If we couldn't build it properly
 		mem_free( s );
 		return nullptr;
 	}
 
+	printf( "building shader dict (Vertex).\n" );
 	shader_buildDictionary( &s->dict, s->program, vertex_file );
+	printf( "building shader dict (Fragment).\n" );
 	shader_buildDictionary( &s->dict, s->program, fragment_file );
 
 	mem_free( (void*)vertex_file );			// Cast away const to free, we allocated this ourselves

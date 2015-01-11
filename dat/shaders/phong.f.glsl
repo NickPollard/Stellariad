@@ -20,6 +20,7 @@ uniform sampler2D tex;
 uniform sampler2D ssao_tex;
 uniform vec4 fog_color;
 uniform vec4 camera_space_sun_direction;
+uniform	mat4 projection;
 
 const vec4 ambient = vec4( 0.2, 0.2, 0.3, 0.0 );
 const vec4 directionalDiffuse = vec4( 1.0, 1.0, 0.8, 1.0 );
@@ -39,7 +40,10 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 }
 
 void main() {
-	vec4 ssao = texture2D( ssao_tex, screenCoord * 0.5 + vec2( 0.5, 0.5 ) );
+	vec4 coord = projection * fragPosition;
+	// Normalization HAS to happen at the FRAGMENT level; is considerably non-linear
+	vec2 screenCoordd = (coord.xy / coord.w) * 0.5 + vec2(0.5, 0.5);
+	vec4 ssao = texture2D( ssao_tex, screenCoordd );
 	vec4 material = texture2D( tex, texcoord );
 
 	vec4 light_direction = normalize( worldspace * directional_light_direction );
