@@ -380,24 +380,10 @@ int render_findDrawCallBuffer( shader* vshader ) {
 	return index;
 }
 
+// TODO - pass is unused
 drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
-	vAssert( pass );
-	vAssert( vshader );
-
-	drawCall* draw = (drawCall*)mem_alloc( sizeof( drawCall ));
-	draw->vitae_shader = vshader;
-	draw->element_buffer = elements;
-	draw->vertex_buffer = verts;
-	draw->element_count = count;
-	draw->texture = tex;
-	draw->element_buffer_offset = 0;
-	draw->vertex_VBO	= resources.vertex_buffer;
-	draw->element_VBO	= resources.element_buffer;
-	draw->depth_mask = GL_TRUE;
-	draw->elements_mode = GL_TRIANGLES;
-
-	matrix_cpy( draw->modelview, mv );
-	return draw;
+	(void)pass;
+	return drawCall::createCached( vshader, count, elements, verts, tex, mv );
 }
 
 drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix mv ) {
@@ -416,6 +402,8 @@ drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cach
 }
 
 drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
+	return drawCall::create( pass, vshader, count, elements, verts, tex, mv );
+	/*
 	vAssert( pass );
 	vAssert( vshader );
 
@@ -437,6 +425,7 @@ drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushor
 
 	matrix_cpy( draw->modelview, mv );
 	return draw;
+	*/
 }
 
 void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
