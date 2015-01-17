@@ -3,7 +3,7 @@
 #include "maths/mathstypes.h"
 #include "render/vgl.h"
 
-vector matrix_vecMul(matrix m, const vector* v);
+vector matrix_vecMul(const matrix m, const vector* v);
 
 // Get the inverse of a 4x4 matrix
 void matrix_inverse( matrix dst, matrix src );

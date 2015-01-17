@@ -16,7 +16,7 @@ matrix matrix_identity =
 };
 
 // Matrix Vector multiply
-vector matrix_vecMul( matrix m, const vector* v) {
+vector matrix_vecMul( const matrix m, const vector* v) {
 	vector out;
 	out.coord.x = m[0][0] * v->coord.x + 
 					m[1][0] * v->coord.y + 

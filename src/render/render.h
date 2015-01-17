@@ -18,11 +18,26 @@ typedef struct sceneParams_s sceneParams;
 #define kCallBufferCount 24		// Needs to be at least as many as we have shaders
 
 struct renderPass {
-	GLuint		alphaBlend;
-	GLuint		colorMask;
-	GLuint		depthMask;
+	bool		alphaBlend;
+	bool		colorMask;
+	bool		depthMask;
+	bool		depthTest;
+	bool		clearDepth;
 	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
 	int			next_call_index[ kCallBufferCount ];
+	renderPass* next;
+
+	renderPass() : clearDepth(false), next(NULL) {}
+	renderPass(renderPass* n) : next(n) {}
+	renderPass operator >> (renderPass& n) {
+		return renderPass(&n);
+	}
+
+	renderPass& alpha(bool a) { alphaBlend = a; return *this; }
+	renderPass& color(bool c) { colorMask = c; return *this; }
+	renderPass& depth(bool d) { depthMask = d; return *this; }
+	renderPass& test(bool t) { depthTest = t; return *this; }
+	renderPass& clear(bool c) { clearDepth = c; return *this; }
 };
 
 struct RenderResources {
