@@ -51,7 +51,6 @@ drawCall* drawCall::call( renderPass* pass, shader* vshader, matrix mv ) {
 	vAssert( pass );
 	vAssert( vshader );
 
-	// TODO - should this be per-pass?
 	int buffer = render_findDrawCallBuffer( vshader ); // TODO - optimize findDrawCallBuffer - better hashing
 	int call = pass->next_call_index[buffer]++;
 	vAssert( call < kMaxDrawCalls );

@@ -45,13 +45,13 @@ void skybox_init( ) {
 	skybox_model = model_load( "dat/model/skydome.s" );
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 	skybox_model->meshes[0]->_shader = Shader::byName( "dat/shaders/skybox.s" );
-	skybox_model->meshes[0]->cachedDraw = NULL;
+	skybox_model->meshes[0]->draw = NULL;
 	skybox_model->meshes[0]->dontCache = true;
 	
 	inverted_model = model_load( "dat/model/skydome_inverted.s" );
 	inverted_model->meshes[0]->texture_diffuse = skybox_texture;
 	inverted_model->meshes[0]->_shader = Shader::byName( "dat/shaders/skybox.s" );
-	inverted_model->meshes[0]->cachedDraw = NULL;
+	inverted_model->meshes[0]->draw = NULL;
 	inverted_model->meshes[0]->dontCache = true;
 }
 
@@ -69,7 +69,6 @@ void skybox_render( void* data ) {
 	matrix_setTranslation( modelview, &v );
 
 	// TEMP: Force texture again as delayed tex loading from model can override this
-	//skybox_model->meshes[0]->cachedDraw = NULL;
 	skybox_model->meshes[0]->texture_diffuse = skybox_texture;
 	inverted_model->meshes[0]->texture_diffuse = skybox_texture;
 

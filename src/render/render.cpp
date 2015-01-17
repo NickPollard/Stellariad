@@ -386,46 +386,12 @@ drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, G
 	return drawCall::createCached( vshader, count, elements, verts, tex, mv );
 }
 
-drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix mv ) {
-	vAssert( pass );
-	vAssert( vshader );
-
-	int buffer = render_findDrawCallBuffer( vshader ); // TODO - optimize findDrawCallBuffer - better hashing
-	int call = pass->next_call_index[buffer]++;
-	vAssert( call < kMaxDrawCalls );
-
-	drawCall* draw = &pass->call_buffer[buffer][call];
-	memcpy( draw, cached, sizeof( drawCall ));
-
-	matrix_cpy( draw->modelview, mv );
-	return draw;
+drawCall* DrawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix modelview ) {
+	return cached->call( pass, vshader, modelview );
 }
 
 drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
 	return drawCall::create( pass, vshader, count, elements, verts, tex, mv );
-	/*
-	vAssert( pass );
-	vAssert( vshader );
-
-	int buffer = render_findDrawCallBuffer( vshader );
-	int call = pass->next_call_index[buffer]++;
-	vAssert( call < kMaxDrawCalls );
-	drawCall* draw = &pass->call_buffer[buffer][call];
-
-	draw->vitae_shader = vshader;
-	draw->element_buffer = elements;
-	draw->vertex_buffer = verts;
-	draw->element_count = count;
-	draw->texture = tex;
-	draw->element_buffer_offset = 0;
-	draw->vertex_VBO	= resources.vertex_buffer;
-	draw->element_VBO	= resources.element_buffer;
-	draw->depth_mask = GL_TRUE;
-	draw->elements_mode = GL_TRIANGLES;
-
-	matrix_cpy( draw->modelview, mv );
-	return draw;
-	*/
 }
 
 void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
