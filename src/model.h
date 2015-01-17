@@ -43,8 +43,8 @@ struct mesh_s {
 	GLuint*		vertex_VBO;
 	GLuint*		element_VBO;
 	//
-	drawCall*	cachedDraw;
-	drawCall*	cachedDepthDraw;
+	drawCall*	draw;
+	drawCall*	drawDepth;
 
 	bool		dontCache; // prevent draw call caching for this mesh
 };

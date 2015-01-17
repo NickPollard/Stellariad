@@ -68,8 +68,8 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->normal_count = normal_count;
 	m->vertex_buffer = NULL;
 	m->element_buffer = NULL;
-	m->cachedDraw = NULL;
-	m->cachedDepthDraw = NULL;
+	m->draw = NULL;
+	m->drawDepth = NULL;
 
 	m->texture_diffuse = static_texture_default;
 	m->texture_normal = static_texture_default;
@@ -101,16 +101,11 @@ void mesh_calculateNormals( mesh* m ) {
 	}
 }
 
-// Create a test model of a cube
-model* model_createTestCube( ) {
-	model* m = model_load( "dat/model/cityscape.obj" );
-	return m;
-}
+model* model_createTestCube( ) { return model_load( "dat/model/cityscape.obj" ); }
 
 // Create an empty model with meshCount submeshes
 model* model_createModel(int meshCount) {
-	model* m = (model*)mem_alloc(	sizeof( model ) +
-							sizeof( mesh* ) * meshCount );
+	model* m = (model*)mem_alloc( sizeof( model ) + sizeof( mesh* ) * meshCount );
 	memset( m, 0, sizeof( model ) + sizeof( mesh* ) * meshCount );
 	m->meshCount = meshCount;
 	return m;
@@ -129,54 +124,36 @@ void mesh_buildBuffers( mesh* m ) {
 	m->vertex_buffer	= (vertex*)mem_alloc( size_vertex );
 	m->element_buffer	= (GLushort*)mem_alloc( size_element );
 
-	bool all_smooth_shaded = false;
-	if ( all_smooth_shaded ) {
-
-	} else {
-		// For each element index
-		// Unroll the vertex/index bindings
-		for ( int i = 0; i < m->index_count; i++ ) {
-			// Copy the required vertex position, normal, and uv
-			m->vertex_buffer[i].position = m->verts[m->indices[i]];
-			m->vertex_buffer[i].normal = m->normals[m->normal_indices[i]];
-			m->vertex_buffer[i].uv.x = m->uvs[m->uv_indices[i]].coord.x;
-			m->vertex_buffer[i].uv.y = m->uvs[m->uv_indices[i]].coord.y;
-			m->element_buffer[i] = i;
-		}
+	// For each element index
+	// Unroll the vertex/index bindings
+	for ( int i = 0; i < m->index_count; i++ ) {
+		// Copy the required vertex position, normal, and uv
+		m->vertex_buffer[i].position = m->verts[m->indices[i]];
+		m->vertex_buffer[i].normal = m->normals[m->normal_indices[i]];
+		m->vertex_buffer[i].uv.x = m->uvs[m->uv_indices[i]].coord.x;
+		m->vertex_buffer[i].uv.y = m->uvs[m->uv_indices[i]].coord.y;
+		m->element_buffer[i] = i;
 	}
 
 	// Now also build the OpenGL VBOs for the static data
 	m->vertex_VBO = render_requestBuffer( GL_ARRAY_BUFFER, m->vertex_buffer, size_vertex );
 	m->element_VBO = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, m->element_buffer, size_element );
-	//printf( "build buffers - Vertex vbo: %u\n", *m->vertex_VBO );
-	//printf( "build buffers - Element vbo: %u\n", *m->element_VBO );
 }
 
 void mesh_renderCached( mesh* m ) {
-	if (m->texture_diffuse->gl_tex == kInvalidGLTexture)
-		return; // Early out if we don't have a texture to render with
-	if (m->cachedDraw && m->cachedDraw->vitae_shader != *m->_shader)
-		printf( "Shader has changed, invalidating cached call.\n" );
+	if (m->texture_diffuse->gl_tex == kInvalidGLTexture) return; // Early out if we don't have a texture to render with
 
-	if (!m->cachedDraw || m->cachedDraw->vitae_shader != *m->_shader) {
+	if (!m->draw || m->draw->vitae_shader != *m->_shader) {
 		drawCall* draw = drawCall_createCached( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		printf( "Building cached draw " xPTRf " for mesh " xPTRf ".\n", (uintptr_t)draw, (uintptr_t)m);
 		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
-		drawCall* drawDepth = drawCall_createCached( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		drawDepth->vertex_VBO = *m->vertex_VBO;
-		drawDepth->element_VBO = *m->element_VBO;
-		m->cachedDraw = draw;
-		m->cachedDepthDraw = drawDepth;
-//		printf("(mesh: " xPTRf ") cached: %d, mesh: %d\n", (uintptr_t)m, m->cachedDraw->texture, m->texture_diffuse->gl_tex);
+		m->draw = draw;
 	}
-//	if (m->cachedDraw->texture != m->texture_diffuse->gl_tex)
-//		printf("(mesh: " xPTRf ") cached: %d, mesh: %d\n", (uintptr_t)m, m->cachedDraw->texture, m->texture_diffuse->gl_tex);
 
-	drawCall_callCached( &renderPass_main, *m->_shader, m->cachedDraw, modelview );
-	drawCall_callCached( &renderPass_depth, *Shader::depth(), m->cachedDepthDraw, modelview );
+	m->draw->call( &renderPass_main, *m->_shader, modelview );
+	m->draw->call( &renderPass_depth, *Shader::depth(), modelview );
 }
 
 void mesh_renderUncached( mesh* m ) {
