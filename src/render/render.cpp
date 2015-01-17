@@ -279,25 +279,11 @@ void render_init( void* app ) {
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
 
-	renderPass_depth.alphaBlend = false;
-	renderPass_depth.colorMask = false;
-	renderPass_depth.depthMask = true;
-
-	renderPass_main.alphaBlend = false;
-	renderPass_main.colorMask = true;
-	renderPass_main.depthMask = true;
-
-	renderPass_alpha.alphaBlend = true;
-	renderPass_alpha.colorMask = true;
-	renderPass_alpha.depthMask = false;
-
-	renderPass_ui.alphaBlend = true;
-	renderPass_ui.colorMask = true;
-	renderPass_ui.depthMask = false;
-
-	renderPass_debug.alphaBlend = true;
-	renderPass_debug.colorMask = true;
-	renderPass_debug.depthMask = false;
+	renderPass_depth.alpha(false).color(false).depth(true);
+	renderPass_main.alpha(false).color(true).depth(true);
+	renderPass_alpha.alpha(true).color(true).depth(false);
+	renderPass_ui.alpha(true).color(true).depth(false);
+	renderPass_debug.alpha(true).color(true).depth(false);
 }
 
 void render_terminate() { }
@@ -380,13 +366,7 @@ int render_findDrawCallBuffer( shader* vshader ) {
 	return index;
 }
 
-void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
-		render_current_VBO = vertexBuffer;
-		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-
-		// TEMP
+void render_bindVertexAttributes() {
 	if ( *resources.attributes.position >= 0 ) { \
 		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
 		glEnableVertexAttribArray( *resources.attributes.position ); \
@@ -405,6 +385,13 @@ void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
 		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
 		glEnableVertexAttribArray( *resources.attributes.color ); \
 	}
+}
+
+void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
+	render_current_VBO = vertexBuffer;
+	glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, elementBuffer );
+	render_bindVertexAttributes();
 }
 
 void render_drawCall_draw( drawCall* draw ) {
@@ -433,8 +420,6 @@ void render_drawCall_draw( drawCall* draw ) {
 		glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER );
 		*/
 	}
-
-	//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
 	glDrawElements( draw->elements_mode, draw->element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)draw->element_buffer_offset );
 }
 
@@ -607,27 +592,7 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-		//VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-
-		// TEMP
-		if ( *resources.attributes.position >= 0 ) { \
-			glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
-				glEnableVertexAttribArray( *resources.attributes.position ); \
-		}
-		if ( *resources.attributes.normal >= 0 ) { \
-			glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
-				glEnableVertexAttribArray( *resources.attributes.normal ); \
-		}
-		// UV - only 2 elements
-		if ( *resources.attributes.uv >= 0 ) { \
-			glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
-				glEnableVertexAttribArray( *resources.attributes.uv ); \
-		}
-		// Color as 8/8/8/8 RGBA
-		if ( *resources.attributes.color >= 0 ) { \
-			glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
-				glEnableVertexAttribArray( *resources.attributes.color ); \
-		}
+		render_bindVertexAttributes();
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 		render_current_VBO = *postProcess_VBO;
 	}
@@ -667,45 +632,22 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 		GLsizei element_buffer_size	= element_count * sizeof( GLushort );
 		glBufferData( GL_ARRAY_BUFFER, vertex_buffer_size, vertex_buffer, GL_DYNAMIC_DRAW );// OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, element_buffer_size, element_buffer, GL_DYNAMIC_DRAW ); // OpenGL ES only supports DYNAMIC_DRAW or STATIC_DRAW
-//		VERTEX_ATTRIBS( VERTEX_ATTRIB_POINTER );
-
-
-		// TEMP
-	if ( *resources.attributes.position >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.position, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, position )); \
-		glEnableVertexAttribArray( *resources.attributes.position ); \
-	}
-	if ( *resources.attributes.normal >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.normal, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, normal )); \
-		glEnableVertexAttribArray( *resources.attributes.normal ); \
-	}
-	// UV - only 2 elements
-	if ( *resources.attributes.uv >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.uv, /*vec2*/ 2, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( vertex ), (void*)offsetof( vertex, uv )); \
-		glEnableVertexAttribArray( *resources.attributes.uv ); \
-	}
-	// Color as 8/8/8/8 RGBA
-	if ( *resources.attributes.color >= 0 ) { \
-		glVertexAttribPointer( *resources.attributes.color, /*4 unsigned bytes*/ 4, GL_UNSIGNED_BYTE, /*Normalized?*/GL_TRUE, sizeof( vertex ), (void*)offsetof( vertex, color )); \
-		glEnableVertexAttribArray( *resources.attributes.color ); \
-	}
-
-
-
+		render_bindVertexAttributes();
 		glDrawElements( GL_TRIANGLES, element_count, GL_UNSIGNED_SHORT, (void*)(uintptr_t)0 );
 		render_current_VBO = *postProcess_VBO;
 	}
+}
+
+void renderPostProcess( window* w, FrameBuffer* to, FrameBuffer* from, shader* shader ) {
+	attachFrameBuffer( to ); {
+		render_drawFrameBuffer( w, from, shader, 1.f );
+	} detachFrameBuffer();
 }
 
 void render_draw( window* w, engine* e ) {
 	(void)e;
 	render_set3D( w->width, w->height );
 	render_clear();
-
-	// Attach depth target
-	// render_drawPass( w, &renderPass_depth );
-	// attach default target
-	// render depth-texture
 
 	// Draw to 0 first
 	attachFrameBuffer( render_buffers[0] ); {
@@ -715,13 +657,13 @@ void render_draw( window* w, engine* e ) {
 
 	// Then use 0 to draw ssao_buffer
 	attachFrameBuffer( ssaoBuffer ); {
-		// TEMP - draw color
 		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 		render_colorMask = true;
-		render_clear();
+		glDisable( GL_DEPTH_TEST );
 
 		shader** ssao = Shader::byName( "dat/shaders/ssao.s" );
 		render_drawFrameBuffer_depth( w, render_buffers[0], *ssao, 1.f );
+		glEnable( GL_DEPTH_TEST );
 	} detachFrameBuffer();
 
 	const bool drawSsao = !render_bloom_enabled;
@@ -742,6 +684,12 @@ void render_draw( window* w, engine* e ) {
 
 		// No depth-test for ui
 		glDisable( GL_DEPTH_TEST );
+
+		/*
+			attachFrameBuffer( target );
+			render_drawFrameBuffer( window, source, shader, [alpha] );
+			detachFrameBuffer();
+			*/
 
 		if ( render_bloom_enabled ) {
 			render_current_texture_unit = 0;
@@ -781,7 +729,6 @@ void render_waitForEngineThread() {
 }
 
 void render_renderThreadTick( engine* e ) {
-	PROFILE_BEGIN( PROFILE_RENDER_TICK );
 	texture_tick();
 	shadersReloadAll();
 	render_resetModelView();
@@ -793,15 +740,12 @@ void render_renderThreadTick( engine* e ) {
 #ifdef GRAPH_GPU_FPS
 	glFinish();
 	float delta = timer_getDelta(gpu_fps_timer);
-	//printf( "GPU time (millis): %.4f\n", delta);
 	static int framecount = 0;
 	++framecount;
 	graphData_append( gpu_fpsdata, (float)framecount, delta );
-	//printf( "GPU Delta %.4f\n", delta );
 #endif
 	// Indicate that we have finished
 	vthread_signalCondition( finished_render );
-	PROFILE_END( PROFILE_RENDER_TICK );
 }
 
 //
