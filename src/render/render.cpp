@@ -380,20 +380,6 @@ int render_findDrawCallBuffer( shader* vshader ) {
 	return index;
 }
 
-// TODO - pass is unused
-drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
-	(void)pass;
-	return drawCall::createCached( vshader, count, elements, verts, tex, mv );
-}
-
-drawCall* DrawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix modelview ) {
-	return cached->call( pass, vshader, modelview );
-}
-
-drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
-	return drawCall::create( pass, vshader, count, elements, verts, tex, mv );
-}
-
 void render_useBuffers( GLuint vertexBuffer, GLuint elementBuffer ) {
 		render_current_VBO = vertexBuffer;
 		glBindBuffer( GL_ARRAY_BUFFER, vertexBuffer );

@@ -277,9 +277,8 @@ void particleEmitter_render( void* data, scene* s ) {
 	int index_count = 6 * p->count;
 	// We only need to send this to the GPU if we actually have something to draw (i.e. particles have been emitted)
 	if ( index_count > 0 ) {
-		drawCall* draw = drawCall_create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, static_particle_element_buffer, p->vertex_buffer, 
-											p->definition->texture_diffuse->gl_tex, modelview );
-		draw->depth_mask = GL_FALSE;
+		drawCall::create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, static_particle_element_buffer, p->vertex_buffer, 
+											p->definition->texture_diffuse->gl_tex, modelview )->depth( false );
 	}
 }
 

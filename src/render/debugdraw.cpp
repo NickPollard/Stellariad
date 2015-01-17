@@ -37,8 +37,7 @@ void debugdraw_line2d_gradient( vector from, vector to, vector color, vector col
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug2d.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
-	draw->elements_mode = GL_LINES;
+	drawCall::create( &renderPass_debug, *Shader::byName( "dat/shaders/debug2d.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview )->mode(GL_LINES);
 }
 
 void debugdraw_line2d( vector from, vector to, vector color ) {
@@ -66,8 +65,7 @@ void debugdraw_line3d( vector from, vector to, vector color ) {
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
-	draw->elements_mode = GL_LINES;
+	drawCall::create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview )->mode(GL_LINES);
 }
 
 // Draw a debug cross at the point *center*
@@ -142,8 +140,7 @@ void debugdraw_sphere( vector origin, float radius, vector color ) {
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview );
-	draw->elements_mode = GL_LINES;
+	drawCall::create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), vert_count, element_buffer, vertex_buffer, no_texture, modelview )->mode(GL_LINES);
 }
 
 // Draw a wireframe mesh
@@ -177,8 +174,7 @@ void debugdraw_wireframeMesh( int vert_count, vector* verts, int index_count, ui
 
 	// Make a drawcall
 	const GLuint no_texture = 0;
-	drawCall* draw = drawCall_create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), index_count*2, element_buffer, vertex_buffer, no_texture, modelview );
-	draw->elements_mode = GL_LINES;
+	drawCall::create( &renderPass_debug, *Shader::byName( "dat/shaders/debug.s" ), index_count*2, element_buffer, vertex_buffer, no_texture, modelview )->mode(GL_LINES);
 }
 
 void debugdraw_preTick( float dt ) {

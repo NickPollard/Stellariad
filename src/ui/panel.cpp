@@ -73,8 +73,7 @@ void panel_draw( panel* p, float x, float y ) {
 
 	// Copy our data to the GPU
 	// There are now <index_count> vertices, as we have unrolled them
-	drawCall* draw = drawCall_create( &renderPass_ui, *Shader::byName( "dat/shaders/ui.s" ), element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview );
-	draw->depth_mask = GL_FALSE;
+	drawCall::create( &renderPass_ui, *Shader::byName( "dat/shaders/ui.s" ), element_count, element_buffer, p->vertex_buffer, p->_texture->gl_tex, modelview )->depth( false );
 }
 
 void panel_render( void* panel_, scene* s ) {
