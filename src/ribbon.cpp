@@ -188,9 +188,8 @@ void ribbonEmitter_render( void* emitter, scene* s ) {
 		// Reset modelview; our positions are in world space
 		render_resetModelView();
 		int index_count = ( render_pair_count - 1 ) * 6; // 12 if double-sided
-		drawCall* draw = drawCall_create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, ribbon_element_buffer, r->vertex_buffer, 
-				r->definition->diffuse->gl_tex, modelview );
-		draw->depth_mask = GL_FALSE;
+		drawCall::create( &renderPass_alpha, *Shader::byName( "dat/shaders/particle.s" ), index_count, ribbon_element_buffer, r->vertex_buffer, 
+				r->definition->diffuse->gl_tex, modelview )->depth(false);
 	}
 }
 

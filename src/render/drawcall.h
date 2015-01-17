@@ -33,8 +33,10 @@ struct drawCall {
 	drawCall() {}
 	drawCall( shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
 
-	drawCall* call( renderPass* pass, shader* vshader, matrix mv );
-
 	static drawCall* createCached( shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
 	static drawCall* create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
+	drawCall* call( renderPass* pass, shader* vshader, matrix mv );
+
+	drawCall* mode( GLenum elements_mode );
+	drawCall* depth( bool depth );
 };

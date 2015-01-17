@@ -34,7 +34,7 @@ void*	advance_align( void* ptr, uintptr_t alignment ) {
 	return (void*)aligned_size( (uintptr_t)ptr, alignment );
 }
 
-// Create an empty mesh with vertCount distinct vertices and index_count vertex indices
+// create an empty mesh with vertCount distinct vertices and index_count vertex indices
 mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_count ) {
 	// We know that the whole data block will be 4-byte aligned
 	// We need to ensure each sub-array is also 4-byte aligned
@@ -144,7 +144,7 @@ void mesh_renderCached( mesh* m ) {
 	if (m->texture_diffuse->gl_tex == kInvalidGLTexture) return; // Early out if we don't have a texture to render with
 
 	if (!m->draw || m->draw->vitae_shader != *m->_shader) {
-		drawCall* draw = drawCall_createCached( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		auto draw = drawCall::createCached( *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 		draw->vertex_VBO = *m->vertex_VBO;
@@ -157,12 +157,12 @@ void mesh_renderCached( mesh* m ) {
 }
 
 void mesh_renderUncached( mesh* m ) {
-	drawCall* draw = drawCall_create( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+	drawCall* draw = drawCall::create( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 	draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
 	draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
 	draw->vertex_VBO = *m->vertex_VBO;
 	draw->element_VBO = *m->element_VBO;
-	drawCall* drawDepth = drawCall_create( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+	drawCall* drawDepth = drawCall::create( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 	drawDepth->vertex_VBO = *m->vertex_VBO;
 	drawDepth->element_VBO = *m->element_VBO;
 }

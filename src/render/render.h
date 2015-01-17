@@ -114,9 +114,4 @@ void* render_renderThreadFunc( void* args );
 // *** Manage render windows
 void render_destroyWindow( window* w );
 
-// *** drawCalls
-drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
-drawCall* drawCall_createCached( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv );
-//drawCall* drawCall_callCached( renderPass* pass, shader* vshader, drawCall* cached, matrix mv );
-
 int render_findDrawCallBuffer( shader* vshader );

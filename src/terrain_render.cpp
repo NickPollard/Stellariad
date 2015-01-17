@@ -250,7 +250,7 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 	int second = ( zone + 1 - (zone % 2)) % b->_canyon->zone_count;
 	if ( r->vertex_VBO && *r->vertex_VBO && terrain_texture && terrain_texture_cliff ) {
 		// TODO - use a cached drawcall
-		drawCall* draw = drawCall_create( &renderPass_main, *r->terrainShader, r->element_count_render, r->element_buffer, r->vertex_buffer, b->_canyon->zones[first].texture_ground->gl_tex, modelview );
+		drawCall* draw = drawCall::create( &renderPass_main, *r->terrainShader, r->element_count_render, r->element_buffer, r->vertex_buffer, b->_canyon->zones[first].texture_ground->gl_tex, modelview );
 		draw->texture_b = b->_canyon->zones[first].texture_cliff->gl_tex;
 		draw->texture_c = b->_canyon->zones[second].texture_ground->gl_tex;
 		draw->texture_d = b->_canyon->zones[second].texture_cliff->gl_tex;
@@ -259,7 +259,7 @@ bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
 		draw->vertex_VBO = *r->vertex_VBO;
 		draw->element_VBO = *r->element_VBO;
 
-		drawCall* drawDepth = drawCall_create( &renderPass_depth, *Shader::depth(), r->element_count_render, r->element_buffer, r->vertex_buffer, b->_canyon->zones[first].texture_ground->gl_tex, modelview );
+		drawCall* drawDepth = drawCall::create( &renderPass_depth, *Shader::depth(), r->element_count_render, r->element_buffer, r->vertex_buffer, b->_canyon->zones[first].texture_ground->gl_tex, modelview );
 		drawDepth->vertex_VBO = *r->vertex_VBO;
 		drawDepth->element_VBO = *r->element_VBO;
 	}

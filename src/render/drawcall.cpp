@@ -42,7 +42,6 @@ drawCall* drawCall::create( renderPass* pass, shader* vshader, int count, GLusho
 	int call = pass->next_call_index[buffer]++;
 	vAssert( call < kMaxDrawCalls );
 	void* data = (void*)&pass->call_buffer[buffer][call];
-	//void* data = mem_alloc( sizeof( drawCall ));
 	drawCall* draw = new(data) drawCall( vshader, count, elements, verts, tex, mv );
 	return draw;
 }
@@ -62,28 +61,7 @@ drawCall* drawCall::call( renderPass* pass, shader* vshader, matrix mv ) {
 	return draw;
 }
 
-/*
-drawCall* drawCall_create( renderPass* pass, shader* vshader, int count, GLushort* elements, vertex* verts, GLint tex, matrix mv ) {
-	vAssert( pass );
-	vAssert( vshader );
+GLenum glBool( bool b ) { return b ? GL_TRUE : GL_FALSE; }
 
-	int buffer = render_findDrawCallBuffer( vshader );
-	int call = pass->next_call_index[buffer]++;
-	vAssert( call < kMaxDrawCalls );
-	drawCall* draw = &pass->call_buffer[buffer][call];
-
-	draw->vitae_shader = vshader;
-	draw->element_buffer = elements;
-	draw->vertex_buffer = verts;
-	draw->element_count = count;
-	draw->texture = tex;
-	draw->element_buffer_offset = 0;
-	draw->vertex_VBO	= resources.vertex_buffer;
-	draw->element_VBO	= resources.element_buffer;
-	draw->depth_mask = GL_TRUE;
-	draw->elements_mode = GL_TRIANGLES;
-
-	matrix_cpy( draw->modelview, mv );
-	return draw;
-}
-*/
+drawCall* drawCall::mode( GLenum elements_mode ) { this->elements_mode = elements_mode; return this; }
+drawCall* drawCall::depth( bool depth ) { this->depth_mask = glBool(depth); return this; }
