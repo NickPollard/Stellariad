@@ -128,17 +128,13 @@ void render_setViewport( int w, int h ) {
 
 void render_set3D( int w, int h ) {
 	render_setViewport( w, h);
-	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LEQUAL );
 	glDepthMask( GL_TRUE );
 }
 
-void render_set2D() {
-	vAssert( 0 ); // NYI	
-}
+void render_set2D() { vAssert( 0 ); /* NYI */	}
 
-void render_handleResize() {
-}
+void render_handleResize() { }
 
 void render_swapBuffers( window* w ) {
 	eglSwapBuffers( w->display, w->surface );
@@ -160,18 +156,27 @@ void render_lighting( scene* s ) {
 
 // Clear information from last draw
 void render_clear() {
-	glClearColor( 0.f, 0.f, 0.f, 0.f );
+	//glClearColor( 0.f, 0.f, 0.f, 0.f ); // TODO - do we need this?
 	glClear( GL_DEPTH_BUFFER_BIT );
 }
 
-typedef struct frameBuffer_s {
+struct FrameBuffer;
+
+struct DepthBuffer {
+		FrameBuffer* buffer;
+		DepthBuffer(FrameBuffer* f) : buffer(f) {}
+};
+
+struct FrameBuffer {
 	GLuint frame_buffer;
 	GLuint texture;
 	GLuint depth_texture;
 	GLuint depth_buffer;
 	int width;
 	int height;
-} FrameBuffer;
+
+	DepthBuffer depth() { return DepthBuffer(this); }
+};
 
 #define kRenderBufferCount 4
 FrameBuffer* render_buffers[kRenderBufferCount];
@@ -191,11 +196,11 @@ FrameBuffer* newFrameBuffer( int width, int height ) {
 	buffer->frame_buffer = frameBuffer();
 	buffer->texture = textureBilinearClamped();
 	glTexImage2D( GL_TEXTURE_2D,
-		   			0,			// No Mipmaps for now
+		   		0,			// No Mipmaps for now
 					GL_RGB,	// 3-channel, 8-bits per channel (32-bit stride)
 					width, height,
 					0,			// Border, unused
-					GL_RGB,		// TGA uses BGR order internally
+					GL_RGB,	// TGA uses BGR order internally
 					GL_UNSIGNED_BYTE,	// 8-bits per channel
 					NULL );
 	textureUnbind();
@@ -220,7 +225,7 @@ FrameBuffer* newFrameBuffer( int width, int height ) {
 
 renderPass RenderPass( bool alpha, bool color, bool depth ) {
 	renderPass r;
-   	r.alphaBlend = alpha;
+  r.alphaBlend = alpha;
 	r.colorMask = color;
 	r.depthMask = depth;
 	return r;
@@ -235,7 +240,6 @@ void render_init( void* app ) {
 	const char* extension_string = (const char*)glGetString( GL_EXTENSIONS );
 	printf( "Extensions supported: %s\n", extension_string );
 #endif
-	glEnable( GL_DEPTH_TEST );
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );	// Standard Alpha Blending
 
@@ -279,11 +283,11 @@ void render_init( void* app ) {
 	gpu_fps_timer = vtimer_create();
 #endif // GRAPH_GPU_FPS
 
-	renderPass_depth.alpha(false).color(false).depth(true);
-	renderPass_main.alpha(false).color(true).depth(true);
-	renderPass_alpha.alpha(true).color(true).depth(false);
-	renderPass_ui.alpha(true).color(true).depth(false);
-	renderPass_debug.alpha(true).color(true).depth(false);
+	renderPass_depth.alpha(false).color(false).depth(true).test(true);
+	renderPass_main.alpha(false).color(true).depth(true).test(true);
+	renderPass_alpha.alpha(true).color(true).depth(false).test(true);
+	renderPass_ui.alpha(true).color(true).depth(false).test(false);
+	renderPass_debug.alpha(true).color(true).depth(false).test(false);
 }
 
 void render_terminate() { }
@@ -528,6 +532,8 @@ void glToggle( GLuint var, bool enable ) { if (enable) glEnable( var ); else glD
 
 // Draw each batch of drawcalls
 void render_drawPass( window* w, renderPass* pass ) {
+	glToggle( GL_DEPTH_TEST, pass->depthTest ); // TODO - only set if different
+
 	if ( pass->alphaBlend != render_alphaBlend ) {
 		glToggle( GL_BLEND, pass->alphaBlend );
 		render_alphaBlend = pass->alphaBlend;
@@ -548,7 +554,7 @@ void render_drawPass( window* w, renderPass* pass ) {
 	}
 }
 
-void attachFrameBuffer(FrameBuffer* buffer) {
+void attachFrameBuffer(const FrameBuffer* buffer) {
 	glBindFramebuffer( GL_FRAMEBUFFER, buffer->frame_buffer );
 	render_setViewport(buffer->width, buffer->height);
 }
@@ -557,7 +563,7 @@ void detachFrameBuffer() {
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
-void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
+void render_drawFrameBuffer( window* w, const FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
 	Uniform( *resources.uniforms.tex,	buffer->texture );
 	Uniform( *resources.uniforms.tex_b,	render_buffers[0]->depth_texture );
@@ -598,7 +604,7 @@ void render_drawFrameBuffer( window* w, FrameBuffer* buffer, shader* s, float al
 	}
 }
 
-void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, float alpha ) {
+void render_drawFrameBuffer_depth( const window* w, const FrameBuffer* buffer, shader* s, float alpha ) {
 	shader_activate( s );
 	Uniform( *resources.uniforms.tex,	buffer->depth_texture );
 	Uniform( *resources.uniforms.screen_size, Vector( w->width, w->height, 0.f, 0.f ));
@@ -638,95 +644,81 @@ void render_drawFrameBuffer_depth( window* w, FrameBuffer* buffer, shader* s, fl
 	}
 }
 
-void renderPostProcess( window* w, FrameBuffer* to, FrameBuffer* from, shader* shader ) {
-	attachFrameBuffer( to ); {
-		render_drawFrameBuffer( w, from, shader, 1.f );
-	} detachFrameBuffer();
+const FrameBuffer* mainBuffer = NULL;
+
+struct postFX {
+	const FrameBuffer* to;
+	const FrameBuffer* from;
+	shader** _shader;
+	bool depth;
+
+	postFX( const FrameBuffer* t, const FrameBuffer* f, shader** s ) : to(t), from(f), _shader(s), depth(false) {}
+	postFX( const FrameBuffer* t, const DepthBuffer& f, shader** s ) : to(t), from(f.buffer), _shader(s), depth(true) {}
+};
+
+void renderPostProcess( window* w, const FrameBuffer* to, const FrameBuffer* from, shader* shader, bool depth ) {
+	if (to != mainBuffer) attachFrameBuffer( to ); 
+	else render_setViewport(w->width, w->height);
+
+	render_current_texture_unit = 0;
+	glDisable( GL_DEPTH_TEST );
+	glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+	render_colorMask = true;
+
+	if (depth) render_drawFrameBuffer_depth( w, from, shader, 1.f );
+	else render_drawFrameBuffer( w, from, shader, 1.f );
+
+	detachFrameBuffer();
 }
+
+void renderPostProcess( window* w, const postFX& post) { renderPostProcess( w, post.to, post.from, *post._shader, post.depth ); }
 
 void render_draw( window* w, engine* e ) {
 	(void)e;
+	const bool shouldDrawSsao = !render_bloom_enabled;
+	postFX mainDraw = postFX( mainBuffer, render_buffers[0], Shader::byName( "dat/shaders/ui.s" ));
+	postFX downscale = postFX( render_buffers[1], render_buffers[0], Shader::byName( "dat/shaders/ui.s" ));
+	postFX gaussian = postFX( render_buffers[2], render_buffers[1], Shader::byName( "dat/shaders/gaussian.s" ));
+	postFX gaussianVert = postFX( render_buffers[3], render_buffers[2], Shader::byName( "dat/shaders/gaussian_vert.s" ));
+	postFX dof = postFX( mainBuffer, render_buffers[3], Shader::byName( "dat/shaders/dof.s" ));
+	postFX drawSsao = postFX( mainBuffer, ssaoBuffer, Shader::byName( "dat/shaders/ui.s" ));
+	postFX ssao = postFX( ssaoBuffer, render_buffers[0]->depth(), Shader::byName( "dat/shaders/ssao.s" ));
+
 	render_set3D( w->width, w->height );
-	render_clear();
 
 	// Draw to 0 first
 	attachFrameBuffer( render_buffers[0] ); {
-		render_clear();
+		render_clear(); // TODO - do this as part of depth pass
 		render_drawPass( w, &renderPass_depth );
 	} detachFrameBuffer();
 
-	// Then use 0 to draw ssao_buffer
-	attachFrameBuffer( ssaoBuffer ); {
-		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		render_colorMask = true;
-		glDisable( GL_DEPTH_TEST );
+	renderPostProcess( w, ssao );
 
-		shader** ssao = Shader::byName( "dat/shaders/ssao.s" );
-		render_drawFrameBuffer_depth( w, render_buffers[0], *ssao, 1.f );
-		glEnable( GL_DEPTH_TEST );
-	} detachFrameBuffer();
-
-	const bool drawSsao = !render_bloom_enabled;
-	if ( drawSsao ) {
-		render_drawFrameBuffer( w, ssaoBuffer, *Shader::byName( "dat/shaders/ui.s" ), 1.f );
+	if ( shouldDrawSsao ) {
+		renderPostProcess( w, drawSsao );
 	} else {
 		attachFrameBuffer( render_buffers[0] ); {
-			render_clear();
-			// TODO - don't redepth here, draw the initial texture instead?
-			render_drawPass( w, &renderPass_depth );
-
+			render_clear(); // TODO - do this as part of depth pass
+			render_drawPass( w, &renderPass_depth ); // TODO - don't redepth here, draw the initial texture instead?
 			render_drawPass( w, &renderPass_main );
 			render_drawPass( w, &renderPass_alpha );
 		} detachFrameBuffer();
-		render_setViewport(w->width, w->height);
 
-		render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
+		renderPostProcess( w, mainDraw );
 
-		// No depth-test for ui
-		glDisable( GL_DEPTH_TEST );
-
-		/*
-			attachFrameBuffer( target );
-			render_drawFrameBuffer( window, source, shader, [alpha] );
-			detachFrameBuffer();
-			*/
-
-		if ( render_bloom_enabled ) {
-			render_current_texture_unit = 0;
-			// downscale pass
-			attachFrameBuffer( render_buffers[1] ); {
-				render_drawFrameBuffer( w, render_buffers[0], *Shader::byName( "dat/shaders/ui.s" ), 1.f );
-			} detachFrameBuffer();
-			// horizontal pass
-			attachFrameBuffer( render_buffers[2] ); {
-				shader** gaussian = Shader::byName( "dat/shaders/gaussian.s" );
-				render_drawFrameBuffer( w, render_buffers[1], *gaussian, 1.f );
-			} detachFrameBuffer();
-			// vertical pass
-			attachFrameBuffer( render_buffers[3] ); {
-				shader** gaussian_vert = Shader::byName( "dat/shaders/gaussian_vert.s" );
-				render_drawFrameBuffer( w, render_buffers[2], *gaussian_vert, 1.f );
-			} detachFrameBuffer();
-
-			render_setViewport(w->width, w->height);
-			shader** dof = Shader::byName( "dat/shaders/dof.s" );
-
-			// Attach depth as a texture
-			render_drawFrameBuffer( w, render_buffers[3], *dof, 0.3f );
+		if ( !shouldDrawSsao ) {
+			renderPostProcess( w, downscale );
+			renderPostProcess( w, gaussian );
+			renderPostProcess( w, gaussianVert );
+			renderPostProcess( w, dof );
 		}
 	}
 	render_drawPass( w, &renderPass_ui );
-
-	// No depth-test for debug
-	glDisable( GL_DEPTH_TEST );
 	render_drawPass( w, &renderPass_debug );
-
 	render_swapBuffers( w );
 }
 
-void render_waitForEngineThread() {
-	vthread_waitCondition( start_render );
-}
+void render_waitForEngineThread() { vthread_waitCondition( start_render ); }
 
 void render_renderThreadTick( engine* e ) {
 	texture_tick();

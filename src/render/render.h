@@ -21,12 +21,14 @@ struct renderPass {
 	bool		alphaBlend;
 	bool		colorMask;
 	bool		depthMask;
+	bool		depthTest;
 	drawCall	call_buffer[ kCallBufferCount ][ kMaxDrawCalls ];
 	int			next_call_index[ kCallBufferCount ];
 
 	renderPass& alpha(bool a) { alphaBlend = a; return *this; }
 	renderPass& color(bool c) { colorMask = c; return *this; }
 	renderPass& depth(bool d) { depthMask = d; return *this; }
+	renderPass& test(bool t) { depthTest = t; return *this; }
 };
 
 struct RenderResources {
