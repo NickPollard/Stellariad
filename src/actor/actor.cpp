@@ -147,3 +147,10 @@ void* runSystem( void* system ) {
 void* dummyTask( void* system ) {
 	return system;
 }
+
+void test() {
+	Sum<int, double> test;
+	test.foreach(1.3);
+	test.foreach(1);
+	test.foreach("h");
+}
