@@ -141,3 +141,10 @@ void* runSystem( void* system ) {
 	actorReceive( a );
 	return NULL;
 }
+
+void test() {
+	Sum<int, double> test;
+	test.foreach(1.3);
+	test.foreach(1);
+	test.foreach("h");
+}
