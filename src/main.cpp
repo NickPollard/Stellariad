@@ -19,6 +19,7 @@
 #include "system/hash.h"
 #include "system/string.h"
 #include "script/sexpr.h"
+#include "actor/actor.h"
 
 void test_lisp();
 
@@ -26,6 +27,7 @@ void test_lisp();
 
 #if UNIT_TEST
 void runTests() {
+	actorTest();
 	// Memory Tests
 	test_allocator();
 

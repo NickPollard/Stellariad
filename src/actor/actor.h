@@ -44,18 +44,69 @@ template <typename T>
 ActorRefT<T> actorOf(Props<T>& p) {
 };
 */
+#include <functional>
+using std::function;
+
 template <typename T, typename U>
-struct Sum {
-	int type;
-	void* value;
-	void foreach( const U& u) { (void)u;/* if there is a T, do something */ };
-	void foreach( const T& t) { (void)t;/* if there is a T, do something */ };
-	template <typename V>
-	void foreach( const V& v) { (void)v; value.foreach<V>(); };
+struct SumCons {
+	bool isLeft;
+	const void* value;
+	template<typename R> void foreach( function<R(T)> f) { if (isLeft) f(*(T*)value); };
+	template<typename R, typename V> void foreach( function<R(V)> f) { if (!isLeft) ((U*)value)->foreach(f); };
+
+	SumCons(const T& t) : isLeft( true ), value(&t) {}
+	template<typename V> SumCons(const V& v) : isLeft( false ), value(new U(v)) {};
 };
 
-/*
-Sum<int, Sum<string, double>> mySum;
-mySum.foreach<string>(print);
-*/
+struct SumNil {
+	template<typename R, typename V>
+	void foreach( function<R(V)> f) { (void)f; };
+};
 
+template<typename... As> struct Sum {
+};
+
+template<typename T, typename... As> struct Sum<T, As...> {
+	template<typename R, typename V> void foreach( function<R(V)> f) { sum.foreach(f); };
+	SumCons<T, Sum<As...>> sum;
+	
+	template<typename V> Sum(const V& v) : sum(v) {};
+};
+
+template<>
+struct Sum<> {
+	template<typename R, typename V> void foreach( function<R(V)> f) { sum.foreach(f); };
+	SumNil sum;
+	
+	template<typename V> Sum(const V& v) : sum(v) {};
+};
+
+template <typename T, typename U> 
+struct PartialFunction {
+	function<T(U)> f;
+	template <typename... As> void apply( Sum<U, As...>& s ) { s.foreach(f); }
+	template <typename V, typename... As> void apply( Sum<V, As...>& s ) { s.foreach(f); } // TODO - actually check types line up?
+
+	PartialFunction( function<T(U)> f_ ) : f(f_) {};
+};
+
+template <typename T, typename U>
+PartialFunction<T, U> partial( function<T(U)> f ) { return PartialFunction<T,U>(f); }
+
+template <typename... As>
+struct PartialFunctionT {
+	function<void(Sum<As...>)> f;
+	void apply( Sum<As...>& s ){ f(s); }
+	template <typename... Vs>
+	void apply( Sum<Vs...>& s ){ f(s); };
+
+	PartialFunctionT( function<void(Sum<As...>)> f_ ) : f(f_) {}
+};
+
+template<typename T, typename U>
+PartialFunctionT<T, U> orElse(PartialFunction<void, T>& f, PartialFunction<void, U>& g) {
+	auto ff = [&](Sum<T, U> s) { f.apply(s); g.apply(s); };
+	return PartialFunctionT<T,U>( ff );
+};
+
+void actorTest();

@@ -25,11 +25,11 @@ uniform sampler2D tex_b;
 uniform sampler2D tex_normal;
 uniform vec4 fog_color;
 uniform vec4 camera_space_sun_direction;
-//uniform	mat4 modelview;
+uniform	mat4 modelview;
 //uniform	mat4 projection;
 
 // Test Light values
-const vec4 light_ambient = vec4( 0.1, 0.1, 0.2, 1.0 );
+const vec4 light_ambient = vec4( 0.2, 0.2, 0.4, 1.0 );
 // Directional Light
 const vec4 directional_light_diffuse = vec4( 1.0, 1.0, 0.8, 1.0 );
 const vec4 directional_light_specular = vec4( 0.6, 0.6, 0.6, 1.0 );
@@ -62,11 +62,11 @@ void main() {
 
 	vec4 image_normal = vec4( texture_normal.xyz, 0.0 );
 
-	//vec4 binormal = vec4( 0.0, 1.0, 0.0, 0.0 );
-	//vec4 tangent = vec4( cross( binormal.xyz, frag_normal.xyz ), 0.0 );
-	//mat4 tangent_space = mat4( tangent, binormal, frag_normal, vec4( 0.0, 0.0, 0.0, 1.0 ) );
-	//vec4 normal = modelview * tangent_space * image_normal;
-	vec4 normal = frag_normal;
+	vec4 binormal = vec4( 0.0, 1.0, 0.0, 0.0 );
+	vec4 tangent = vec4( cross( binormal.xyz, frag_normal.xyz ), 0.0 );
+	mat4 tangent_space = mat4( tangent, binormal, frag_normal, vec4( 0.0, 0.0, 0.0, 1.0 ) );
+	vec4 normal = modelview * tangent_space * image_normal;
+	//vec4 normal = frag_normal;
 
 	// *** Directional light
 	// Ambient + Diffuse

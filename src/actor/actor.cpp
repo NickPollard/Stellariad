@@ -6,6 +6,7 @@
 #include "future.h"
 #include "mem/allocator.h"
 #include "worker.h"
+#include "system/string.h"
 
 #define MaxActorTasks 16
 
@@ -148,9 +149,53 @@ void* dummyTask( void* system ) {
 	return system;
 }
 
-void test() {
-	Sum<int, double> test;
-	test.foreach(1.3);
-	test.foreach(1);
-	test.foreach("h");
+void print(const char* c) {
+	printf( "String: %s.\n", c );
+}
+void printDouble(double d) {
+	printf( "Double: %.2f.\n", d );
+}
+
+struct blarg {
+	int i;
+};
+
+void printBlarg(blarg b) {
+	printf( "Blarg: %d.\n", b.i );
+}
+
+void actorTest() {
+	function<void(const char*)> f = print;
+	function<void(double)> g = printDouble;
+	function<void(blarg)> h = printBlarg;
+	
+	Sum<const char*, double> test(2.6);
+	test.foreach(f);
+	test.foreach(g);
+	
+	Sum<double, const char*> test1(2.7);
+	test1.foreach(f);
+	test1.foreach(g);
+	
+	Sum<const char*, double> test2(string_createCopy("Hello world"));
+	test2.foreach(f);
+	test2.foreach(g);
+
+	blarg b = { 12 };
+	Sum<const char*, double, blarg> test3(b);
+	test3.foreach(f);
+	test3.foreach(g);
+	test3.foreach(h);
+
+	auto ph = partial(h);
+	auto pf = partial(f);
+	auto pg = partial(g);
+	//pf.apply(test3);
+//	pg.apply(test3);
+//	ph.apply(test3);
+
+	auto pgh = orElse(pg, ph);
+	pgh.apply( test3 );
+//	test.foreach(1);
+//	test.foreach("h");
 }
