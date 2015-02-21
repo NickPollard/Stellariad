@@ -169,6 +169,7 @@ void actorTest() {
 	function<void(double)> g = printDouble;
 	function<void(blarg)> h = printBlarg;
 	
+	/*
 	Sum<const char*, double> test(2.6);
 	test.foreach(f);
 	test.foreach(g);
@@ -181,11 +182,12 @@ void actorTest() {
 	test2.foreach(f);
 	test2.foreach(g);
 
+	*/
 	blarg b = { 12 };
 	Sum<const char*, double, blarg> test3(b);
-	test3.foreach(f);
-	test3.foreach(g);
-	test3.foreach(h);
+//	test3.foreach(f);
+//	test3.foreach(g);
+//	test3.foreach(h);
 
 	auto ph = partial(h);
 	auto pf = partial(f);
@@ -194,8 +196,9 @@ void actorTest() {
 //	pg.apply(test3);
 //	ph.apply(test3);
 
-	auto pgh = orElse(pg, ph);
-	pgh.apply( test3 );
+	auto pgh = orElse( ph, pg );
+	auto pfgh = orElse( pf, pgh );
+	pfgh.apply( test3 );
 //	test.foreach(1);
 //	test.foreach("h");
 }

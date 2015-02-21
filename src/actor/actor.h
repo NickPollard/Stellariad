@@ -84,8 +84,14 @@ struct Sum<> {
 template <typename T, typename U> 
 struct PartialFunction {
 	function<T(U)> f;
-	template <typename... As> void apply( Sum<U, As...>& s ) { s.foreach(f); }
-	template <typename V, typename... As> void apply( Sum<V, As...>& s ) { s.foreach(f); } // TODO - actually check types line up?
+	template <typename... As> void apply( Sum<U, As...>& s ) {
+		printf( "apply.\n" );
+	 	s.foreach(f); 
+	}
+	template <typename V, typename... As> void apply( Sum<V, As...>& s ) {
+		printf( "Mistyped apply.\n" );
+	 	s.foreach(f); 
+	} // TODO - actually check types line up?
 
 	PartialFunction( function<T(U)> f_ ) : f(f_) {};
 };
@@ -96,17 +102,26 @@ PartialFunction<T, U> partial( function<T(U)> f ) { return PartialFunction<T,U>(
 template <typename... As>
 struct PartialFunctionT {
 	function<void(Sum<As...>)> f;
-	void apply( Sum<As...>& s ){ f(s); }
+	void apply( Sum<As...>& s ){
+		printf( "apply.\n" );
+	 	f(s); 
+	}
 	template <typename... Vs>
-	void apply( Sum<Vs...>& s ){ f(s); };
+	void apply( Sum<Vs...>& s ){
+		printf( "mistyped apply.\n" );
+	 	f(s); 
+	};
 
 	PartialFunctionT( function<void(Sum<As...>)> f_ ) : f(f_) {}
 };
 
 template<typename T, typename U>
-PartialFunctionT<T, U> orElse(PartialFunction<void, T>& f, PartialFunction<void, U>& g) {
-	auto ff = [&](Sum<T, U> s) { f.apply(s); g.apply(s); };
-	return PartialFunctionT<T,U>( ff );
+PartialFunction<void, Sum<T, U>> orElse(PartialFunction<void, T>& f, PartialFunction<void, U>& g) {
+	auto ff = [&](Sum<T, U> s) { 
+		printf( "orElse apply.\n" );
+		f.apply(s); g.apply(s); 
+	};
+	return PartialFunction<void,Sum<T,U>>( ff );
 };
 
 void actorTest();

@@ -31,9 +31,9 @@ uniform mat4 modelview;
 uniform vec4 directional_light_direction;
 
 // Test Light values
-const vec4 light_ambient = vec4( 0.1, 0.1, 0.2, 1.0 );
+const vec4 light_ambient = vec4( 0.05, 0.05, 0.2, 1.0 );
 // Directional Light
-const vec4 directional_light_diffuse = vec4( 1.0, 1.0, 0.8, 1.0 );
+const vec4 directional_light_diffuse = vec4( 1.0, 0.8, 0.4, 1.0 );
 const vec4 directional_light_specular = vec4( 0.6, 0.6, 0.6, 1.0 );
 
 void main() {
@@ -41,8 +41,8 @@ void main() {
 	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 #else
 	// light-invariant calculations
-	//float ssao = texture2D( ssao_tex, screenCoord ).x;
-	float ssao = 1.0;
+	float ssao = texture2D( ssao_tex, screenCoord ).x;
+	//float ssao = 1.0;
 	vec4 view_direction = normalize( frag_position );
 
 #ifdef NORMAL_MAPPING
@@ -96,7 +96,13 @@ void main() {
 
 	vec4 tex_color_2 = mix( ground_color_2, cliff_color_2, cliff ) * darken;
 
-	vec4 fragColor = total_light_color * mix( tex_color, tex_color_2, vert_color.x );
+	vec4 material_color = mix( tex_color, tex_color_2, vert_color.x );
+//	float f = (m.x + m.y + m.z) / 3.0;
+//	float f = 1.0;
+	//vec4 material_color = vec4(f, f, f, 1.0);
+
+//	vec4 fragColor = vec4( 0.5, 0.5, 0.5, 1.);
+	vec4 fragColor = total_light_color * material_color;
 	gl_FragColor = mix( fragColor, local_fog_color, fog );
 	vec4 coord = projection * frag_position;
 	vec2 screenCoordd = (coord.xy / coord.w) * 0.5 + vec2(0.5, 0.5);
