@@ -4,7 +4,7 @@
 					(shader "dat/shaders/refl_normal.s")
 				)
 		(transform (translation (vector 0.0 0.0 -2.1 1.0 ))
-					(ribbonEmitter (filename "dat/vfx/ribbons/ribbon_engine_trail.s")))
+					(ribbonEmitter (filename "dat/vfx/ribbons/ribbon_engine_trail_diamond.s")))
 		(transform (translation (vector -0.4 0.0 -2.6 1.0 ))
 					(particleEmitter (filename "dat/script/lisp/engine_trail_enemy.s")))
 		(transform (translation (vector 0.4 0.0 -2.6 1.0 ))

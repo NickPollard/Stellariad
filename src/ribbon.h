@@ -3,7 +3,7 @@
 #include "maths/vector.h"
 #include "render/render.h"
 
-#define kMaxRibbonPairs 32
+#define kMaxRibbonPairs 64
 
 struct ribbonEmitterDef_s {
 	float	radius;

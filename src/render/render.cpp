@@ -352,7 +352,8 @@ void render_sceneParams( sceneParams* params ) {
 	Uniform( *resources.uniforms.sky_color_bottom,	&params->fog_color );
 	Uniform( *resources.uniforms.sky_color_top,			&params->sky_color );
 	Uniform( *resources.uniforms.sun_color,					&params->sun_color );
-	const vector world_space_sun_dir = {{ 0.f, 0.f, 1.f, 0.f }};
+	//const vector world_space_sun_dir = {{ 0.f, 1.f, 1.f, 0.f }};
+	const vector world_space_sun_dir = normalized(Vector( 1.f, 0.f, 1.f, 0.f ));
 	Uniform( *resources.uniforms.camera_space_sun_direction, matrix_vecMul( modelview, &world_space_sun_dir ));
 }
 

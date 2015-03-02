@@ -1,0 +1,10 @@
+(ribbonEmitterDef (color (vector_property 
+									(property_key 0.0 (vector 0.0 0.0 0.0 0.0 ))
+									(property_key 0.2 (vector 0.15 0.15 1.0 0.0 ))
+									(property_key 0.6 (vector 0.3 0.2 0.9 0.0 ))
+									(property_key 0.9 (vector 0.5 0.5 0.5 0.0 ))
+									(property_key 1.0 (vector 0.0 0.0 0.0 0.0 ))))
+					( diffuse_texture "dat/img/engine_trail.tga" )
+					( radius 1.0 )
+					( static_texture "true" )
+)
