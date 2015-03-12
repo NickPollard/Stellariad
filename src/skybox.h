@@ -11,8 +11,15 @@ typedef struct skybox_vertex_s {
 	vector	uv;
 } skybox_vertex;
 
+struct SkyBox {
+	void* data;
+};
+
 // Initialise static data for the skybox system
 void skybox_init( );
 
 // Render the skybox
-void skybox_render( void* data );
+void skybox_render( void* data, scene* s );
+
+// Create a skybox
+SkyBox* skyboxCreate();

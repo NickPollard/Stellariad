@@ -24,8 +24,10 @@ int			skybox_height = 0;
 
 // Initialise static data for the skybox system
 void skybox_init( ) {
-	//skybox_texture = texture_load( "dat/img/vitae_sky2_export_flattened.tga" );
-	//skybox_image = read_tga( "dat/img/vitae_sky2_export_flattened.tga", &skybox_width, &skybox_height );
+	static bool init = false;
+	if (init) return;
+	init = true;
+
 	skybox_image = read_tga( "dat/img/vitae_sky_dome.tga", &skybox_width, &skybox_height );
 	vector sky_color_bottom	= Vector( 0.f, 0.4f, 0.3f, 1.f );
 	vector sky_color_top	= Vector( 0.4f, 0.55f, 0.7f, 1.f );
@@ -55,13 +57,19 @@ void skybox_init( ) {
 	inverted_model->meshes[0]->dontCache = true;
 }
 
+SkyBox* skyboxCreate() {
+	skybox_init();
+	return (SkyBox*)mem_alloc(sizeof(SkyBox));
+}
+
 #define SKYBOX_VERTEX_ATTRIB_POINTER( attrib ) \
 	glVertexAttribPointer( attrib, /*vec4*/ 4, GL_FLOAT, /*Normalized?*/GL_FALSE, sizeof( skybox_vertex ), (void*)offsetof( skybox_vertex, attrib) ); \
 	glEnableVertexAttribArray( attrib );
 
 // Render the skybox
-void skybox_render( void* data ) {
-	(void)data;
+void skybox_render( void* data, scene* s ) {
+	SkyBox* sky = (SkyBox*)data;
+	(void)sky; (void)s;
 	// Skybox does not write to the depth buffer
 
 	render_resetModelView();

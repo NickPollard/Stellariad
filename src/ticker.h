@@ -2,11 +2,11 @@
 #ifndef __TICKER_H__
 #define __TICKER_H__
 
-// Tick function signature
+// Tick function signature (void*, float, engine*) -> ()
 typedef void (*tickfunc)( void*, float, engine* );
-// Render function signature
+// Render function signature (void*, scene*) -> ()
 typedef void (*renderfunc)( void*, scene* s );
-// Input function signature
+// Input function signature (void*, input*) -> ()
 typedef void (*inputfunc)( void*, input* );
 
 // delegate

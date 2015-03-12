@@ -703,13 +703,7 @@ bool AABBcontains( aabb2d aabb, float x, float z ) {
 }
 
 bool heightField_contains( heightField* h, vector v ) {
-	if ( !AABBcontains( h->aabb, v.coord.x, v.coord.z ))
-		return false;
-
-	if ( v.coord.y > h->maxHeight )
-		return false;
-	
-	return true;
+	return ( v.coord.y <= h->maxHeight ) && AABBcontains( h->aabb, v.coord.x, v.coord.z );
 }
 
 bool heightField_collides( heightField* h, vector point ) {
@@ -775,8 +769,8 @@ bool collisionFunc_SphereHeightfield( shape* sphere_shape, shape* height_shape, 
 	vector sphere_position = *matrix_getTranslation( matrix_sphere );
 
 	// Check that the sphere is actually over the heightfield
-	bool collides = heightField_contains( height_shape->height_field, sphere_position );
-	collides = collides && heightField_collides( height_shape->height_field, sphere_position );
+	bool collides = heightField_contains( height_shape->height_field, sphere_position ) &&
+	 									heightField_collides( height_shape->height_field, sphere_position );
 	return collides;
 }
 

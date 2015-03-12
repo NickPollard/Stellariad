@@ -279,13 +279,15 @@ void engine_init(engine* e, int argc, char** argv) {
 	canyon_staticInit();
 	canyonTerrain_staticInit();
 
-	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
+	// *** Skybox (temp)
+	SkyBox* sky = skyboxCreate();
+	engine_addRender(e, sky, skybox_render);
+
+	for ( int i = 0; i < kNumWorkerThreads; ++i )
 		vthread_create( worker_threadFunc, NULL );
-	}
 
 	// TEST
 	test_engine_init( e );
-	//canyon_test();
 }
 
 // Initialises the application
@@ -315,12 +317,8 @@ void engine_terminateLua(engine* e) {
 
 // terminate - terminates (De-initialises) the engine
 void engine_terminate(engine* e) {
-	// *** clean up Lua
 	engine_terminateLua(e);
-
-	// *** clean up Renderer
 	render_terminate();
-
 	exit(0);
 }
 
@@ -338,7 +336,6 @@ void engine_render( engine* e ) {
 	{
 		render( &window_main, theScene );
 		engine_renderRenders( e );
-		skybox_render( NULL );
 
 #ifdef GRAPH_FPS
 		graph_render( fpsgraph );

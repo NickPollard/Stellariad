@@ -254,7 +254,6 @@ void render_init( void* app ) {
 
 	texture_staticInit();
 	shader_init();
-	skybox_init();
 	
 	// Allocate space for buffers
 	resources.vertex_buffer	= render_bufferCreate( GL_ARRAY_BUFFER, NULL, sizeof( vector ) * kMaxVertexArrayCount);
