@@ -156,7 +156,8 @@ void render_lighting( scene* s ) {
 
 // Clear information from last draw
 void render_clear() {
-	//glClearColor( 0.f, 0.f, 0.f, 0.f ); // TODO - do we need this?
+	glClearColor( 0.f, 0.f, 0.f, 0.f ); // TODO - do we need this?
+	glClear( GL_COLOR_BUFFER_BIT );
 	glClear( GL_DEPTH_BUFFER_BIT );
 }
 

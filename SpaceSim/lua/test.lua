@@ -10,8 +10,9 @@ Lua should be able to do everything C can, but where performance is necessary, c
 C and only controlled remotely by Lua
 
 ]]--
-	testModel = "dat/model/ship_diamond.s"
-	--testModel = "dat/model/cube.s"
+	ship = "dat/model/ship_diamond.s"
+	cube = "dat/model/cube.s"
+	testModel = cube
 
 	pi = math.pi
 	two_pi = 2.0 * pi
@@ -404,6 +405,7 @@ function init()
 	vprint( "init" )
 	spawn.init()
 	doodads.random = vrand_newSeq()
+	--vskybox_create( engine )
 
 	starting = true
 	color = Vector( 1.0, 1.0, 1.0, 1.0 )
@@ -812,7 +814,7 @@ end
 
 function playership_tick( ship, dt )
 	if ship == nil or ship.transform == nil then return end
-	local yaw_per_second = 1.5 
+	local yaw_per_second = 0.5
 	local pitch_per_second = 1.5
 
 	local input_yaw = 0.0

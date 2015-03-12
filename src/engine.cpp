@@ -280,8 +280,8 @@ void engine_init(engine* e, int argc, char** argv) {
 	canyonTerrain_staticInit();
 
 	// *** Skybox (temp)
-	SkyBox* sky = skyboxCreate();
-	engine_addRender(e, sky, skybox_render);
+//	SkyBox* sky = skyboxCreate();
+//	engine_addRender(e, sky, skybox_render);
 
 	for ( int i = 0; i < kNumWorkerThreads; ++i )
 		vthread_create( worker_threadFunc, NULL );

@@ -29,10 +29,10 @@ uniform	mat4 modelview;
 //uniform	mat4 projection;
 
 // Test Light values
-const vec4 light_ambient = vec4( 0.2, 0.2, 0.4, 1.0 );
+const vec4 light_ambient = vec4( 0.1, 0.1, 0.2, 1.0 );
 // Directional Light
 const vec4 directional_light_diffuse = vec4( 1.0, 1.0, 0.8, 1.0 );
-const vec4 directional_light_specular = vec4( 0.6, 0.6, 0.6, 1.0 );
+const vec4 directional_light_specular = vec4( 1.0, 1.0, 0.8, 1.0 );
 
 const vec4 sunwhite = vec4(0.5, 0.5, 0.5, 1.0);
 
@@ -47,6 +47,16 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 	float f = smoothstep( 1.0 - 0.33 * g, 1.0, clamp( dot( sun, dir ), 0.0, 1.0 ));
 	vec3 v = cross(dir.xyz, sun.xyz);
 	return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
+}
+
+/* Fresnel - Schlick's approximation
+	 R = R0 + (1 - R0)(1 - v.h)^5
+	 */
+float fresnel(vec4 v, vec4 h) {
+	float rIndex = 0.5;
+	float R0 = pow((1.0 - rIndex)/(1.0 + rIndex), 2.0);
+	float R = R0 + (1.0 - R0) * pow((1.0 - dot(v, h)), 5.0);
+	return R;
 }
 
 void main() {
@@ -82,19 +92,55 @@ void main() {
 	vec4 ambient = light_ambient;
 	vec4 diffuse = directional_light_diffuse * diffuseK;
 	vec4 specular = directional_light_specular * min(1.0, pow( spec, shininess ));
-	vec4 total_light_color = (ambient + diffuse) * ssao + specular;
+	//vec4 total_light_color = (ambient + diffuse) * ssao + specular;
+	vec4 total_light_color = ambient + diffuse;
+
 
 	// reflection
-	//vec4 refl_bounce = camera_to_world * reflect( view_direction, normalize( normal ));
-	//vec2 refl_coord = vec2( refl_bounce.x, abs(refl_bounce.y));
-	//vec4 reflection = texture2D( tex_b, refl_coord ) * material_diffuse.a;
+	vec4 refl_bounce = camera_to_world * reflect( view_direction, normalize( normal ));
+	vec2 refl_coord = vec2( refl_bounce.x, abs(refl_bounce.y));
+	vec4 reflection = texture2D( tex_b, refl_coord ) * material_diffuse.a;
 
 	//float fresnel = 0.5 + 0.5 * clamp(1.0 - dot( -view_direction, normal ), 0.0, 1.0);
-	float m = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.f;
-	material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.0f);
-	vec4 fragColor = total_light_color * material_diffuse;// + reflection * fresnel;
+	//float material_diffuse = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.f;
+	//material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.0f);
+
+	/*
+		 Cook-Torrance specular micro-facet model
+
+		 f(l,v) = D(h)F(v,h)G(v,h,l) / 4(n.l)(n.v)
+
+		 where
+		 D = Normal _D_istribution Function
+		 F = _F_resnel term
+		 V = _V_isibility term
+		 (l = light vector, v = view vector, h = ?)
+		 */
+
+	/*
+	float theta;
+	float rIndex = 0.5;
+	float R0 = pow((1.0 - rIndex)/(1.0 + rIndex), 2.0);
+	vec4 v = view_direction;
+	vec4 h = view_direction;
+	float fresnel = R0 + (1.0 - R0) * pow((1.0 - dot(v, h)), 5.0);
+	*/
+	
+	vec4 v = view_direction;
+	vec4 l = light_direction;
+	vec4 h = normalize(v + l);
+	float f = fresnel(v, h);
+
+	vec4 fragColor = total_light_color * material_diffuse + (specular + reflection) * f;
+//	vec4 fragColor = specular + reflection * f;
+//	vec4 fragColor = reflection * f;
+//	vec4 fragColor = (specular + reflection) * f; 
+//	vec4 fragColor = specular * f; 
+
 	float sun = sun( camera_space_sun_direction, view_direction );
 	float fogSun = sun_fog( camera_space_sun_direction, view_direction );
+
 	vec4 local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
 }
+

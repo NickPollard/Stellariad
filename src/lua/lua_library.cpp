@@ -14,6 +14,7 @@
 #include "physic.h"
 #include "ribbon.h"
 #include "scene.h"
+#include "skybox.h"
 #include "transform.h"
 #include "vtime.h"
 #include "camera/chasecam.h"
@@ -950,7 +951,7 @@ int LUA_body_setCollidableLayers( lua_State* l ) {
 	return 0;
 }
 
-int LUA_createCanyon(lua_State* l) {
+int LUA_createCanyon( lua_State* l ) {
 	engine* e = (engine*)lua_toptr( l, 1 );
 	scene* s = (scene*)lua_toptr( l, 2 );
 	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
@@ -970,6 +971,12 @@ int LUA_createCanyon(lua_State* l) {
 	engine_addRender( e, (void*)t, canyonTerrain_render );
 	lua_pushptr( l, c );
 	return 1;
+}
+
+int LUA_createSkybox( lua_State* l ) {
+	engine* e = (engine*)lua_toptr( l, 1 );
+	engine_addRender(e, skyboxCreate(), skybox_render);
+	return 0;
 }
 
 int LUA_debugdraw_cross( lua_State* l ) {
@@ -1273,6 +1280,9 @@ void luaLibrary_import( lua_State* l ) {
 
 	// *** Terrain
 	lua_registerFunction( l, LUA_createCanyon, "vcanyon_create" );
+
+	// *** Skybox
+	lua_registerFunction( l, LUA_createSkybox, "vskybox_create" );
 
 	// *** Physic
 	lua_registerFunction( l, LUA_createphysic, "vcreatePhysic" );
