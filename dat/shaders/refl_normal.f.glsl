@@ -5,8 +5,6 @@
 precision mediump float;
 #endif
 
-#define FRESNEL 1
-
 varying vec4 frag_position;
 //varying vec4 cameraSpace_frag_normal;
 varying vec4 frag_normal;
@@ -49,13 +47,23 @@ float sun( vec4 sunDir, vec4 fragPosition ) {
 	return pow(f, 4.0) + (1.0 - pow(f, 4.0)) * 0.25 * max(0.0, 0.5 + 0.5 * cos(atan(v.x / v.y) * 20.0));//cos(angle);
 }
 
+
+
+
+
+
+
+
+
+
+const vec4 incomingLight = vec4(1.0, 1.0, 1.0, 1.0);
+
 /* Fresnel - Schlick's approximation
 	 R = R0 + (1 - R0)(1 - v.h)^5
 	 */
-float fresnel(vec4 v, vec4 h) {
-	float rIndex = 0.5;
-	float R0 = pow((1.0 - rIndex)/(1.0 + rIndex), 2.0);
-	float R = R0 + (1.0 - R0) * pow((1.0 - dot(v, h)), 5.0);
+float fresnel(float R0, vec4 v, vec4 h) {
+	float R = R0 + (1.0 - R0) * pow((1.0 - max(0.0, dot(-v, h))), 5.0);
+	//float R = max(0.0, dot(normalize(v), normalize(h)));
 	return R;
 }
 
@@ -78,32 +86,20 @@ void main() {
 	vec4 normal = modelview * tangent_space * image_normal;
 	//vec4 normal = frag_normal;
 
-	// *** Directional light
-	// Ambient + Diffuse
-	vec4 light_direction = normalize( worldspace * directional_light_direction ); // TODO - this could be a static passed in from C
-	float diffuseK = max( 0.0, dot( -light_direction, normal ));
-	// Specular
-	float spec = max( 0.0, dot( reflect( light_direction, normal ), -view_direction ));
-	float shininess = 10.0;
-
+	// *** ssao
 	vec4 ssaoVec = texture2D( ssao_tex, screenCoord );
 	float ssao = ssaoVec.x;
 
+	// *** Directional light
+	// Ambient + Diffuse
 	vec4 ambient = light_ambient;
+	vec4 light_direction = normalize( worldspace * directional_light_direction ); // TODO - this could be a static passed in from C
+	float diffuseK = max( 0.0, dot( -light_direction, normal ));
 	vec4 diffuse = directional_light_diffuse * diffuseK;
-	vec4 specular = directional_light_specular * min(1.0, pow( spec, shininess ));
-	//vec4 total_light_color = (ambient + diffuse) * ssao + specular;
-	vec4 total_light_color = ambient + diffuse;
+	vec4 total_light_color = (ambient + diffuse) * ssao;
 
 
-	// reflection
-	vec4 refl_bounce = camera_to_world * reflect( view_direction, normalize( normal ));
-	vec2 refl_coord = vec2( refl_bounce.x, abs(refl_bounce.y));
-	vec4 reflection = texture2D( tex_b, refl_coord ) * material_diffuse.a;
 
-	//float fresnel = 0.5 + 0.5 * clamp(1.0 - dot( -view_direction, normal ), 0.0, 1.0);
-	//float material_diffuse = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.f;
-	//material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.0f);
 
 	/*
 		 Cook-Torrance specular micro-facet model
@@ -117,26 +113,53 @@ void main() {
 		 (l = light vector, v = view vector, h = ?)
 		 */
 
+	vec4 v = normalize(view_direction);
+	vec4 l = normalize(light_direction);
+	vec4 h = normalize(-v + -l);
+	vec4 n = normal;
+
 	/*
-	float theta;
-	float rIndex = 0.5;
-	float R0 = pow((1.0 - rIndex)/(1.0 + rIndex), 2.0);
-	vec4 v = view_direction;
-	vec4 h = view_direction;
-	float fresnel = R0 + (1.0 - R0) * pow((1.0 - dot(v, h)), 5.0);
-	*/
-	
-	vec4 v = view_direction;
-	vec4 l = light_direction;
-	vec4 h = normalize(v + l);
-	float f = fresnel(v, h);
+		 Energy conservation - energy is either reflected (specular), or absorbed and reflected (diffuse)
+		 Specular energy can be spread narrow (glossy) or wide (rough) - but total light energy is constant
+		 */
 
-	vec4 fragColor = total_light_color * material_diffuse + (specular + reflection) * f;
-//	vec4 fragColor = specular + reflection * f;
-//	vec4 fragColor = reflection * f;
-//	vec4 fragColor = (specular + reflection) * f; 
-//	vec4 fragColor = specular * f; 
+	float roughness = 0.3; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
+	float metalicity = 0.5; // How much energy is specularly reflected, vs diffuse. 1.0 = full metal, 0.0 = full insulator
+	vec4 albedo = material_diffuse * 0.2;
+	float R0 = metalicity * 0.5; // base fresnel reflectance (head-on)
 
+	float f = fresnel(R0, v, h);
+
+	// *** reflection
+	vec4 bounce = camera_to_world * reflect( view_direction, normalize( normal ));
+	vec4 reflection = texture2D( tex_b, vec2( bounce.x, abs(bounce.y)) ) * material_diffuse.a;
+
+	// *** Specular
+	vec4 specularLight = metalicity * incomingLight;
+	float spec = max( 0.0, dot( reflect( light_direction, normal ), -view_direction ));
+	float specPower = 16.0 / (roughness + 1.0);
+
+	// *** Beckman distribution function
+	float alpha = acos(dot(n, h));
+	float m = roughness; // Root-Mean-Square of microfacets
+	float cosA_2 = cos(alpha) * cos(alpha);
+	float t = (1.0 - cosA_2) /
+									(cosA_2 * (m * m));
+
+	float pi = 3.14159;
+	float kSpec = exp(-t) / (pi * m * m * cosA_2 * cosA_2);
+	vec4 specular = specularLight * kSpec;
+
+	vec4 diffuseLight = (1.0 - metalicity) * incomingLight;
+
+	float reflF = fresnel(R0, v, n);
+	vec4 fragColor = 
+		//reflection * reflF;
+		(diffuseLight * albedo) + 
+		(specular) +
+		 reflection * reflF;
+
+	// TODO - additive fog? (in-scattering)
 	float sun = sun( camera_space_sun_direction, view_direction );
 	float fogSun = sun_fog( camera_space_sun_direction, view_direction );
 
