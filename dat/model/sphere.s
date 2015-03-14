@@ -1,1 +1,5 @@
-(model (meshFromFile (filename "dat/model/smoothsphere2.obj" )))
+(model (mesh	(filename "dat/model/sphere.obj") 
+				(diffuse_texture "dat/img/metal_physical.tga")
+				(normal_texture "dat/img/metal_test_normal.tga")
+				(shader "dat/shaders/refl_normal.s"))
+)

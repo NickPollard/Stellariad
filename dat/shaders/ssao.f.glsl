@@ -10,16 +10,16 @@ uniform vec4 screen_size;
 varying vec2 texcoord;
 varying vec4 ui_color;
 
-const float e = 4.5;
+const float pi = 3.14159265358979;
 
 //const float r = 1.0; // Max radius
-const float u = 2.0; // occlusion constant
-const float ssaoRadius = 8.0;
+const float e = 0.5;
+const float u = 1.0; // occlusion constant
+const float ssaoRadius = 4.0;
 const float samples = 8.0;
-const float pi = 3.14159265358979;
-const float beta = 0.0001;
-const float distScale = 1.2;
-const float b = -0.00025;
+const float beta = 0.0000;
+const float distScale = 5.2;
+const float b = 0.0000025;
 
 // TODO - uniforms
 const float near = -1.0;

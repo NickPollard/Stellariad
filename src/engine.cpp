@@ -264,10 +264,9 @@ void engine_init(engine* e, int argc, char** argv) {
 	particle_init();
 	ribbonEmitter_staticInit();
 	particle_staticInit();
-	//font_init();
 
 	// *** Initialise Lua
-	e->script_file = "SpaceSim/lua/main.lua";
+	e->script_file = "SpaceSim/lua/test.lua";
 	if ( argc > 1 ) {
 		printf( "Setting script file: %s\n", argv[1] );
 		e->script_file = argv[1];
@@ -278,10 +277,6 @@ void engine_init(engine* e, int argc, char** argv) {
 	// *** Canyon
 	canyon_staticInit();
 	canyonTerrain_staticInit();
-
-	// *** Skybox (temp)
-//	SkyBox* sky = skyboxCreate();
-//	engine_addRender(e, sky, skybox_render);
 
 	for ( int i = 0; i < kNumWorkerThreads; ++i )
 		vthread_create( worker_threadFunc, NULL );

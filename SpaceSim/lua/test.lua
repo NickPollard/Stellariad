@@ -12,7 +12,15 @@ C and only controlled remotely by Lua
 ]]--
 	ship = "dat/model/ship_diamond.s"
 	cube = "dat/model/cube.s"
-	testModel = cube
+	sphere = "dat/model/sphere.s"
+	gun = "dat/model/gun.s"
+	models = {}
+	models[1] = sphere
+	models[2] = cube
+	models[3] = ship
+	models[4] = gun
+	models.count = 4
+	modelIndex = 1
 
 	pi = math.pi
 	two_pi = 2.0 * pi
@@ -238,128 +246,6 @@ function safeCleanup( value, cleanup )
 	return nil
 end
 
-function missile_collisionHandler( missile, other )
-	fx.spawn_missile_explosion( missile.transform )
-	vphysic_setVelocity( missile.physic, Vector( 0.0, 0.0, 0.0, 0.0 ))
-	missile.body = safeCleanup( missile.body, function () vdestroyBody( missile.body ) end )
-	missile.model = safeCleanup( missile.model, function () vdeleteModelInstance( missile.model ) end )
-	missile.tick = nil
-	inTime( 2.0, function() 
-		missile.trail = safeCleanup( missile.trail, function () vdeleteModelInstance( missile.trail ) end )
-		gameobject_delete( missile )
-	end
-	)
-end
-
-function setCollision_playerBullet( object )
-	vbody_setLayers( object.body, collision_layer_bullet )
-	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_enemy, collision_layer_terrain ))
-	--	vbody_setCollidableLayers( object.body, collision_layer_enemy )
-end
-
-function setCollision_enemyBullet( object )
-	vbody_setLayers( object.body, collision_layer_bullet )
-	--vbody_setCollidableLayers( object.body, collision_layer_player )
-	vbody_setCollidableLayers( object.body, bitwiseOR( collision_layer_player, collision_layer_terrain ))
-end
-
-function create_projectile( source, offset, model, speed ) 
-	-- Position it at the correct muzzle position and rotation
-	local muzzle_world_pos = vtransformVector( source.transform, offset )
-	local muzzle_matrix = vtransformWorldMatrix( source.transform )
-	vmatrix_setTranslation ( muzzle_matrix, muzzle_world_pos )
-
-	-- Create a new Projectile
-	local projectile = gameobject_createAt( model, muzzle_matrix )
-	projectile.tick = nil
-
-	-- Apply initial velocity
-	local source_velocity = Vector( 0.0, 0.0, speed, 0.0 )
-	local world_v = vtransformVector( source.transform, source_velocity )
-	vphysic_setVelocity( projectile.physic, world_v );
-
-	-- Store the projectile so it doesn't get garbage collected
-	array.add( missiles, projectile )
-	return projectile
-end
-
-player_gunfire = { 
-	model = "dat/model/bullet_player.s",
-	particle = "dat/vfx/particles/bullet.s",
-	speed = 350.0,
-	collisionType = "player",
-	time_to_live = 2.0
-}
-
-player_missile = { 
-	model = "dat/model/missile_enemy_homing.s",
-	trail = "dat/model/missile_enemy_homing_trail.s",
-	particle = "dat/script/lisp/red_bullet.s",
-	speed = 100.0,
-	collisionType = "player",
-	time_to_live = 6.0
-}
-
-enemy_gunfire = { 
-	model = "dat/model/bullet_player.s",
-	speed = 150.0,
-	collisionType = "enemy",
-	time_to_live = 2.0
-}
-
-enemy_homing_missile = { 
-	model = "dat/model/missile_enemy_homing.s",
-	trail = "dat/model/missile_enemy_homing_trail.s",
-	speed = 100.0,
-	collisionType = "enemy",
-	time_to_live = 3.0
-}
-
-function fire_missile( source, offset, bullet_type )
-	local projectile = create_projectile( source, offset, bullet_type.model, bullet_type.speed )
-
-	if bullet_type.trail then
-		projectile.trail = vcreateModelInstance( bullet_type.trail )
-		vmodel_setTransform( projectile.trail, projectile.transform )
-		vscene_addModel( scene, projectile.trail )
-	end
-
-	if bullet_type.collisionType == "player" then
-		setCollision_playerBullet( projectile )
-	elseif bullet_type.collisionType == "enemy" then
-		setCollision_enemyBullet( projectile )
-	end
-	vbody_registerCollisionCallback( projectile.body, missile_collisionHandler )
-
-	inTime( bullet_type.time_to_live, function () 
-		gameobject_destroy( projectile )
-		projectile.trail = safeCleanup( projectile.trail, function () vdeleteModelInstance( projectile.trail ) end )
-	end )
-
-	return projectile
-end
-
-function homing_missile_tick( target )
-	return function ( missile, dt )
-		if missile.physic and vtransform_valid( missile.transform ) then
-			vtransform_getWorldPosition( missile.transform ):foreach( function( p ) 
-			vtransform_getWorldPosition( target ):foreach( function ( t )
-				local current = vquaternion_fromTransform( missile.transform )
-				local target_dir = vquaternion_look( vvector_normalize( vvector_subtract( t, p )))
-				local dir = vquaternion_slerpAngle( current, target_dir, homing_missile_turn_angle_per_second * dt )
-				vphysic_setVelocity( missile.physic, vquaternion_rotation( dir, Vector( 0.0, 0.0, enemy_homing_missile.speed, 0.0 )))
-				vtransform_setRotation( missile.transform, dir )
-			end )
-		end )
-		end
-	end
-end
-
-function fire_enemy_homing_missile( source, offset, bullet_type )
-	local projectile = fire_missile( source, offset, bullet_type )
-	projectile.tick = homing_missile_tick( player_ship.transform )
-end
-
 function inTime( time, action )
 	timers.add( timers.create( time, action ))
 end
@@ -376,7 +262,8 @@ end
 
 -- Create a player. The player is a specialised form of Gameobject
 function playership_create()
-	local p = gameobject_create( testModel )
+	local p = gameobject_create( models[modelIndex] )
+	modelIndex = modelIndex % models.count + 1
 	p.speed = 0.0
 	p.cooldown = 0.0
 	p.missile_cooldown = 0.0
@@ -409,18 +296,11 @@ function init()
 
 	starting = true
 	color = Vector( 1.0, 1.0, 1.0, 1.0 )
-	--local vignette = vuiPanel_create( engine, "dat/img/vignette.tga", color, 0, 360, screen_width, 360 )
 	
 	inTime( 1.0, function () 
 				gameplay_start()
 			end )
 	--splash_intro_new()
-end
-
-function ship_collisionHandler( ship, collider )
-	fx.spawn_explosion( ship.transform );
-	ship_destroy( ship )
-	ship.behaviour = ai.dead
 end
 
 function ship_destroy( ship )
@@ -501,10 +381,6 @@ function gameplay_start()
 	player_active = true
 	inTime( 2.0, function () 
 		player_ship.speed = player_ship_initial_speed
-		ui.crosshair = ui.create_crosshair()
-		ui.show( ui.crosshair )
-		ui.panelFadeIn( ui.crosshair, 0.5 )
-		--playership_addEngineGlows( player_ship )
 		if not debug_spawning_disabled then
 			spawning_active = true
 		end
@@ -523,11 +399,14 @@ function restart()
 
 	-- We create a player object which is a game-specific Lua class
 	-- The player class itself creates several native C classes in the engine
+	if player_ship then
+		gameobject_destroy( player_ship )
+	end
 	playership_cleanup( player_ship )
 	player_ship = playership_create()
 
 	-- Init position
-	local start_position = Vector( 0.0, 0.0, 20.0, 1.0 ) 
+	local start_position = Vector( 0.0, 0.0, 3.5, 1.0 ) 
 	vtransform_setWorldPosition( player_ship.transform, start_position )
 
 	-- Init velocity
@@ -541,40 +420,6 @@ function restart()
 	flycam = vflycam( engine )
 	vscene_setCamera( flycam )
 	setup_controls()
-end
-
-function splash_intro()
-	vtexture_preload( "dat/img/splash_author.tga" )
-	local studio_splash = ui.show_splash( "dat/img/splash_vitruvian.tga", 512, 256 )
-	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
-	inTime( 2.0, function () 
-		ui.hide_splash( studio_splash ) 
-		local author_splash = ui.show_splash( "dat/img/splash_author.tga", 512, 256 )
-		inTime( 2.0, function ()
-			ui.hide_splash( author_splash ) 
-			ui.hide_splash( bg ) 
-			ui.show_crosshair()
-			gameplay_start()
-		end )
-	end )
-end
-
-function studio_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_vitruvian.tga", 512, 256 ):onComplete( function ( splash ) inTime( 2.0, function ()
-			ui.hide_splash( splash )
-			f:complete( nil )
-		end ) end ) 
-	return f
-end
-
-function author_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_author.tga", 512, 256 ):onComplete( function ( s ) inTime( 2.0, function ()
-			ui.hide_splash( s )
-			f:complete( nil )
-		end ) end ) 
-	return f
 end
 
 local touchpad = {}
@@ -607,46 +452,8 @@ function createTouchPad( input, x, y, w, h )
 	return pad
 end
 
-function skies_splash() 
-	local f = future:new()
-	ui.splash( "dat/img/splash_skies_modern.tga", screen_width, screen_height )
-		:onComplete( function ( splash )
-			local w = screen_width
-			local h = screen_height
-			local touch_to_play = createTouchPad( input, 0, 0, w, h )
-			--inTime( 4.0, function ()
-			touch_to_play:onTouch( function ()
-				ui.hide_splash( splash )
-				f:complete( nil )
-				removeTicker( touch_to_play )
-				end )
-		end ) 
-	return f
-end
-
-function splash_intro_new()
-	vtexture_preload( "dat/img/splash_author.tga" )
-	local bg = ui.show_splash( "dat/img/black.tga", screen_width, screen_height )
-	studio_splash():onComplete( function (s)
-		author_splash():onComplete( function (a)
-			skies_splash():onComplete( function (a)
-				ui.hide_splash( bg )
-				ui.show_crosshair()
-				gameplay_start()
-			end )
-		end )
-	end )
-end
-
-function test()
-	--future.test()
-	--list.test()
-end
-
 function start()
 	fx.preload()
-
-	test()
 
 	restart()
 end
@@ -705,78 +512,12 @@ function drag_map()
 	end
 end
 
-
-function steering_input_keyboard()
-	local yaw = 0.0
-	local pitch = 0.0
-	-- Steering
-	if vkeyHeld( input, key.left ) then
-		yaw = -1.0
-	end
-	if vkeyHeld( input, key.right ) then
-		yaw = 1.0
-	end
-	if vkeyHeld( input, key.up ) then
-		pitch = -1.0
-	end
-	if vkeyHeld( input, key.down ) then
-		pitch = 1.0
-	end
-	return yaw, pitch
-end
-
-function playership_weaponsTick( ship, dt )
-	-- Gunfire
-	local fired = false
-	if touch_enabled then
-		fired, joypad_x, joypad_y = vtouchPadTouched( ship.fire_trigger )
-	else
-		fired = vkeyPressed( input, key.space )
-	end
-	if fired then
-		player_fire( ship )
-	end
-	local missile_fired = false
-	if touch_enabled then
-		missile_fired = vgesture_performed( player_ship.fire_trigger, player_ship.missile_swipe )
-	else
-		missile_fired = vkeyPressed( input, key.q )
-	end
-	if missile_fired and ship.missile_cooldown <= 0.0 then
-		if ship.aileron_roll then
-			player_fire_missile_swarm( ship )
-		else
-			local target = findClosestEnemy( ship.transform )
-			if target ~= nil then
-				player_fire_missile( ship, target )
-			end
-		end
-		ship.missile_cooldown = player_missile_cooldown
-	end
-	ship.cooldown = ship.cooldown - dt
-	ship.missile_cooldown = ship.missile_cooldown - dt
-end
-
 function clamp( min, max, value )
 	return math.min( max, math.max( min, value ))
 end
 
 function lerp( a, b, k )
 	return a + ( b - a ) * k
-end
-
-function ship_aileronRoll( ship, multiplier )
-	local aileron_roll_delta = two_pi * multiplier
-	ship.aileron_roll = true
-	ship.aileron_roll_time = aileron_roll_duration
-	ship.aileron_roll_multiplier = multiplier
-	ship.aileron_roll_target = library.roundf( ship.roll + aileron_roll_delta + pi, two_pi )
-	ship.aileron_roll_amount = ship.aileron_roll_target - ship.roll
-	-- preserve heading from when we enter the roll
-	ship.target_yaw = ship.yaw
-
-	local index = (ship.yaw_history_index - 10) % 10 + 1
-	--ship.target_yaw = ship.yaw_history[index]
 end
 
 function ship_aileronRollActive( ship ) 
@@ -903,6 +644,10 @@ function debug_tick()
 	if vkeyPressed( input, key.c ) then
 		toggle_camera()
 	end
+	if vkeyPressed( input, key.space ) then
+		restart()
+		gameplay_start()
+	end
 end
 
 spawning_active = false
@@ -976,229 +721,10 @@ function terminate()
 	player = nil
 end
 
-function delay( time, command )
-	if time <= 0 then
-		command()
-	else
-		print( string.format( "Delay timer: %d", time ))
-		delay( time-1, command )
-	end
-end
-
-function doodad_spawn_index( pos )
-	return math.floor( ( pos - spawn_offset ) / doodads.interval )
-end
-
-function spawn_index( pos )
-	return math.floor( ( pos - spawn_offset ) / spawn_interval )
-end
-
-function spawn_pos( i )
-	return i * spawn_interval + spawn_offset;
-end
-
-
-
-function turret_fire( turret )
-	-- right
-	local muzzle_position = Vector( 4.6, 5.0, 5.0, 1.0 )
-	fx.muzzle_flare_large( turret, muzzle_position )
-	fire_missile( turret, muzzle_position, enemy_gunfire )
-	-- left
-	muzzle_position = Vector( -4.6, 5.0, 5.0, 1.0 )
-	fx.muzzle_flare_large( turret, muzzle_position )
-	fire_missile( turret, muzzle_position, enemy_gunfire )
-end
-
-function turret_tick( turret, dt )
-	turret.behaviour = turret.behaviour( turret, dt )
-end
-
 function tick_array( arr, dt )
 	for element in array.iterator( arr ) do
 		if element.tick then
 			element.tick( element, dt )
 		end
 	end
-end
-
-function turret_collisionHandler( target, collider )
-	fx.spawn_explosion( target.transform )
-	gameobject_destroy( target )
-	target.behaviour = ai.dead
-end
-
-function spawn_atCanyon( u, v, model )
-	local x, y, z = vcanyon_position( u, v )
-	local position = Vector( x, y, z, 1.0 )
-	local obj = gameobject_create( model )
-	vtransform_setWorldPosition( obj.transform, position )
-end
-
-
--- Spawn all entities in the given range
-function entities_spawnRange( near, far )
-	local i = spawn_index( near ) + 1
-	local spawn_v = i * spawn_interval
-	while library.contains( spawn_v, near, far ) do
-		local interceptor_offset_u = 20.0
-		spawn.spawnGroup( spawn.spawnGroupForIndex( i, player_ship ), spawn_v )
-		i = i + 1
-		spawn_v = i * spawn_interval
-	end
-end
-
-function entities_despawnAll()
-	for unit in array.iterator( interceptors ) do
-		ship_delete( unit )
-		array.clear( interceptors )
-	end
-end
-
-function spawn_doodad( u, v, model )
-	local x, y, z = vcanyon_position( u, v )
-	local position = Vector( x, y, z, 1.0 )
-	local doodad = gameobject_create( model )
-	vtransform_setWorldPosition( doodad.transform, position )
-	array.add( all_doodads, doodad )
-end
-
-function spawn_bunker( u, v, model )
-	-- Try varying the v
-	local highest = { x = 0, y = -10000, z = 0 }
-	local radius = 100.0
-	local step = radius / 5.0
-	local i = v - radius
-	while i < v + radius do
-		local x,y,z = vcanyon_position( u , i )
-		if y > highest.y then
-			highest.x = x
-			highest.y = y
-			highest.z = z
-		end
-		i = i + step
-	end
-	local x,y,z = vcanyon_position( u , v )
-	local position = Vector( x, y, z, 1.0 )
-	local doodad = gameobject_create( model )
-	vtransform_setWorldPosition( doodad.transform, position )
-	return doodad
-end
-
-function doodads_spawnSkyscraper( u, v )
-	local r = vrand( doodads.random, 0.0, 1.0 )
-	if r < 0.2 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_blocks.s" )
-	elseif r < 0.4 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_slant.s" )
-	elseif r < 0.6 then
-		d = spawn_doodad( u, v, "dat/model/skyscraper_towers.s" )
-	end
-end
-
-function doodads_spawnRange( near, far )
-	local i = doodad_spawn_index( near ) + 1
-	local spawn_v = i * doodads.interval
-	while library.contains( spawn_v, near, far ) do
-		local doodad_offset_u = 130.0
-		local d = nil
-		doodads_spawnSkyscraper( doodad_offset_u, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u, spawn_v )
-		doodads_spawnSkyscraper( doodad_offset_u + 30.0, spawn_v )
-		doodads_spawnSkyscraper( doodad_offset_u + 60.0, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u - 30.0, spawn_v )
-		doodads_spawnSkyscraper( -doodad_offset_u - 60.0, spawn_v )
-		i = i + 1
-		spawn_v = i * doodads.interval
-	end
-end
-
-function update_doodads( transform )
-	vtransform_getWorldPosition( transform ):foreach( function( p ) 
-		local u,v = vcanyon_fromWorld( p )
-		local spawn_up_to = v + doodad_spawn_distance
-		doodads_spawnRange( doodads_spawned, spawn_up_to )
-		doodads_spawned = spawn_up_to
-	end )
-end
-
--- Spawn all entities that need to be spawned this frame
-function update_spawns( transform )
-	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( p )
-		local spawn_until = v + spawn_distance
-		entities_spawnRange( entities_spawned, spawn_until )
-		entities_spawned = spawn_until;
-	end )
-end
-
-function update_despawns( transform ) 
-	vtransform_getWorldPosition( transform ):foreach( function( p )
-		local u,v = vcanyon_fromWorld( p )
-		local despawn_up_to = v - despawn_distance
-
-		for unit in array.iterator( interceptors ) do
-			-- TODO remove them properly
-			if vtransform_valid( unit.transform ) then
-				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( p_ )
-					if v < despawn_up_to then
-						ship_delete( unit )
-						unit = nil
-					end
-				end )
-			end
-		end
-
-		for unit in array.iterator( turrets ) do
-			-- TODO remove them properly
-			if unit.transform then
-				vtransform_getWorldPosition( unit.transform ):foreach( function( p_ )
-					u,v = vcanyon_fromWorld( p_ )
-					if v < despawn_up_to then
-						ship_delete( unit )
-						unit = nil
-					end
-				end)
-			end
-		end
-	end )
-end
-
-function update_doodad_despawns( transform ) 
-	if not vtransform_valid(transform) then
-		return
-	end
-	vtransform_getWorldPosition( transform ):foreach( function ( p )
-		local u,v = vcanyon_fromWorld( p )
-		local despawn_up_to = v - despawn_distance
-
-		for doodad in array.iterator( all_doodads ) do
-			-- TODO remove them properly
-			if vtransform_valid(doodad.transform) then
-				vtransform_getWorldPosition( doodad.transform ):foreach( function ( p_ )
-					local u,v = vcanyon_fromWorld( p_ )
-					if v < despawn_up_to then
-						doodad_delete( doodad )
-						doodad = nil
-					end
-				end )
-			end
-		end
-	end )
-end
-
-function interceptor_fire( interceptor )
-	-- Right
-	local muzzle_position = Vector( 1.2, 1.0, 1.0, 1.0 );
-	fx.muzzle_flare_large( interceptor, muzzle_position )
-	fire_missile( interceptor, muzzle_position, enemy_gunfire )
-	-- Left
-	muzzle_position	= Vector( -1.2, 1.0, 1.0, 1.0 );
-	fx.muzzle_flare_large( interceptor, muzzle_position )
-	fire_missile( interceptor, muzzle_position, enemy_gunfire )
-end
-
-function interceptor_fire_homing( interceptor )
-	fire_enemy_homing_missile( interceptor, Vector( 0.0, 0.0, 0.0, 1.0 ), enemy_homing_missile )
 end
