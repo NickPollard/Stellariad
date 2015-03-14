@@ -2,11 +2,10 @@
 // Reflective Fragment Shader
 
 #ifdef GL_ES
-precision mediump float;
+precision highp float;
 #endif
 
 varying vec4 frag_position;
-//varying vec4 cameraSpace_frag_normal;
 varying vec4 frag_normal;
 varying vec2 texcoord;
 varying float fog;
@@ -24,7 +23,6 @@ uniform sampler2D tex_normal;
 uniform vec4 fog_color;
 uniform vec4 camera_space_sun_direction;
 uniform	mat4 modelview;
-//uniform	mat4 projection;
 
 // Test Light values
 const vec4 light_ambient = vec4( 0.1, 0.1, 0.2, 1.0 );
@@ -70,13 +68,13 @@ float fresnel(float R0, vec4 v, vec4 h) {
 void main() {
 	// light-invariant calculations
 	vec4 view_direction = vec4( normalize( frag_position ).xyz, 0.0 );
-	vec4 material_diffuse = texture2D( tex, texcoord );
 
 	// Normalization HAS to happen at the FRAGMENT level; is considerably non-linear
 	//vec4 c = projection * frag_position;
 	//vec2 coord = (c.xy / c.w) * 0.5 + vec2(0.5, 0.5);
 
-	vec4 texture_normal = texture2D( tex_normal, texcoord ) * 2.0 - vec4(1.0, 1.0, 1.0, 0.0);
+	//vec4 texture_normal = texture2D( tex_normal, texcoord ) * 2.0 - vec4(1.0, 1.0, 1.0, 0.0);
+	vec4 texture_normal = vec4(0.0, 0.0, 1.0, 0.0);
 
 	vec4 image_normal = vec4( texture_normal.xyz, 0.0 );
 
@@ -94,9 +92,9 @@ void main() {
 	// Ambient + Diffuse
 	vec4 ambient = light_ambient;
 	vec4 light_direction = normalize( worldspace * directional_light_direction ); // TODO - this could be a static passed in from C
-	float diffuseK = max( 0.0, dot( -light_direction, normal ));
-	vec4 diffuse = directional_light_diffuse * diffuseK;
-	vec4 total_light_color = (ambient + diffuse) * ssao;
+	//float diffuseK = max( 0.0, dot( -light_direction, normal ));
+//	vec4 diffuse = directional_light_diffuse * diffuseK;
+//	vec4 total_light_color = (ambient + diffuse) * ssao;
 
 
 
@@ -123,21 +121,25 @@ void main() {
 		 Specular energy can be spread narrow (glossy) or wide (rough) - but total light energy is constant
 		 */
 
-	float roughness = 0.3; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
+	// ***Control parameters
+	float roughness = 0.5; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
 	float metalicity = 0.5; // How much energy is specularly reflected, vs diffuse. 1.0 = full metal, 0.0 = full insulator
-	vec4 albedo = material_diffuse * 0.2;
+
+	vec4 material = texture2D( tex, texcoord );
+	//vec4 albedo = material * 0.2;
+	vec4 albedo = vec4(0.5, 0.5, 0.5, 1.0);
 	float R0 = metalicity * 0.5; // base fresnel reflectance (head-on)
 
 	float f = fresnel(R0, v, h);
 
 	// *** reflection
 	vec4 bounce = camera_to_world * reflect( view_direction, normalize( normal ));
-	vec4 reflection = texture2D( tex_b, vec2( bounce.x, abs(bounce.y)) ) * material_diffuse.a;
+	vec4 reflection = texture2D( tex_b, vec2( bounce.x, abs(bounce.y)) ) * 1.0;//material.a;
 
 	// *** Specular
 	vec4 specularLight = metalicity * incomingLight;
-	float spec = max( 0.0, dot( reflect( light_direction, normal ), -view_direction ));
-	float specPower = 16.0 / (roughness + 1.0);
+//	float spec = max( 0.0, dot( reflect( light_direction, normal ), -view_direction ));
+//	float specPower = 16.0 / (roughness + 1.0);
 
 	// *** Beckman distribution function
 	float alpha = acos(dot(n, h));
@@ -150,12 +152,14 @@ void main() {
 	float kSpec = exp(-t) / (pi * m * m * cosA_2 * cosA_2);
 	vec4 specular = specularLight * kSpec;
 
+	float diffuseK = max( 0.0, dot( -light_direction, normal ));
 	vec4 diffuseLight = (1.0 - metalicity) * incomingLight;
 
 	float reflF = fresnel(R0, v, n);
+	//float ff = 1.0 - max(0.0, dot(-v, n));
+	//float reflF = ff * ff * ff * ff * ff * ff;
 	vec4 fragColor = 
-		//reflection * reflF;
-		(diffuseLight * albedo) + 
+		(diffuseLight * albedo * diffuseK) + 
 		(specular) +
 		 reflection * reflF;
 
