@@ -14,12 +14,14 @@ C and only controlled remotely by Lua
 	cube = "dat/model/cube.s"
 	sphere = "dat/model/sphere.s"
 	gun = "dat/model/gun.s"
+	depot = "dat/model/depot.s"
 	models = {}
 	models[1] = sphere
 	models[2] = cube
 	models[3] = ship
 	models[4] = gun
-	models.count = 4
+	models[5] = depot
+	models.count = 5
 	modelIndex = 1
 
 	pi = math.pi

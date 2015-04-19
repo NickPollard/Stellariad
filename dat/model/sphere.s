@@ -1,5 +1,5 @@
 (model (mesh	(filename "dat/model/sphere.obj") 
-				(diffuse_texture "dat/img/metal_physical.tga")
+				(diffuse_texture "dat/img/metal_gun.tga")
 				(normal_texture "dat/img/metal_test_normal.tga")
 				(shader "dat/shaders/refl_normal.s"))
 )

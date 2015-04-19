@@ -1,4 +1,4 @@
-(model (mesh (filename "dat/model/enemies/gun.obj" )
+(model (mesh (filename "dat/model/enemies/gun2.obj" )
 					(diffuse_texture "dat/img/metal_physical.tga" )
 					(normal_texture "dat/img/metal_test_normal.tga" )
 					(shader "dat/shaders/refl_normal.s")

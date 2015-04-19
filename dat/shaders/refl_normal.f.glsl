@@ -67,8 +67,8 @@ void main() {
 	vec4 c = projection * frag_position;
 	vec2 coord = (c.xy / c.w) * 0.5 + vec2(0.5, 0.5);
 
-	//vec4 texture_normal = texture2D( tex_normal, texcoord ) * 2.0 - vec4(1.0, 1.0, 1.0, 0.0);
-	vec4 texture_normal = vec4(0.0, 0.0, 1.0, 0.0);
+	vec4 texture_normal = texture2D( tex_normal, texcoord ) * 2.0 - vec4(1.0, 1.0, 1.0, 0.0);
+	//vec4 texture_normal = vec4(0.0, 0.0, 1.0, 0.0);
 
 	vec4 image_normal = vec4( texture_normal.xyz, 0.0 );
 
@@ -93,29 +93,31 @@ void main() {
 		 */
 
 	vec4 v = vec4( normalize( frag_position ).xyz, 0.0 );
-	vec4 l = normalize( worldspace * directional_light_direction ); // TODO - this could be a static passed in from C
+	vec4 l = normalize( worldspace * vec4(0.0, -3.5, 3.0, 0.0 )); // TODO - this could be a static passed in from C
+	//vec4 l = normalize( worldspace * directional_light_direction ); // TODO - this could be a static passed in from C
 	vec4 h = normalize(-v + -l);
 	vec4 n = normalize(modelview * tangent_space * image_normal);
 
+	vec4 material = texture2D( tex, texcoord );
 	/*
 		 Energy conservation - energy is either reflected (specular), or absorbed and reflected (diffuse)
 		 Specular energy can be spread narrow (glossy) or wide (rough) - but total light energy is constant
 		 */
 
 	// *** Control parameters (Should be in texture? Could go in normal texture)
-	float roughness = 0.3; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
-	float metalicity = 0.9; // How much energy is specularly reflected, vs diffuse. 1.0 = full metal, 0.0 = full insulator
+//	float roughness = 0.30; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
+//	float metalicity = 0.5; // How much energy is specularly reflected, vs diffuse. 1.0 = full metal, 0.0 = full insulator
+	float roughness = material.w; // microfacet distribution, 0.0 = perfectly smooth, 1.0 = uniformly distributed?
+	float metalicity = material.w; // How much energy is specularly reflected, vs diffuse. 1.0 = full metal, 0.0 = full insulator
 
-	vec4 material = texture2D( tex, texcoord );
-	vec4 albedo = material * vec4(1.0, 0.8, 0.5, 1.0);
-	//vec4 albedo = vec4(0.5, 0.5, 0.5, 1.0);
+	vec4 albedo = material;// * vec4(1.0, 0.8, 0.5, 1.0);
 	float R0 = metalicity * 0.8; // base fresnel reflectance (head-on)
 
 	float f = fresnel(R0, v, h); // Should be used for spec; unused as it seems to make little difference?
 
 	// *** reflection
 	vec4 bounce = camera_to_world * reflect( v, n );
-	vec4 reflection = texture2D( tex_b, vec2( bounce.x, abs(bounce.y)) ) * material.a;
+	vec4 reflection = texture2D( tex_b, vec2( bounce.x, abs(bounce.y))) * 0.10;
 
 	// *** Specular
 	vec4 specularLight = metalicity * incomingLight;
@@ -136,10 +138,10 @@ void main() {
 
 	float reflF = fresnel(R0, v, n);
 	vec4 fragColor = 
-		ambient * ssao +
+		ambient * albedo * ssao +
 		(diffuseLight * albedo * diffuseK) + 
 		specular * f +			// Direct lighting
-		reflection * reflF; // Indirect lighting
+		reflection * reflF * (1.0 - (0.7 * roughness)); // Indirect lighting
 
 	// TODO - additive fog? (in-scattering)
 	float sun = sun( camera_space_sun_direction, v );
