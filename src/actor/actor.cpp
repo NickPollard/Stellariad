@@ -21,7 +21,6 @@ struct actor_s {
 void	actorPush( ActorRef a, Msg m );
 Msg		actorNextTask( ActorRef a );
 void*	runSystem( void* args );
-void*	dummyTask( void* args );
 // //
 
 void actorSystem_add( actorSystem* system, ActorRef a ) {
@@ -61,7 +60,6 @@ void tell( ActorRef a, Msg m ) {
 		actorPush( a, m );
 	} actorUnlock( a );
 	worker_addTask( task( runSystem, a->system ));
-	//worker_addTask( task( dummyTask, a->system ));
 }
 
 void actorReceive( ActorRef a ) {
@@ -142,8 +140,4 @@ void* runSystem( void* system ) {
 	ActorRef a = systemNext( (actorSystem*)system );
 	actorReceive( a );
 	return NULL;
-}
-
-void* dummyTask( void* system ) {
-	return system;
 }
