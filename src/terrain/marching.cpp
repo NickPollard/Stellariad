@@ -12,10 +12,12 @@
    sample the edge cubes as if they were at a lower resolution, interpolating
    between spanning corners rather than the true value
    */
+typedef std::vector seq;
 
 struct BlockExtents {
 	vector min;
 	vector max;
+	int subdivides;
 };
 struct MarchBlock {
 	BlockExtents extents;
@@ -26,15 +28,37 @@ struct MarchBlock {
 typedef float (*DensityFunction) (float, float, float); // Sample a density at a coord
 template < type T > struct Grid { };
 
-marchBlock* generateBlock(BlockExtents b, DensityFunction d) {
+// Triangle indices for 256 combinations
+int triangles[256][8] = {};
+
+marchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 	// sample density function at all grid points
 	Grid<float> densities = densitiesFor(b, d);
-	// cubes.flatMap(trianglesFor(densities))
-	MarchBlock* m = NYI();
+	MarchBlock* m = march(b, densities);
 	return m;
 }
 
-Grid<float> densitiesFor(BlockExtents b, DensityFunction d) {
+Grid<vector> coordsFor(BlockExtents b) {
+	// TODO - write a range class
+	float delta = (max.x - min.x) / (float)subdivides;
+	auto indx = from(1).to(10) * delta;
+	// Range 3d? -> i.e. grid
+
 }
 
-list<triangle> trianglesFor(cube c)
+Grid<float> densitiesFor(BlockExtents b, DensityFunction d) {
+	Grid<vector> coords = coordsFor(b);
+	return coords.map(d);
+}
+
+seq<triangle> trianglesFor(cube c)
+
+seq<cube> cubesFor(const BlockExtents b) {
+	// generate a list of cubes for the block extents
+	// probably needs to LoD here too?
+}
+
+MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
+	seq<cube> cubes = cubesFor(b);
+	cubes.flatMap(trianglesFor(densities))
+}
