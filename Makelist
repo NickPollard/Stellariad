@@ -74,5 +74,7 @@ SRCS =	src/bounds.cpp \
 		src/terrain/buildCacheTask.cpp \
 		src/terrain/cache.cpp \
 		src/terrain/grid.cpp \
+		src/terrain/marching.cpp \
+		src/terrain/marching_triangles.cpp \
 		src/ui/panel.cpp \
 		src/external/murmur.cpp

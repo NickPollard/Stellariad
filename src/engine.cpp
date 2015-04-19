@@ -35,6 +35,7 @@
 #include "system/file.h"
 #include "system/string.h"
 #include "system/thread.h"
+#include "terrain/marching.h"
 
 // Lua Libraries
 #ifdef __cplusplus
@@ -193,7 +194,7 @@ void engine_tick( engine* e ) {
 	
 	//countVisibleParticleEmitters( e );
 	//countActiveParticleEmitters( e );
-
+	
 	PROFILE_END( PROFILE_ENGINE_TICK );
 }
 
@@ -339,6 +340,9 @@ void engine_render( engine* e ) {
 		render( &window_main, theScene );
 		engine_renderRenders( e );
 		skybox_render( NULL );
+
+		// test
+		test_marching_draw();
 
 #ifdef GRAPH_FPS
 		graph_render( fpsgraph );

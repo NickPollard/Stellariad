@@ -89,20 +89,20 @@ void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, 
 	const int lod_ratio = lodRatio( block );
 	for ( int v = 0; v < block->v_samples; ++v ) {
 		for ( int u = 0; u < block->u_samples; ++u ) {
-			const int l = ( v == block->v_samples - 1 ) ? indexFromUV( block, u, v - lod_ratio ) : indexFromUV( block, u, v - 1 );
-			const vector left	= verts[l];
-
-			const int r = ( v == 0 ) ?  indexFromUV( block, u, v + lod_ratio ) : indexFromUV( block, u, v + 1 );
-			const vector right = verts[r];
-
-			const int t = ( u == block->u_samples - 1 ) ? indexFromUV( block, u - lod_ratio, v ) : indexFromUV( block, u - 1, v );
-			vector top = verts[t];
-
-			const int bt = ( u == 0 ) ? indexFromUV( block, u + lod_ratio, v ) : indexFromUV( block, u + 1, v );
-			vector bottom = verts[bt];
+			const vector left = verts[indexFromUV( block, u, (v == block->v_samples - 1) ? v - lod_ratio : v - 1 )];
+			const vector right = verts[indexFromUV( block, u, (v == 0) ? v + lod_ratio : v + 1)];
+			const vector top = verts[indexFromUV( block, ( u == block->u_samples - 1 ) ? u - lod_ratio : u - 1, v )];
+			const vector bottom = verts[indexFromUV( block, (u == 0) ? u + lod_ratio : u + 1, v )];
 			
 			int i = indexFromUV( block, u, v );
 
+			vector a = vector_sub(bottom, top);
+			vector b = vector_sub(right, left);
+			vector n = normalized(vector_cross(a, b));
+			vAssert( i < vert_count );
+			normals[i] = n;
+
+			/*
 			vector a, b, c, x, y;
 			// Calculate vertical vector
 			// Take cross product to calculate normals
@@ -126,6 +126,7 @@ void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, 
 			Normalize( &total, &total );
 			vAssert( i < vert_count );
 			normals[i] = total;
+			*/
 		}
 	}
 }
