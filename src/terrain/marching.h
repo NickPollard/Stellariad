@@ -1,33 +1,41 @@
 // marching.h
+#pragma once
+#include <tuple>
+#include <functional>
 
-template <typename T> struct Range {
-	T min;
-	T max;
-	T increment;
+using std::tuple;
+using std::make_tuple;
+using std::function;
 
-	Range(T _min, T _max, T _inc) : min(_min), max(_max), increment(_inc) {}
+template<typename A, typename B>
+function<B(A)> make_function(B *(f)(A)) {
+	auto fn = function<B(A)>(f);
+	return fn;
 };
 
-template <typename T> 
-Range<T> BuildRange(T _min, T _max);
+// Grid Typeclass - a 3d cube of radius R
+template <typename T, int R> struct Grid {
+	T values[R][R][R];
 
-template <> 
-Range<Int> BuildRange(Int _min, Int _max) {
-	return Range<Int>(_min, _max, 1);
-}
-
-template <typename T> struct RangeStart {
-	T min;
-	T increment;
-
-	RangeStart(T _min, T _inc) : min(_min), increment(_inc) {}
-
-	Range<T> to(T _max) {
-		return BuildRange<T>(min, _max);
+	Grid(T ts[R][R][R]) {
+		memcpy( values, ts, sizeof(T) * R * R * R ); 
 	}
-};
 
-template <typename T>
-RangeStart<T> from(T _min) {
-	return RangeStart<T>(_min);
+	Grid() {
+		memset( values, 0, sizeof(T) * R * R * R );
+	}
+
+	template<typename U>
+	auto fproduct(function<U(T)> f) -> Grid<tuple<T, U>, R> {
+		auto g = Grid<tuple<T,U>, R>();
+
+		for ( int i = 0; i < R; ++i )
+			for ( int j = 0; j < R; ++j )
+				for ( int k = 0; k < R; ++k ) {
+					T value = values[i][j][k];
+					g.values[i][j][k] = make_tuple(value, f(value));
+				}
+
+		return g;
+	}
 };
