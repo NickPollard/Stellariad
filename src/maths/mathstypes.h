@@ -16,13 +16,19 @@
    */
 
 union vector_u {
-   	struct {
+  struct {
 		float x;
 		float y;
 		float z;
 		float w;
 	} coord;
 	float	val[4];
+	struct {
+		float x;
+		float y;
+		float z;
+		float w;
+	};
 };
 
 /*
