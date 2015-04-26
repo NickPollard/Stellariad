@@ -19,6 +19,7 @@
 #include "system/hash.h"
 #include "system/string.h"
 #include "script/sexpr.h"
+#include "terrain/marching.h"
 
 void test_lisp();
 
@@ -44,6 +45,8 @@ void runTests() {
 	test_input();
 
 	//test_collision();
+
+	test_cube();
 }
 #endif // UNIT_TEST
 

@@ -7,6 +7,10 @@ using std::tuple;
 using std::make_tuple;
 using std::function;
 
+// Lookup tables
+extern int8_t triangles[256][16];
+extern int8_t edges[12][2];
+
 template<typename A, typename B>
 function<B(A)> make_function(B *(f)(A)) {
 	auto fn = function<B(A)>(f);
@@ -39,3 +43,6 @@ template <typename T, int R> struct Grid {
 		return g;
 	}
 };
+
+// Test
+void test_cube();
