@@ -20,6 +20,9 @@
 #include <tuple>
 #include "maths/vector.h"
 #include "mem/allocator.h"
+#include "render/render.h"
+#include "render/shader.h"
+#include "render/texture.h"
 
 #define val const auto
 #define var auto
@@ -251,6 +254,21 @@ float densityFn(vector v) {
 	return v.y - 4.f + v.x;
 }
 
+vertex* vertsFor(const Buffers& bs) {
+	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
+	for ( int i = 0; i < bs.vertCount; ++i ) {
+			vertices[i].position = bs.verts[i];
+			vertices[i].color = 0;
+			vertices[i].uv.x = 0.f;
+			vertices[i].uv.y = 0.f;
+			vertices[i].normal = Vector(0.f, 1.f, 0.f, 1.f);
+	}
+	return vertices;
+}
+void drawMarchedCube(const Buffers& bs, vertex* vertices) {
+	drawCall_create( &renderPass_main, *Shader::defaultShader(), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, matrix_identity);
+}
+
 cube makeTestCube(vector origin, float size ) {
 	cube c;
 
@@ -277,6 +295,14 @@ cube makeTestCube(vector origin, float size ) {
 	return c;
 }
 
+// *** test statics
+Buffers static_marching_buffers;
+vertex* static_marching_verts;
+
+void test_marching_draw() {
+	drawMarchedCube( static_marching_buffers, static_marching_verts );
+}
+
 void test_cube() {
 	float size = 10.0;
 	cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), size);
@@ -284,5 +310,8 @@ void test_cube() {
 	auto buffers = buffersFor(tris);
 	for ( int i = 0; i < buffers.vertCount; ++i )
 			vector_printf( "Vert: ", &buffers.verts[i]);
-	(void)buffers;
+	val verts = vertsFor(buffers);
+	drawMarchedCube(buffers, verts);
+	static_marching_buffers = buffers;
+	static_marching_verts = verts;
 }

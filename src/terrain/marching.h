@@ -46,3 +46,4 @@ template <typename T, int R> struct Grid {
 
 // Test
 void test_cube();
+void test_marching_draw();
