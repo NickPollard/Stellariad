@@ -251,7 +251,7 @@ MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
 
 //////////////////////////////
 float densityFn(vector v) {
-	return v.y - 4.f + v.x;
+	return v.z;// - 4.f + v.x;
 }
 
 vertex* vertsFor(const Buffers& bs) {
@@ -266,7 +266,7 @@ vertex* vertsFor(const Buffers& bs) {
 	return vertices;
 }
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
-	drawCall_create( &renderPass_main, *Shader::defaultShader(), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, matrix_identity);
+	drawCall_create( &renderPass_main, *Shader::defaultShader(), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, modelview);
 }
 
 cube makeTestCube(vector origin, float size ) {
@@ -311,7 +311,7 @@ void test_cube() {
 	for ( int i = 0; i < buffers.vertCount; ++i )
 			vector_printf( "Vert: ", &buffers.verts[i]);
 	val verts = vertsFor(buffers);
-	drawMarchedCube(buffers, verts);
+	//drawMarchedCube(buffers, verts);
 	static_marching_buffers = buffers;
 	static_marching_verts = verts;
 }

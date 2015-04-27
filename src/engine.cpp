@@ -35,6 +35,7 @@
 #include "system/file.h"
 #include "system/string.h"
 #include "system/thread.h"
+#include "terrain/marching.h"
 
 // Lua Libraries
 #ifdef __cplusplus
@@ -193,6 +194,9 @@ void engine_tick( engine* e ) {
 	
 	//countVisibleParticleEmitters( e );
 	//countActiveParticleEmitters( e );
+	
+	// test
+	test_marching_draw();
 
 	PROFILE_END( PROFILE_ENGINE_TICK );
 }
