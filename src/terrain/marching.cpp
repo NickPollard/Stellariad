@@ -251,7 +251,7 @@ MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
 
 //////////////////////////////
 float densityFn(vector v) {
-	return v.z;// - 4.f + v.x;
+	return v.y - 4.f + v.x * 0.01;
 }
 
 vertex* vertsFor(const Buffers& bs) {
@@ -266,7 +266,7 @@ vertex* vertsFor(const Buffers& bs) {
 	return vertices;
 }
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
-	drawCall_create( &renderPass_main, *Shader::defaultShader(), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, modelview);
+	drawCall_create( &renderPass_main, *Shader::byName("dat/shaders/reflective.s"), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, modelview);
 }
 
 cube makeTestCube(vector origin, float size ) {
@@ -296,22 +296,38 @@ cube makeTestCube(vector origin, float size ) {
 }
 
 // *** test statics
-Buffers static_marching_buffers;
-vertex* static_marching_verts;
+Buffers static_marching_buffers[9];
+vertex* static_marching_verts[9];
 
 void test_marching_draw() {
-	drawMarchedCube( static_marching_buffers, static_marching_verts );
+	for (int i = 0; i < 9; ++i)
+		drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
 }
 
 void test_cube() {
 	float size = 10.0;
-	cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), size);
-	auto tris = trianglesFor(c);
-	auto buffers = buffersFor(tris);
-	for ( int i = 0; i < buffers.vertCount; ++i )
-			vector_printf( "Vert: ", &buffers.verts[i]);
-	val verts = vertsFor(buffers);
+	//cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), size);
+	//auto tris = trianglesFor(c);
+	//auto buffers = buffersFor(tris);
+	vector cubePos[9];
+	cubePos[0] = Vector(0.0, 0.0, 0.0, 1.0);
+	cubePos[1] = Vector(10.0, 0.0, 0.0, 1.0);
+	cubePos[2] = Vector(0.0, 0.0, 10.0, 1.0);
+	cubePos[3] = Vector(10.0, 0.0, 10.0, 1.0);
+	cubePos[4] = Vector(20.0, 0.0, 0.0, 1.0);
+	cubePos[5] = Vector(0.0, 0.0, 20.0, 1.0);
+	cubePos[6] = Vector(20.0, 0.0, 10.0, 1.0);
+	cubePos[7] = Vector(10.0, 0.0, 20.0, 1.0);
+	cubePos[8] = Vector(20.0, 0.0, 20.0, 1.0);
+	//for ( int i = 0; i < buffers.vertCount; ++i )
+			//vector_printf( "Vert: ", &buffers.verts[i]);
+	//val verts = vertsFor(buffers);
 	//drawMarchedCube(buffers, verts);
-	static_marching_buffers = buffers;
-	static_marching_verts = verts;
+	for (int i = 0; i < 9; ++i) {
+		cube c = makeTestCube(cubePos[i], size);
+		auto buffers = buffersFor(trianglesFor(c));
+		val verts = vertsFor(buffers);
+		static_marching_buffers[i] = buffers;
+		static_marching_verts[i] = verts;
+	}
 }
