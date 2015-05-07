@@ -23,6 +23,7 @@
 #include "render/render.h"
 #include "render/shader.h"
 #include "render/texture.h"
+#include "test.h"
 
 #define val const auto
 #define var auto
@@ -116,8 +117,17 @@ struct triangle {
 
 // Assuming dA is the smallest
 vector interpD( vector a, float dA, vector b, float dB ) {
-	val f = abs(dA) / (max(dA,dB) - min(dA,dB));
-	return veclerp( a, b, f );
+	printf( "abs(dA) = %.2f, max = %.2f, min = %.2f.\n", fabsf(dA), fmaxf(dA,dB), fminf(dA,dB));
+	val f = fabsf(dA) / (max(dA,dB) - min(dA,dB));
+	vector v = veclerp( a, b, f );
+	printf( "Interping between " );
+	vector_print( &a );
+	printf( " with density %.2f and ", dA );
+	vector_print( &b );
+	printf( " with density %.2f, result: ", dB );
+	vector_print( &v );
+	printf( "\n" );
+	return v;
 }
 
 auto cornersFor(int edge) -> tuple<int, int> {
@@ -251,7 +261,7 @@ MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
 
 //////////////////////////////
 float densityFn(vector v) {
-	return v.y - 4.f + v.x * 0.01;
+	return -v.y + 1.f + fabsf(v.x - 15.f) * 0.54+ fabsf(v.z - 15.f) * 0.54;
 }
 
 vertex* vertsFor(const Buffers& bs) {
@@ -291,7 +301,11 @@ cube makeTestCube(vector origin, float size ) {
 	c.corners[6] = vector_add(origin, Vector(size, size, size, 0.0));
 	c.corners[7] = vector_add(origin, Vector(0.0, size, size, 0.0));
 
-	for (int i = 0; i < 8; ++i) c.densities[i] = densityFn(c.corners[i]);
+	for (int i = 0; i < 8; ++i) {
+			c.densities[i] = densityFn(c.corners[i]);
+			vector_print(&c.corners[i]);
+			printf( ", density: %.2f\n", c.densities[i] );
+	}
 	return c;
 }
 
@@ -299,12 +313,27 @@ cube makeTestCube(vector origin, float size ) {
 Buffers static_marching_buffers[9];
 vertex* static_marching_verts[9];
 
+static const int drawTestCubes = 9;
+
 void test_marching_draw() {
-	for (int i = 0; i < 9; ++i)
+	for (int i = 0; i < drawTestCubes; ++i)
 		drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
 }
 
+void test_interp() {
+	// for all vectors, floats
+	vector va = Vector( 10.0, 10.0, 0.0, 1.0 );
+	vector vb = Vector( 10.0, 0.0, 0.0, 1.0 );
+	float a = 4.1f;
+	float b = -5.9f;
+	vector r1 = interpD(va, a, vb, b);
+   	vector r2 =	interpD(vb, b, va, a);
+	test( vector_equal(&r1, &r2), "interpD is commutative", "interpD is NOT commutative" ); 
+}
+
 void test_cube() {
+	test_interp();
+	//vAssert( 0 );
 	float size = 10.0;
 	//cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), size);
 	//auto tris = trianglesFor(c);
@@ -323,7 +352,7 @@ void test_cube() {
 			//vector_printf( "Vert: ", &buffers.verts[i]);
 	//val verts = vertsFor(buffers);
 	//drawMarchedCube(buffers, verts);
-	for (int i = 0; i < 9; ++i) {
+	for (int i = 0; i < drawTestCubes; ++i) {
 		cube c = makeTestCube(cubePos[i], size);
 		auto buffers = buffersFor(trianglesFor(c));
 		val verts = vertsFor(buffers);
@@ -331,3 +360,4 @@ void test_cube() {
 		static_marching_verts[i] = verts;
 	}
 }
+
