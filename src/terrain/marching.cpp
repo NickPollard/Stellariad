@@ -18,12 +18,13 @@
 //-----------------------
 #include <forward_list>
 #include <tuple>
+#include "terrain.h"
+#include "test.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/render.h"
 #include "render/shader.h"
 #include "render/texture.h"
-#include "test.h"
 
 #define val const auto
 #define var auto
@@ -33,6 +34,9 @@ using std::tuple;
 using std::max;
 using std::min;
 using std::get;
+
+texture* marching_texture = NULL;
+texture* marching_texture_cliff = NULL;
 
 struct BlockExtents {
 	vector min;
@@ -117,9 +121,10 @@ struct triangle {
 
 // Assuming dA is the smallest
 vector interpD( vector a, float dA, vector b, float dB ) {
-	printf( "abs(dA) = %.2f, max = %.2f, min = %.2f.\n", fabsf(dA), fmaxf(dA,dB), fminf(dA,dB));
+	//printf( "abs(dA) = %.2f, max = %.2f, min = %.2f.\n", fabsf(dA), fmaxf(dA,dB), fminf(dA,dB));
 	val f = fabsf(dA) / (max(dA,dB) - min(dA,dB));
 	vector v = veclerp( a, b, f );
+	/*
 	printf( "Interping between " );
 	vector_print( &a );
 	printf( " with density %.2f and ", dA );
@@ -127,6 +132,7 @@ vector interpD( vector a, float dA, vector b, float dB ) {
 	printf( " with density %.2f, result: ", dB );
 	vector_print( &v );
 	printf( "\n" );
+	*/
 	return v;
 }
 
@@ -260,23 +266,37 @@ MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
 */
 
 //////////////////////////////
+float fromHeightField(float height, float y) {
+	return height - (y - 60.f);
+}
+
 float densityFn(vector v) {
-	return -v.y + 1.f + fabsf(v.x - 15.f) * 0.54+ fabsf(v.z - 15.f) * 0.54;
+	float height = canyonTerrain_sampleUV( v.x, v.z );
+	return fromHeightField(height, v.y);
+	//return -v.y + 1.f + fabsf(v.x - 15.f) * 0.54+ fabsf(v.z - 15.f) * 0.54;
 }
 
 vertex* vertsFor(const Buffers& bs) {
 	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
+	float scale = 1.f;
 	for ( int i = 0; i < bs.vertCount; ++i ) {
 			vertices[i].position = bs.verts[i];
 			vertices[i].color = 0;
-			vertices[i].uv.x = 0.f;
-			vertices[i].uv.y = 0.f;
+			vertices[i].uv.x = vertices[i].position.x * scale;
+			vertices[i].uv.y = vertices[i].position.y * scale;
 			vertices[i].normal = Vector(0.f, 1.f, 0.f, 1.f);
+			vertices[i].normal.w = vertices[i].position.z * scale;
 	}
 	return vertices;
 }
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
-	drawCall_create( &renderPass_main, *Shader::byName("dat/shaders/reflective.s"), bs.indexCount, bs.indices, vertices, static_texture_default->gl_tex, modelview);
+	render_resetModelView( );
+	if (bs.indexCount > 0 && marching_texture->gl_tex && marching_texture->gl_tex ) {
+		val draw = drawCall::create( &renderPass_main, *Shader::byName("dat/shaders/terrain.s"), bs.indexCount, bs.indices, vertices, marching_texture->gl_tex, modelview);
+		draw->texture_b = marching_texture_cliff->gl_tex;		
+		draw->texture_c = marching_texture->gl_tex;		
+		draw->texture_d = marching_texture_cliff->gl_tex;		
+	}
 }
 
 cube makeTestCube(vector origin, float size ) {
@@ -303,17 +323,17 @@ cube makeTestCube(vector origin, float size ) {
 
 	for (int i = 0; i < 8; ++i) {
 			c.densities[i] = densityFn(c.corners[i]);
-			vector_print(&c.corners[i]);
-			printf( ", density: %.2f\n", c.densities[i] );
+			//vector_print(&c.corners[i]);
+			//printf( ", density: %.2f\n", c.densities[i] );
 	}
 	return c;
 }
 
 // *** test statics
-Buffers static_marching_buffers[9];
-vertex* static_marching_verts[9];
-
-static const int drawTestCubes = 9;
+static const int radius = 24;
+static const int drawTestCubes = radius * radius * radius;
+Buffers static_marching_buffers[drawTestCubes];
+vertex* static_marching_verts[drawTestCubes]; 
 
 void test_marching_draw() {
 	for (int i = 0; i < drawTestCubes; ++i)
@@ -333,12 +353,15 @@ void test_interp() {
 
 void test_cube() {
 	test_interp();
+
+	if ( !marching_texture ) 			{ marching_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
+	if ( !marching_texture_cliff )	{ marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
 	//vAssert( 0 );
-	float size = 10.0;
-	//cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), size);
+	//cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), radius);
 	//auto tris = trianglesFor(c);
 	//auto buffers = buffersFor(tris);
-	vector cubePos[9];
+	vector cubePos[drawTestCubes];
+	/*
 	cubePos[0] = Vector(0.0, 0.0, 0.0, 1.0);
 	cubePos[1] = Vector(10.0, 0.0, 0.0, 1.0);
 	cubePos[2] = Vector(0.0, 0.0, 10.0, 1.0);
@@ -348,16 +371,28 @@ void test_cube() {
 	cubePos[6] = Vector(20.0, 0.0, 10.0, 1.0);
 	cubePos[7] = Vector(10.0, 0.0, 20.0, 1.0);
 	cubePos[8] = Vector(20.0, 0.0, 20.0, 1.0);
-	//for ( int i = 0; i < buffers.vertCount; ++i )
-			//vector_printf( "Vert: ", &buffers.verts[i]);
-	//val verts = vertsFor(buffers);
-	//drawMarchedCube(buffers, verts);
-	for (int i = 0; i < drawTestCubes; ++i) {
-		cube c = makeTestCube(cubePos[i], size);
-		auto buffers = buffersFor(trianglesFor(c));
-		val verts = vertsFor(buffers);
-		static_marching_buffers[i] = buffers;
-		static_marching_verts[i] = verts;
+	*/
+	// TODO - for (auto i : 1 to 10)
+	float w = 5.0;
+	int i = 0;
+	for ( int x = 0; x < radius; ++x ) {
+		for ( int y = 0; y < radius; ++y ) {
+			for ( int z = 0; z < radius; ++z ) {
+				cubePos[i] = vector_add(Vector((float)x * w, (float)y * w, (float)z * w, 1.0 ), Vector(-20.f, -100.f, -20.f, 0.f));
+				cube c = makeTestCube(cubePos[i], w);
+				auto buffers = buffersFor(trianglesFor(c));
+				val verts = vertsFor(buffers);
+				static_marching_buffers[i] = buffers;
+				static_marching_verts[i] = verts;
+				++i;
+			}
+		}
 	}
+		//for ( int i = 0; i < buffers.vertCount; ++i )
+		//vector_printf( "Vert: ", &buffers.verts[i]);
+		//val verts = vertsFor(buffers);
+		//drawMarchedCube(buffers, verts);
+	//for (int i = 0; i < drawTestCubes; ++i) {
+	//}
 }
 
