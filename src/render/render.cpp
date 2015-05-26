@@ -106,6 +106,15 @@ GLuint render_colorMask = GL_INVALID_ENUM;
 GLuint render_depthMask = GL_INVALID_ENUM;
 GLuint render_alphaBlend = GL_INVALID_ENUM;
 
+void PassSequence::render(window* w) {
+	if (prev) prev->render(w);
+	ths.render( w );
+}
+
+void renderPass::render(window* w) {
+	render_drawPass(w, *this);
+}
+
 void renderPass_clearBuffers( renderPass* pass ) {
 	memset( pass->next_call_index, 0, sizeof( int ) * kCallBufferCount );
 }
@@ -677,7 +686,6 @@ void renderPostProcess( window* w, const postFX& post) { renderPostProcess( w, p
 
 void render_draw( window* w, engine* e ) {
 	(void)e;
-	printf("blarg.\n");
 	const bool shouldDrawSsao = !render_bloom_enabled;
 	postFX mainDraw = postFX( mainBuffer, render_buffers[0], Shader::byName( "dat/shaders/ui.s" ));
 	postFX downscale = postFX( render_buffers[1], render_buffers[0], Shader::byName( "dat/shaders/ui.s" ));
@@ -686,33 +694,32 @@ void render_draw( window* w, engine* e ) {
 	postFX dof = postFX( mainBuffer, render_buffers[3], Shader::byName( "dat/shaders/dof.s" ));
 	postFX drawSsao = postFX( mainBuffer, ssaoBuffer, Shader::byName( "dat/shaders/ui.s" ));
 	postFX ssao = postFX( ssaoBuffer, render_buffers[0]->depth(), Shader::byName( "dat/shaders/ssao.s" ));
-
 	render_set3D( w->width, w->height );
 
 	// Draw to 0 first
 	attachFrameBuffer( render_buffers[0] ); {
 		render_drawPass( w, renderPass_depth );
 	} detachFrameBuffer();
-
+	
 	renderPostProcess( w, ssao );
 
 	if ( shouldDrawSsao ) {
 		renderPostProcess( w, drawSsao );
 	} else {
 		attachFrameBuffer( render_buffers[0] ); {
-			render_drawPass( w, renderPass_depth >> renderPass_main >> renderPass_alpha );
+			(renderPass_depth >> renderPass_main >> renderPass_alpha).render( w );
 		} detachFrameBuffer();
-
-		renderPostProcess( w, mainDraw );
-
-		if ( !shouldDrawSsao ) {
-			renderPostProcess( w, downscale );
-			renderPostProcess( w, gaussian );
-			renderPostProcess( w, gaussianVert );
-			renderPostProcess( w, dof );
-		}
 	}
-	render_drawPass( w, renderPass_ui >> renderPass_debug );
+
+	renderPostProcess( w, mainDraw );
+
+	if ( !shouldDrawSsao ) {
+		renderPostProcess( w, downscale );
+		renderPostProcess( w, gaussian );
+		renderPostProcess( w, gaussianVert );
+		renderPostProcess( w, dof );
+	}
+	(renderPass_ui >> renderPass_debug).render( w );
 	render_swapBuffers( w );
 }
 
@@ -726,7 +733,6 @@ void render_renderThreadTick( engine* e ) {
 	graph_render( gpu_fpsgraph );
 	timer_getDelta(gpu_fps_timer);
 #endif
-	printf("scrund.\n");
 	render_draw( &window_main, e );
 #ifdef GRAPH_GPU_FPS
 	glFinish();
