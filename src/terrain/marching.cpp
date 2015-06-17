@@ -42,13 +42,23 @@ struct BlockExtents {
 	vector min;
 	vector max;
 	int subdivides;
+
+	BlockExtents( vector mn, vector mx, int sub ) : min(mn), max(mx), subdivides(sub) {}
+};
+
+struct Buffers {
+	int indexCount;
+	int vertCount;
+	uint16_t* indices;
+	vector* verts;
+	vector* normals;
 };
 
 struct MarchBlock {
 	BlockExtents extents;
 	vertex*	verts;
-	int*	indices;
-
+//	int*	indices;
+	Buffers buffers;
 };
 typedef float (*DensityFunction) (vector); // Sample a density at a coord
 
@@ -64,16 +74,12 @@ MarchBlock* march(const BlockExtents b, const Grid<tuple<vector, float>, cubeSiz
 
 MarchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 	// sample density function at all grid points
-	// grid = 3dimensional array (don't worry about cache for now)
-	auto densities = densitiesFor(b, d);
-	//MarchBlock* m = march(b, densities);
-	(void)densities;
-	MarchBlock* m = nullptr;
-	return m;
+	// grid = 3-dimensional array (don't worry about cache for now)
+	return march(b, densitiesFor(b, d));
 }
 
 auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
-	val delta = (b.max.x - b.min.x) / (float)(b.subdivides);
+	val delta = (b.max.x - b.min.x) / (float)b.subdivides;
 
 	auto g = Grid<vector, cubeSize>();
 	for ( int i = 0; i < cubeSize; ++i )
@@ -84,8 +90,7 @@ auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
 }
 
 auto densitiesFor ( BlockExtents b, DensityFunction d ) -> Grid<tuple<vector,float>, cubeSize> {
-	auto coords = coordsFor( b );
-	return coords.fproduct( function<float(vector)>(d) );
+	return coordsFor( b ).fproduct( function<float(vector)>(d) );
 }
 
 struct cube {
@@ -99,18 +104,6 @@ int triIndex(cube c) {
 	val surface = 0.f;
 	for (int i = 0; i < 8; ++i) index |= ((c.densities[i] <= surface) ? 1 << i : 0);
 	return index;
-
-	/*
-  unsigned int cubeindex = 0;
-                for(int m=0; m<8; ++m)
-                    if(v[m] <= isovalue)
-                        cubeindex |= 1<<m;
-
-                v[0] = f(x,y,z); v[1] = f(x_dx,y,z);
-                v[2] = f(x_dx,y_dy,z); v[3] = f(x, y_dy, z);
-                v[4] = f(x,y,z_dz); v[5] = f(x_dx,y,z_dz);
-                v[6] = f(x_dx,y_dy,z_dz); v[7] = f(x, y_dy, z_dz);
-												*/
 }
 
 typedef int hash;
@@ -121,19 +114,8 @@ struct triangle {
 
 // Assuming dA is the smallest
 vector interpD( vector a, float dA, vector b, float dB ) {
-	//printf( "abs(dA) = %.2f, max = %.2f, min = %.2f.\n", fabsf(dA), fmaxf(dA,dB), fminf(dA,dB));
 	val f = fabsf(dA) / (max(dA,dB) - min(dA,dB));
-	vector v = veclerp( a, b, f );
-	/*
-	printf( "Interping between " );
-	vector_print( &a );
-	printf( " with density %.2f and ", dA );
-	vector_print( &b );
-	printf( " with density %.2f, result: ", dB );
-	vector_print( &v );
-	printf( "\n" );
-	*/
-	return v;
+	return veclerp( a, b, f );
 }
 
 auto cornersFor(int edge) -> tuple<int, int> {
@@ -188,14 +170,13 @@ auto trianglesFor(cube c) -> seq<triangle>{
 	return tris;
 }
 
-struct Buffers {
-	int indexCount;
-	int vertCount;
-	uint16_t* indices;
-	vector* verts;
-};
+auto normalFor(vector a, vector b, vector c) -> vector {
+		vector ab = vector_sub(a, b);
+		vector bc = vector_sub(b, c);
+		return normalized(vector_cross(bc, ab));
+}
 
-auto buffersFor(seq<triangle> tris) -> Buffers {
+auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	/*
 		 Naive solution - just map each vert to a new vert, each index becomes just that
 		 */
@@ -206,12 +187,17 @@ auto buffersFor(seq<triangle> tris) -> Buffers {
 	bs.vertCount = length;
 	bs.indices = (uint16_t*)mem_alloc(sizeof(uint16_t) * length);
 	bs.verts = (vector*)mem_alloc(sizeof(vector) * length);
+	bs.normals = (vector*)mem_alloc(sizeof(vector) * length);
 
 	int i = 0;
 	for ( auto t : tris ) {
 		bs.verts[i++] = get<0>(t.verts[0]);
 		bs.verts[i++] = get<0>(t.verts[1]);
 		bs.verts[i++] = get<0>(t.verts[2]);
+		vector normal = normalFor(bs.verts[i-1], bs.verts[i-2], bs.verts[i-3]);
+		bs.normals[i-1] = normal;
+		bs.normals[i-2] = normal;
+		bs.normals[i-3] = normal;
 	}
 	for ( int j = 0; j < i; ++j ) bs.indices[j] = j;
 
@@ -220,50 +206,72 @@ auto buffersFor(seq<triangle> tris) -> Buffers {
 
 	return bs;
 }
+typedef Grid<tuple<vector,float>, cubeSize> densityGrid;
 
-/*
-seq<cube> cubesFor(const Grid<tuple<vector,float>, cubeSize> g) {
+void setCorner(cube& c, int i, tuple<vector,float> t) {
+	c.corners[i] = get<0>(t);
+	c.densities[i] = get<1>(t);
+}
+
+seq<cube> cubesFor(const densityGrid& g) {
 	// generate a list of cubes for the block extents
 	// probably needs to LoD here too?
 	seq<cube> cubes;
 	for ( int i = 0; i < cubeSize-1; ++i )
-		for ( int i = 0; i < cubeSize-1; ++i )
-			for ( int i = 0; i < cubeSize-1; ++i ) {
+		for ( int j = 0; j < cubeSize-1; ++j )
+			for ( int k = 0; k < cubeSize-1; ++k ) {
 				cube c = cube();
-				auto topLeft = g.values[i][j][k]
-				c.corners[0] = topLeft.first;
-				c.densities[0] = topLeft.second;
-				auto idx = g.values[i+1][j][k];
-				c.corners[1] = idx.first;
-				c.densities[1] = ix.second;
-				auto idx = g.values[i][j+1][k];
-				c.corners[2] = idx.first;
-				c.densities[2] = ix.second;
-				auto idx = g.values[i+1][j+1][k];
-				c.corners[3] = idx.first;
-				c.densities[3] = ix.second;
-				auto idx = g.values[i][j][k+1];
-				c.corners[4] = idx.first;
-				c.densities[4] = ix.second;
-				auto idx = g.values[i+1][j][k+1];
-				c.corners[5] = idx.first;
-				c.densities[5] = ix.second;
-				auto idx = g.values[i][j+1][k+1];
-				c.corners[6] = idx.first;
-				c.densities[6] = ix.second;
-				auto idx = g.values[i+1][j+1][k+1];
-				c.corners[7] = idx.first;
-				c.densities[7] = ix.second;
-				cubes.push_back(c);
+
+				setCorner(c, 0, g.values[i][j][k] );
+				setCorner(c, 1, g.values[i+1][j][k] );
+				setCorner(c, 2, g.values[i+1][j+1][k] );
+				setCorner(c, 3, g.values[i][j+1][k] );
+				setCorner(c, 4, g.values[i][j][k+1] );
+				setCorner(c, 5, g.values[i+1][j][k+1] );
+				setCorner(c, 6, g.values[i+1][j+1][k+1] );
+				setCorner(c, 7, g.values[i][j+1][k+1] );
+				cubes.push_front(c);
 			}
 	return cubes;
 }
 
-MarchBlock* march(const BlockExtents b, const Grid<float>& densities) {
-	seq<cube> cubes = cubesFor(densitites);
-	cubes.flatMap(trianglesFor(densities))
+vertex* vertsFor(const Buffers& bs) {
+	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
+	const float scale = 1.f;
+	for ( int i = 0; i < bs.vertCount; ++i ) {
+		vertices[i].position = bs.verts[i];
+		vertices[i].color = 0;
+		vertices[i].uv.x = vertices[i].position.x * scale;
+		vertices[i].uv.y = vertices[i].position.y * scale;
+		//vertices[i].normal = Vector(0.f, 1.f, 0.f, 1.f);
+		vertices[i].normal = bs.normals[i];
+		vertices[i].normal.w = vertices[i].position.z * scale;
+	}
+	return vertices;
 }
-*/
+
+MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
+	(void)b;
+	seq<cube> cubes = cubesFor(densities);
+
+	//
+	val triangles = new seq<triangle>();
+	for( auto c : cubes ) {
+		val tris = trianglesFor(c);
+		for( auto t : tris) triangles->push_front(t);
+	}
+	//val triangles = cubes.flatMap(trianglesFor(densities)); // TODO - triangles from densities
+	//
+
+
+	val buffers = buffersFor(*triangles);
+	val verts = vertsFor(buffers);
+	MarchBlock* m = (MarchBlock*)mem_alloc(sizeof( MarchBlock ));
+	m->extents = b;
+	m->verts = verts;
+	m->buffers = buffers;
+	return m;
+}
 
 //////////////////////////////
 float fromHeightField(float height, float y) {
@@ -273,22 +281,8 @@ float fromHeightField(float height, float y) {
 float densityFn(vector v) {
 	float height = canyonTerrain_sampleUV( v.x, v.z );
 	return fromHeightField(height, v.y);
-	//return -v.y + 1.f + fabsf(v.x - 15.f) * 0.54+ fabsf(v.z - 15.f) * 0.54;
 }
 
-vertex* vertsFor(const Buffers& bs) {
-	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
-	float scale = 1.f;
-	for ( int i = 0; i < bs.vertCount; ++i ) {
-			vertices[i].position = bs.verts[i];
-			vertices[i].color = 0;
-			vertices[i].uv.x = vertices[i].position.x * scale;
-			vertices[i].uv.y = vertices[i].position.y * scale;
-			vertices[i].normal = Vector(0.f, 1.f, 0.f, 1.f);
-			vertices[i].normal.w = vertices[i].position.z * scale;
-	}
-	return vertices;
-}
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
 	render_resetModelView( );
 	if (bs.indexCount > 0 && marching_texture->gl_tex && marching_texture->gl_tex ) {
@@ -310,7 +304,6 @@ cube makeTestCube(vector origin, float size ) {
 	*/
 
 	//two spirals, on front Z and back Z
-
 	c.corners[0] = origin;
 	c.corners[1] = vector_add(origin, Vector(size, 0.0, 0.0, 0.0));
 	c.corners[2] = vector_add(origin, Vector(size, size, 0.0, 0.0));
@@ -321,23 +314,23 @@ cube makeTestCube(vector origin, float size ) {
 	c.corners[6] = vector_add(origin, Vector(size, size, size, 0.0));
 	c.corners[7] = vector_add(origin, Vector(0.0, size, size, 0.0));
 
-	for (int i = 0; i < 8; ++i) {
-			c.densities[i] = densityFn(c.corners[i]);
-			//vector_print(&c.corners[i]);
-			//printf( ", density: %.2f\n", c.densities[i] );
-	}
+	for (int i = 0; i < 8; ++i)
+		c.densities[i] = densityFn(c.corners[i]);
 	return c;
 }
 
 // *** test statics
-static const int radius = 24;
-static const int drawTestCubes = radius * radius * radius;
+static const int cubesPerWidth = 24;
+static const int drawTestCubes = cubesPerWidth * cubesPerWidth * cubesPerWidth;
 Buffers static_marching_buffers[drawTestCubes];
 vertex* static_marching_verts[drawTestCubes]; 
+MarchBlock* static_cube = NULL;
 
 void test_marching_draw() {
-	for (int i = 0; i < drawTestCubes; ++i)
-		drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
+	//for (int i = 0; i < drawTestCubes; ++i)
+	//	drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
+	if (static_cube)
+		drawMarchedCube( static_cube->buffers, static_cube->verts );
 }
 
 void test_interp() {
@@ -356,31 +349,19 @@ void test_cube() {
 
 	if ( !marching_texture ) 			{ marching_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
 	if ( !marching_texture_cliff )	{ marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
-	//vAssert( 0 );
-	//cube c = makeTestCube(Vector(0.0, 0.0, 0.0, 1.0), radius);
-	//auto tris = trianglesFor(c);
-	//auto buffers = buffersFor(tris);
-	vector cubePos[drawTestCubes];
-	/*
-	cubePos[0] = Vector(0.0, 0.0, 0.0, 1.0);
-	cubePos[1] = Vector(10.0, 0.0, 0.0, 1.0);
-	cubePos[2] = Vector(0.0, 0.0, 10.0, 1.0);
-	cubePos[3] = Vector(10.0, 0.0, 10.0, 1.0);
-	cubePos[4] = Vector(20.0, 0.0, 0.0, 1.0);
-	cubePos[5] = Vector(0.0, 0.0, 20.0, 1.0);
-	cubePos[6] = Vector(20.0, 0.0, 10.0, 1.0);
-	cubePos[7] = Vector(10.0, 0.0, 20.0, 1.0);
-	cubePos[8] = Vector(20.0, 0.0, 20.0, 1.0);
-	*/
+
+	//vector cubePos[drawTestCubes];
 	// TODO - for (auto i : 1 to 10)
 	float w = 5.0;
+	/*
 	int i = 0;
-	for ( int x = 0; x < radius; ++x ) {
-		for ( int y = 0; y < radius; ++y ) {
-			for ( int z = 0; z < radius; ++z ) {
-				cubePos[i] = vector_add(Vector((float)x * w, (float)y * w, (float)z * w, 1.0 ), Vector(-20.f, -100.f, -20.f, 0.f));
+	val origin = Vector(-20.f, -100.f, -20.f, 0.f);
+	for ( int x = 0; x < cubesPerWidth; ++x ) {
+		for ( int y = 0; y < cubesPerWidth; ++y ) {
+			for ( int z = 0; z < cubesPerWidth; ++z ) {
+				cubePos[i] = vector_add(Vector((float)x * w, (float)y * w, (float)z * w, 1.0 ), origin);
 				cube c = makeTestCube(cubePos[i], w);
-				auto buffers = buffersFor(trianglesFor(c));
+				val buffers = buffersFor(trianglesFor(c));
 				val verts = vertsFor(buffers);
 				static_marching_buffers[i] = buffers;
 				static_marching_verts[i] = verts;
@@ -388,11 +369,9 @@ void test_cube() {
 			}
 		}
 	}
-		//for ( int i = 0; i < buffers.vertCount; ++i )
-		//vector_printf( "Vert: ", &buffers.verts[i]);
-		//val verts = vertsFor(buffers);
-		//drawMarchedCube(buffers, verts);
-	//for (int i = 0; i < drawTestCubes; ++i) {
-	//}
+	*/
+	
+	BlockExtents b = BlockExtents( origin, vector_add(origin, Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f)), cubesPerWidth );
+	static_cube = generateBlock(b, densityFn);
 }
 
