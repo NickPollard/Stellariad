@@ -106,10 +106,23 @@ int triIndex(cube c) {
 	return index;
 }
 
+auto normalFor(vector a, vector b, vector c) -> vector;
+
 typedef int hash;
 typedef tuple<vector, hash> vx;
 struct triangle { 
 	vx verts[3]; 
+	auto pos(int i) const -> vector {
+		return get<0>(verts[i]);
+	}
+
+	auto hash(int i) const -> int {
+		return get<1>(verts[i]);
+	}
+
+	auto normal() const -> vector {
+		return normalFor(pos(0), pos(1), pos(2));
+	}
 };
 
 // Assuming dA is the smallest
@@ -120,6 +133,11 @@ vector interpD( vector a, float dA, vector b, float dB ) {
 
 auto cornersFor(int edge) -> tuple<int, int> {
 	return make_tuple(edges[edge][0], edges[edge][1]);
+}
+
+int mkHash() {
+	static int hash = 0;
+	return hash++;
 }
 
 // index defines which edge cube it is
@@ -135,7 +153,8 @@ auto cubeVert( cube c, int index ) -> vx {
 	val dB = c.densities[second];
 	val v = interpD( a, dA, b, dB );
 	// TODO
-	val hash = index; // Do we even need this? Isn't the index the hash?
+	//val hash = index; // Do we even need this? Isn't the index the hash?
+	val hash = mkHash(); // Do we even need this? Isn't the index the hash?
 	// No because it might be shared with a different cube
 	// So we need to know where the cube is in the block
 	return make_tuple(v, hash); // Except we need to tuple it with a hash
@@ -158,6 +177,7 @@ triangle tri(vx a, vx b, vx c) {
 auto trianglesFor(cube c) -> seq<triangle>{
 	val index = triIndex(c);
 	val maxIndexSize = 16;
+	// TODO - break this out into a fn
 	int8_t indices[maxIndexSize];
 	memcpy(indices, triangles[index], sizeof(int8_t)*maxIndexSize);
 	// Now we have some kind of index list
@@ -171,15 +191,46 @@ auto trianglesFor(cube c) -> seq<triangle>{
 }
 
 auto normalFor(vector a, vector b, vector c) -> vector {
-		vector ab = vector_sub(a, b);
-		vector bc = vector_sub(b, c);
-		return normalized(vector_cross(bc, ab));
+	vector ab = vector_sub(a, b);
+	vector bc = vector_sub(b, c);
+	return normalized(vector_cross(bc, ab));
 }
 
 auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	/*
 		 Naive solution - just map each vert to a new vert, each index becomes just that
+
+		 TODO - this is our next feature
+		 What we actually want to do
+		 - groupByHash
+		 - for shared verts (ie same hash) average the nornals (sum and normalize)
+		 - for every triangle, calculate normal and accumulate that to all verts
+		 - normalize every vert normal
+		 - store normals in buffers
+		 
+		 we know for a marchblock the total possible number of verts
+		 can have an array to store the verts, indexed by hash
+		 store each vertex there
+		 store (and accumulate normals)
+		 then put in buffer
+
 		 */
+
+	static const int MaxVerts = (cubeSize + 1) * (cubeSize + 1) * (cubeSize + 1) * 3; // TODO fix
+	vertex verts[MaxVerts];
+	for (int i = 0; i < MaxVerts; ++i)
+		verts[i].normal = Vector(0.0, 0.0, 0.0, 0.0);
+	for (const auto t: tris) {
+		val normal = t.normal();
+		for (int i = 0; i < 3; ++i ) {
+			var hash = t.hash(i);
+			verts[hash].position = t.pos(i);
+			verts[hash].normal = vector_add(verts[hash].normal, normal);
+		}
+	}
+	for (int i = 0; i < MaxVerts; ++i)
+		verts[i].normal = normalized(verts[i].normal);
+
 	Buffers bs;
 	// TODO - length will need to take into account index compaction?
 	int length = std::distance(tris.begin(), tris.end()) * 3;
@@ -191,13 +242,19 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 
 	int i = 0;
 	for ( auto t : tris ) {
-		bs.verts[i++] = get<0>(t.verts[0]);
-		bs.verts[i++] = get<0>(t.verts[1]);
-		bs.verts[i++] = get<0>(t.verts[2]);
-		vector normal = normalFor(bs.verts[i-1], bs.verts[i-2], bs.verts[i-3]);
-		bs.normals[i-1] = normal;
-		bs.normals[i-2] = normal;
-		bs.normals[i-3] = normal;
+		for (int j = 0; j < 3; j++) {
+			val hash = t.hash(j);
+			bs.verts[i] = verts[hash].position;
+			bs.normals[i] = verts[hash].normal;
+			++i;
+		}
+//		bs.verts[i++] = t.pos(1);
+//		bs.normals[i-1] = verts[hash].normal;
+//		bs.verts[i++] = t.pos(2);
+//		bs.normals[i-1] = verts[hash].normal;
+		//bs.normals[i-2] = normal;
+		//bs.normals[i-3] = normal;
+		//vector normal = normalFor(bs.verts[i-1], bs.verts[i-2], bs.verts[i-3]);
 	}
 	for ( int j = 0; j < i; ++j ) bs.indices[j] = j;
 
