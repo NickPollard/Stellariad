@@ -2,6 +2,7 @@
 #pragma once
 #include <tuple>
 #include <functional>
+#include "marching_triangles.h"
 
 using std::tuple;
 using std::make_tuple;
@@ -10,6 +11,7 @@ using std::function;
 // Lookup tables
 extern int8_t triangles[256][16];
 extern int8_t edges[12][2];
+extern Offset edgeOffset[12];
 
 template<typename A, typename B>
 function<B(A)> make_function(B *(f)(A)) {
