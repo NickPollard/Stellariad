@@ -79,7 +79,7 @@ MarchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 }
 
 auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
-	val delta = (b.max.x - b.min.x) / (float)b.subdivides;
+	val delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);//b.subdivides;
 
 	auto g = Grid<vector, cubeSize>();
 	for ( int i = 0; i < cubeSize; ++i )
@@ -96,6 +96,7 @@ auto densitiesFor ( BlockExtents b, DensityFunction d ) -> Grid<tuple<vector,flo
 struct cube {
 	vector corners[8]; // in a particular order - bits for x/y/z?
 	float  densities[8]; // in same order
+	int origin;
 };
 
 int triIndex(cube c) {
@@ -121,7 +122,7 @@ struct triangle {
 	}
 
 	auto normal() const -> vector {
-		return normalFor(pos(0), pos(1), pos(2));
+		return normalFor(pos(0), pos(2), pos(1));
 	}
 };
 
@@ -140,8 +141,15 @@ int mkHash() {
 	return hash++;
 }
 
+int offsetOf( int index, int width ) {
+	val offset = edgeOffset[index];
+	// TODO - could compute these offline if width is static?
+	int o = (offset.x * (width * width) + offset.y * width + offset.z) * 3 + offset.dir;
+	return o;
+}
+
 // index defines which edge cube it is
-auto cubeVert( cube c, int index ) -> vx {
+auto cubeVert( cube c, int index, int origin ) -> vx {
 	// given a cube c, and an index indicating an edge-vertex on that cube, calculate the actual
 	// vertex position using the corner densities and positions
 	val corners = cornersFor(index);
@@ -153,8 +161,12 @@ auto cubeVert( cube c, int index ) -> vx {
 	val dB = c.densities[second];
 	val v = interpD( a, dA, b, dB );
 	// TODO
+	val width = cubeSize - 1;
+	val hash = origin * 3 + offsetOf(index, width);
+	printf("Vert hash %d. (origin %d, offset %d)\n", hash, origin, offsetOf(index, width));
+	vAssert( hash >= 0 );
 	//val hash = index; // Do we even need this? Isn't the index the hash?
-	val hash = mkHash(); // Do we even need this? Isn't the index the hash?
+	//val hash = mkHash(); // Do we even need this? Isn't the index the hash?
 	// No because it might be shared with a different cube
 	// So we need to know where the cube is in the block
 	return make_tuple(v, hash); // Except we need to tuple it with a hash
@@ -186,7 +198,16 @@ auto trianglesFor(cube c) -> seq<triangle>{
 	// probably we have a list of ints
 	auto tris = seq<triangle>();
 	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 )
-		tris.push_front(tri( cubeVert(c, indices[i+0]), cubeVert(c, indices[i+1]), cubeVert(c, indices[i+2])));
+		tris.push_front(tri( cubeVert(c, indices[i+0], c.origin), cubeVert(c, indices[i+1], c.origin), cubeVert(c, indices[i+2], c.origin)));
+//	printf("Triangles for cube origin %d.\n", c.origin);
+		
+//	vx cVerts[3];
+//	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 ) {
+//		for ( int j = 0; j < maxIndexSize && indices[i + j] >= 0; )
+//			cVerts[j] = cubeVert(c, indices[i+j], c.origin);
+//		tris.push_front(tri( cVerts[i], cVerts[i+1], cVerts[i+2]));
+//	}
+
 	return tris;
 }
 
@@ -226,10 +247,12 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 			var hash = t.hash(i);
 			verts[hash].position = t.pos(i);
 			verts[hash].normal = vector_add(verts[hash].normal, normal);
+			(void)hash;
+			(void)normal;
 		}
 	}
 	for (int i = 0; i < MaxVerts; ++i)
-		verts[i].normal = normalized(verts[i].normal);
+		verts[i].normal = normalized(verts[i].normal);//Vector(0.0, 0.0, 0.0, 0.0);
 
 	Buffers bs;
 	// TODO - length will need to take into account index compaction?
@@ -274,19 +297,21 @@ seq<cube> cubesFor(const densityGrid& g) {
 	// generate a list of cubes for the block extents
 	// probably needs to LoD here too?
 	seq<cube> cubes;
-	for ( int i = 0; i < cubeSize-1; ++i )
-		for ( int j = 0; j < cubeSize-1; ++j )
-			for ( int k = 0; k < cubeSize-1; ++k ) {
+	int origin = 0;
+	for ( int x = 0; x < cubeSize-1; ++x )
+		for ( int y = 0; y < cubeSize-1; ++y )
+			for ( int z = 0; z < cubeSize-1; ++z ) {
 				cube c = cube();
 
-				setCorner(c, 0, g.values[i][j][k] );
-				setCorner(c, 1, g.values[i+1][j][k] );
-				setCorner(c, 2, g.values[i+1][j+1][k] );
-				setCorner(c, 3, g.values[i][j+1][k] );
-				setCorner(c, 4, g.values[i][j][k+1] );
-				setCorner(c, 5, g.values[i+1][j][k+1] );
-				setCorner(c, 6, g.values[i+1][j+1][k+1] );
-				setCorner(c, 7, g.values[i][j+1][k+1] );
+				setCorner(c, 0, g.values[x][y][z] );
+				setCorner(c, 1, g.values[x+1][y][z] );
+				setCorner(c, 2, g.values[x+1][y+1][z] );
+				setCorner(c, 3, g.values[x][y+1][z] );
+				setCorner(c, 4, g.values[x][y][z+1] );
+				setCorner(c, 5, g.values[x+1][y][z+1] );
+				setCorner(c, 6, g.values[x+1][y+1][z+1] );
+				setCorner(c, 7, g.values[x][y+1][z+1] );
+				c.origin = origin++;
 				cubes.push_front(c);
 			}
 	return cubes;
@@ -311,15 +336,11 @@ MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
 	(void)b;
 	seq<cube> cubes = cubesFor(densities);
 
-	//
 	val triangles = new seq<triangle>();
 	for( auto c : cubes ) {
 		val tris = trianglesFor(c);
 		for( auto t : tris) triangles->push_front(t);
 	}
-	//val triangles = cubes.flatMap(trianglesFor(densities)); // TODO - triangles from densities
-	//
-
 
 	val buffers = buffersFor(*triangles);
 	val verts = vertsFor(buffers);
@@ -381,13 +402,14 @@ static const int cubesPerWidth = 24;
 static const int drawTestCubes = cubesPerWidth * cubesPerWidth * cubesPerWidth;
 Buffers static_marching_buffers[drawTestCubes];
 vertex* static_marching_verts[drawTestCubes]; 
-MarchBlock* static_cube = NULL;
+MarchBlock* static_cube[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
 void test_marching_draw() {
 	//for (int i = 0; i < drawTestCubes; ++i)
 	//	drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
-	if (static_cube)
-		drawMarchedCube( static_cube->buffers, static_cube->verts );
+	for ( int i = 0; i < 8; ++i )
+		if (static_cube[i])
+			drawMarchedCube( static_cube[i]->buffers, static_cube[i]->verts );
 }
 
 void test_interp() {
@@ -397,7 +419,7 @@ void test_interp() {
 	float a = 4.1f;
 	float b = -5.9f;
 	vector r1 = interpD(va, a, vb, b);
-   	vector r2 =	interpD(vb, b, va, a);
+	vector r2 =	interpD(vb, b, va, a);
 	test( vector_equal(&r1, &r2), "interpD is commutative", "interpD is NOT commutative" ); 
 }
 
@@ -411,8 +433,8 @@ void test_cube() {
 	// TODO - for (auto i : 1 to 10)
 	float w = 5.0;
 	/*
-	int i = 0;
 	val origin = Vector(-20.f, -100.f, -20.f, 0.f);
+	int i = 0;
 	for ( int x = 0; x < cubesPerWidth; ++x ) {
 		for ( int y = 0; y < cubesPerWidth; ++y ) {
 			for ( int z = 0; z < cubesPerWidth; ++z ) {
@@ -427,8 +449,28 @@ void test_cube() {
 		}
 	}
 	*/
+	auto cubeDimensions = Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f);
 	
 	BlockExtents b = BlockExtents( origin, vector_add(origin, Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f)), cubesPerWidth );
-	static_cube = generateBlock(b, densityFn);
-}
+	static_cube[0] = generateBlock(b, densityFn);
+	auto newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, 0.f, 0.f));
+	static_cube[1] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	newOrigin = vector_add(origin, Vector(0.f, 0.f, cubesPerWidth * w, 0.f));
+	static_cube[2] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, cubesPerWidth * w, 0.f));
+	static_cube[3] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
 
+	newOrigin = vector_add(origin, Vector(0.f, -cubesPerWidth * w, 0.f, 0.f));
+	static_cube[4] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, 0.f, 0.f));
+	static_cube[5] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	newOrigin = vector_add(origin, Vector(0.f, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
+	static_cube[6] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
+	static_cube[7] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+
+	printf( "Offset (origin %d, edge %d): %d.\n", 0, 4, 0 * 3 + offsetOf(4, 4) );
+	printf( "Offset (origin %d, edge %d): %d.\n", 1, 0, 1 * 3 + offsetOf(0, 4) );
+//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
+//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
+}

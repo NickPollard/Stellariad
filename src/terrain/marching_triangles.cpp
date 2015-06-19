@@ -1,5 +1,6 @@
 // marching_triangles.cpp
 #include "common.h"
+#include "marching_triangles.h"
 
 // Edges run from 0-12
 // Each vertex is on one-edge, and must be interpolated between those points
@@ -275,4 +276,22 @@ int8_t edges[12][2] = {
 		{1, 5},
 		{2, 6},
 		{3, 7}
+};
+
+
+Offset edgeOffset[12] = {
+	{0, 0, 0, 0},
+	{1, 0, 0, 1},
+	{0, 1, 0, 0},
+	{0, 0, 0, 1},
+
+	{0, 0, 1, 0},
+	{1, 0, 1, 1},
+	{0, 1, 1, 0},
+	{0, 0, 1, 1},
+
+	{0, 0, 0, 2},
+	{1, 0, 0, 2},
+	{1, 1, 0, 2},
+	{0, 1, 0, 2},
 };

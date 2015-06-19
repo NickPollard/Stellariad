@@ -12,8 +12,8 @@
 flycam* flycam_create() {
 	flycam* f = (flycam*)mem_alloc( sizeof( flycam ));
 
-	f->pan_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
-	f->track_sensitivity = Vector(1.f, 1.f, 1.f, 0.f);
+	f->pan_sensitivity = Vector(2.f, 2.f, 2.f, 0.f);
+	f->track_sensitivity = Vector(2.f, 2.f, 2.f, 0.f);
 
 	matrix_setIdentity( f->transform );
 	f->translation = Vector( 0.f, 0.f, 0.f, 1.f );
@@ -37,6 +37,8 @@ void flycam_input( void* data, input* in  ) {
 		delta = 10.f;
 	if ( input_keyHeld( in, KEY_CTRL ) )
 		delta = 0.01f;
+
+	delta *= 3.f;
 
 	// Cam now looks down the positive Z axis
 	if ( input_keyHeld( in, KEY_W ))

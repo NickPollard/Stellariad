@@ -92,8 +92,8 @@ void main() {
 	local_fog_color = fog_color + (sun_color * fogSun) + (sunwhite * sun);
 	
 	// Cliff
-	float edge_ground = 0.03;
-	float edge_cliff = 0.15;
+	float edge_ground = 0.13;
+	float edge_cliff = 0.25;
 	float d = 1.0 - max( n.y, 0.0 );
 	cliff = smoothstep( edge_ground, edge_cliff, d );
 }
