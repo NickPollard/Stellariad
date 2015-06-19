@@ -144,7 +144,7 @@ int mkHash() {
 int offsetOf( int index, int width ) {
 	val offset = edgeOffset[index];
 	// TODO - could compute these offline if width is static?
-	int o = (offset.x + offset.y * width + offset.z * (width * width)) * 3 + offset.dir;
+	int o = (offset.x * (width * width) + offset.y * width + offset.z) * 3 + offset.dir;
 	return o;
 }
 
@@ -161,8 +161,8 @@ auto cubeVert( cube c, int index, int origin ) -> vx {
 	val dB = c.densities[second];
 	val v = interpD( a, dA, b, dB );
 	// TODO
-	val width = 1;
-	val hash = origin + offsetOf(index, width);
+	val width = cubeSize - 1;
+	val hash = origin * 3 + offsetOf(index, width);
 	printf("Vert hash %d. (origin %d, offset %d)\n", hash, origin, offsetOf(index, width));
 	vAssert( hash >= 0 );
 	//val hash = index; // Do we even need this? Isn't the index the hash?
@@ -199,7 +199,7 @@ auto trianglesFor(cube c) -> seq<triangle>{
 	auto tris = seq<triangle>();
 	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 )
 		tris.push_front(tri( cubeVert(c, indices[i+0], c.origin), cubeVert(c, indices[i+1], c.origin), cubeVert(c, indices[i+2], c.origin)));
-	printf("Triangles for cube origin %d.\n", c.origin);
+//	printf("Triangles for cube origin %d.\n", c.origin);
 		
 //	vx cVerts[3];
 //	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 ) {
@@ -298,19 +298,19 @@ seq<cube> cubesFor(const densityGrid& g) {
 	// probably needs to LoD here too?
 	seq<cube> cubes;
 	int origin = 0;
-	for ( int i = 0; i < cubeSize-1; ++i )
-		for ( int j = 0; j < cubeSize-1; ++j )
-			for ( int k = 0; k < cubeSize-1; ++k ) {
+	for ( int x = 0; x < cubeSize-1; ++x )
+		for ( int y = 0; y < cubeSize-1; ++y )
+			for ( int z = 0; z < cubeSize-1; ++z ) {
 				cube c = cube();
 
-				setCorner(c, 0, g.values[i][j][k] );
-				setCorner(c, 1, g.values[i+1][j][k] );
-				setCorner(c, 2, g.values[i+1][j+1][k] );
-				setCorner(c, 3, g.values[i][j+1][k] );
-				setCorner(c, 4, g.values[i][j][k+1] );
-				setCorner(c, 5, g.values[i+1][j][k+1] );
-				setCorner(c, 6, g.values[i+1][j+1][k+1] );
-				setCorner(c, 7, g.values[i][j+1][k+1] );
+				setCorner(c, 0, g.values[x][y][z] );
+				setCorner(c, 1, g.values[x+1][y][z] );
+				setCorner(c, 2, g.values[x+1][y+1][z] );
+				setCorner(c, 3, g.values[x][y+1][z] );
+				setCorner(c, 4, g.values[x][y][z+1] );
+				setCorner(c, 5, g.values[x+1][y][z+1] );
+				setCorner(c, 6, g.values[x+1][y+1][z+1] );
+				setCorner(c, 7, g.values[x][y+1][z+1] );
 				c.origin = origin++;
 				cubes.push_front(c);
 			}
@@ -468,4 +468,9 @@ void test_cube() {
 	static_cube[6] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
 	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
 	static_cube[7] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+
+	printf( "Offset (origin %d, edge %d): %d.\n", 0, 4, 0 * 3 + offsetOf(4, 4) );
+	printf( "Offset (origin %d, edge %d): %d.\n", 1, 0, 1 * 3 + offsetOf(0, 4) );
+//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
+//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
 }
