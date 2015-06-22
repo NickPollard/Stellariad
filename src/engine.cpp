@@ -286,7 +286,6 @@ void engine_init(engine* e, int argc, char** argv) {
 
 	// TEST
 	test_engine_init( e );
-	//canyon_test();
 }
 
 // Initialises the application

@@ -46,7 +46,7 @@ void runTests() {
 
 	//test_collision();
 
-	test_cube();
+	//test_cube();
 }
 #endif // UNIT_TEST
 

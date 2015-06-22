@@ -703,9 +703,9 @@ void render_draw( window* w, engine* e ) {
 	
 	renderPostProcess( w, ssao );
 
-	if ( shouldDrawSsao ) {
+	if ( shouldDrawSsao )
 		renderPostProcess( w, drawSsao );
-	} else {
+	else {
 		attachFrameBuffer( render_buffers[0] ); {
 			(renderPass_depth >> renderPass_main >> renderPass_alpha).render( w );
 		} detachFrameBuffer();

@@ -116,7 +116,8 @@ player.ship_tick = ( ship, dt ) ->
 	world_v = vvector_add( forward_v, strafe_v )
 	if ship.physic then vphysic_setVelocity( ship.physic, world_v )
 
-player.fire_missile_swarm = ( ship ) -> entities.findClosestEnemies( ship.transform, 4 )\zipWithIndex()\foreach( swarmLaunch(ship) )
+player.fire_missile_swarm = ( ship ) -> 
+	--entities.findClosestEnemies( ship.transform, 4 )\zipWithIndex()\foreach( swarmLaunch(ship) )
 
 player.ship_aileronRoll = ( ship, multiplier ) ->
 	aileron_roll_delta = two_pi * multiplier

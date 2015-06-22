@@ -18,6 +18,7 @@
 //-----------------------
 #include <forward_list>
 #include <tuple>
+#include "canyon.h"
 #include "terrain.h"
 #include "test.h"
 #include "maths/vector.h"
@@ -43,7 +44,7 @@ struct BlockExtents {
 	vector max;
 	int subdivides;
 
-	BlockExtents( vector mn, vector mx, int sub ) : min(mn), max(mx), subdivides(sub) {}
+	BlockExtents( vector mn, vector size, int sub ) : min(mn), max(vector_add(mn, size)), subdivides(sub) {}
 };
 
 struct Buffers {
@@ -60,10 +61,11 @@ struct MarchBlock {
 //	int*	indices;
 	Buffers buffers;
 };
-typedef float (*DensityFunction) (vector); // Sample a density at a coord
+//typedef float (*DensityFunction) (vector); // Sample a density at a coord
+typedef function<float(vector)> DensityFunction; // Sample a density at a coord
 
 // Triangle indices for 256 combinations
-static const int cubeSize = 16;
+static const int cubeSize = 48;
 
 // *** Forward Declarations
 
@@ -79,7 +81,9 @@ MarchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 }
 
 auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
-	val delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);//b.subdivides;
+	// b.min -> world space origin for the block
+	// calculate world-space positions and sample as such
+	val delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);
 
 	auto g = Grid<vector, cubeSize>();
 	for ( int i = 0; i < cubeSize; ++i )
@@ -89,8 +93,8 @@ auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
 	return g;
 }
 
-auto densitiesFor ( BlockExtents b, DensityFunction d ) -> Grid<tuple<vector,float>, cubeSize> {
-	return coordsFor( b ).fproduct( function<float(vector)>(d) );
+auto densitiesFor( BlockExtents b, DensityFunction d ) -> Grid<tuple<vector,float>, cubeSize> {
+	return coordsFor( b ).fproduct( d );
 }
 
 struct cube {
@@ -100,8 +104,7 @@ struct cube {
 };
 
 int triIndex(cube c) {
-	// TODO - will need to check and guarantee order here
-	auto index = 0;
+	int index = 0;
 	val surface = 0.f;
 	for (int i = 0; i < 8; ++i) index |= ((c.densities[i] <= surface) ? 1 << i : 0);
 	return index;
@@ -113,17 +116,11 @@ typedef int hash;
 typedef tuple<vector, hash> vx;
 struct triangle { 
 	vx verts[3]; 
-	auto pos(int i) const -> vector {
-		return get<0>(verts[i]);
-	}
+	auto pos(int i) const -> vector { return get<0>(verts[i]); }
 
-	auto hash(int i) const -> int {
-		return get<1>(verts[i]);
-	}
+	auto hash(int i) const -> int { return get<1>(verts[i]); }
 
-	auto normal() const -> vector {
-		return normalFor(pos(0), pos(2), pos(1));
-	}
+	auto normal() const -> vector { return normalFor(pos(0), pos(2), pos(1)); }
 };
 
 // Assuming dA is the smallest
@@ -136,16 +133,10 @@ auto cornersFor(int edge) -> tuple<int, int> {
 	return make_tuple(edges[edge][0], edges[edge][1]);
 }
 
-int mkHash() {
-	static int hash = 0;
-	return hash++;
-}
-
-int offsetOf( int index, int width ) {
+int offsetOf( int index, int w ) {
 	val offset = edgeOffset[index];
-	// TODO - could compute these offline if width is static?
-	int o = (offset.x * (width * width) + offset.y * width + offset.z) * 3 + offset.dir;
-	return o;
+	// TODO - could compute these offline if w is static?
+	return (offset.x * (w*w) + offset.y * w + offset.z) * 3 + offset.dir;
 }
 
 // index defines which edge cube it is
@@ -160,15 +151,9 @@ auto cubeVert( cube c, int index, int origin ) -> vx {
 	val dA = c.densities[first];
 	val dB = c.densities[second];
 	val v = interpD( a, dA, b, dB );
-	// TODO
-	val width = cubeSize - 1;
-	val hash = origin * 3 + offsetOf(index, width);
-	printf("Vert hash %d. (origin %d, offset %d)\n", hash, origin, offsetOf(index, width));
+	val width = cubeSize;
+	auto hash = origin * 3 + offsetOf(index, width);
 	vAssert( hash >= 0 );
-	//val hash = index; // Do we even need this? Isn't the index the hash?
-	//val hash = mkHash(); // Do we even need this? Isn't the index the hash?
-	// No because it might be shared with a different cube
-	// So we need to know where the cube is in the block
 	return make_tuple(v, hash); // Except we need to tuple it with a hash
 }
 
@@ -189,24 +174,14 @@ triangle tri(vx a, vx b, vx c) {
 auto trianglesFor(cube c) -> seq<triangle>{
 	val index = triIndex(c);
 	val maxIndexSize = 16;
-	// TODO - break this out into a fn
-	int8_t indices[maxIndexSize];
-	memcpy(indices, triangles[index], sizeof(int8_t)*maxIndexSize);
-	// Now we have some kind of index list
-	// need to actually sample
-	// indices indicate where in the cube they are
-	// probably we have a list of ints
+	int8_t* indices = triangles[index];
+	// Now we have the index list for the triangle, to pull out correct verts
 	auto tris = seq<triangle>();
-	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 )
-		tris.push_front(tri( cubeVert(c, indices[i+0], c.origin), cubeVert(c, indices[i+1], c.origin), cubeVert(c, indices[i+2], c.origin)));
-//	printf("Triangles for cube origin %d.\n", c.origin);
-		
-//	vx cVerts[3];
-//	for ( int i = 0; i < maxIndexSize && indices[i] >= 0; i+=3 ) {
-//		for ( int j = 0; j < maxIndexSize && indices[i + j] >= 0; )
-//			cVerts[j] = cubeVert(c, indices[i+j], c.origin);
-//		tris.push_front(tri( cVerts[i], cVerts[i+1], cVerts[i+2]));
-//	}
+	vx cVerts[3];
+	for ( int i = 0; i + 2 < maxIndexSize && indices[i] >= 0; i+=3 ) {
+		for ( int j = 0; j < 3; ++j ) cVerts[j] = cubeVert(c, indices[i+j], c.origin);
+		tris.push_front(tri( cVerts[0], cVerts[1], cVerts[2]));
+	}
 
 	return tris;
 }
@@ -237,22 +212,21 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 
 		 */
 
-	static const int MaxVerts = (cubeSize + 1) * (cubeSize + 1) * (cubeSize + 1) * 3; // TODO fix
-	vertex verts[MaxVerts];
+	static const int MaxVerts = cubeSize * cubeSize * cubeSize * 3; // TODO fix
+	vertex* verts = (vertex*)mem_alloc( sizeof(vertex) * MaxVerts );
 	for (int i = 0; i < MaxVerts; ++i)
 		verts[i].normal = Vector(0.0, 0.0, 0.0, 0.0);
-	for (const auto t: tris) {
+	for (val t: tris) {
 		val normal = t.normal();
 		for (int i = 0; i < 3; ++i ) {
 			var hash = t.hash(i);
+			vAssert( hash >= 0 && hash < MaxVerts );
 			verts[hash].position = t.pos(i);
 			verts[hash].normal = vector_add(verts[hash].normal, normal);
-			(void)hash;
-			(void)normal;
 		}
 	}
 	for (int i = 0; i < MaxVerts; ++i)
-		verts[i].normal = normalized(verts[i].normal);//Vector(0.0, 0.0, 0.0, 0.0);
+		verts[i].normal = normalized(verts[i].normal);
 
 	Buffers bs;
 	// TODO - length will need to take into account index compaction?
@@ -264,28 +238,23 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	bs.normals = (vector*)mem_alloc(sizeof(vector) * length);
 
 	int i = 0;
-	for ( auto t : tris ) {
+	for ( val t : tris ) {
 		for (int j = 0; j < 3; j++) {
 			val hash = t.hash(j);
+			vAssert( i < length );
+			vAssert( hash >= 0 && hash < MaxVerts );
 			bs.verts[i] = verts[hash].position;
 			bs.normals[i] = verts[hash].normal;
 			++i;
 		}
-//		bs.verts[i++] = t.pos(1);
-//		bs.normals[i-1] = verts[hash].normal;
-//		bs.verts[i++] = t.pos(2);
-//		bs.normals[i-1] = verts[hash].normal;
-		//bs.normals[i-2] = normal;
-		//bs.normals[i-3] = normal;
-		//vector normal = normalFor(bs.verts[i-1], bs.verts[i-2], bs.verts[i-3]);
 	}
 	for ( int j = 0; j < i; ++j ) bs.indices[j] = j;
 
-	// TODO - a non-naive solution, compacting verts by hash
-	// Should just be a group-by (more or less)?
+	mem_free( verts );
 
 	return bs;
 }
+
 typedef Grid<tuple<vector,float>, cubeSize> densityGrid;
 
 void setCorner(cube& c, int i, tuple<vector,float> t) {
@@ -297,7 +266,7 @@ seq<cube> cubesFor(const densityGrid& g) {
 	// generate a list of cubes for the block extents
 	// probably needs to LoD here too?
 	seq<cube> cubes;
-	int origin = 0;
+	//int origin = 0;
 	for ( int x = 0; x < cubeSize-1; ++x )
 		for ( int y = 0; y < cubeSize-1; ++y )
 			for ( int z = 0; z < cubeSize-1; ++z ) {
@@ -311,7 +280,9 @@ seq<cube> cubesFor(const densityGrid& g) {
 				setCorner(c, 5, g.values[x+1][y][z+1] );
 				setCorner(c, 6, g.values[x+1][y+1][z+1] );
 				setCorner(c, 7, g.values[x][y+1][z+1] );
-				c.origin = origin++;
+				c.origin = x * (cubeSize*cubeSize) +
+							y * cubeSize +
+							z;
 				cubes.push_front(c);
 			}
 	return cubes;
@@ -319,13 +290,12 @@ seq<cube> cubesFor(const densityGrid& g) {
 
 vertex* vertsFor(const Buffers& bs) {
 	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
-	const float scale = 1.f;
+	const float scale = 0.0325f;
 	for ( int i = 0; i < bs.vertCount; ++i ) {
 		vertices[i].position = bs.verts[i];
 		vertices[i].color = 0;
 		vertices[i].uv.x = vertices[i].position.x * scale;
 		vertices[i].uv.y = vertices[i].position.y * scale;
-		//vertices[i].normal = Vector(0.f, 1.f, 0.f, 1.f);
 		vertices[i].normal = bs.normals[i];
 		vertices[i].normal.w = vertices[i].position.z * scale;
 	}
@@ -333,7 +303,6 @@ vertex* vertsFor(const Buffers& bs) {
 }
 
 MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
-	(void)b;
 	seq<cube> cubes = cubesFor(densities);
 
 	val triangles = new seq<triangle>();
@@ -352,16 +321,55 @@ MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
 }
 
 //////////////////////////////
-float fromHeightField(float height, float y) {
-	return height - (y - 60.f);
+//float fromHeightField(float height, float y) {
+//	return height - (y - 0.f);
+//}
+
+// TODO - cache this so that we don't do a hugely high number of terrain samples
+/*
+   We need to cache these in some kind of struct beforehand
+   do we
+     a) on demand cache them
+	 b) ahead of time cache them
+   */
+struct CachedHeights {
+	CachedHeights() {
+			for (int i = 0; i < width; ++i)
+				for (int j = 0; j < height; ++j)
+						positions[i][j] = FLT_MAX;
+	}
+	auto getOrElseUpdate(vector v, function<float(vector)> sample) -> float {
+		static const int wrap = 1024;
+		val i = (wrap - (int)floorf(v.x)) % wrap;
+		val j = (wrap - (int)floorf(v.z)) % wrap;
+		if (positions[i][j] == FLT_MAX)
+			positions[i][j] = sample(v);
+		return positions[i][j];
+	}
+
+	static const int width = 1024;
+	static const int height = 1024;
+	float positions[width][height];
+};
+
+auto fromHeightFieldWithCache(function<float(vector)> heightfield) -> function<float(vector)> {
+	CachedHeights* cached = new CachedHeights();
+	return function<float(vector)>([cached, heightfield](vector v) { 
+		val height = cached->getOrElseUpdate(v, heightfield);
+		return height - v.y;
+	});
 }
 
-float densityFn(vector v) {
-	float height = canyonTerrain_sampleUV( v.x, v.z );
-	return fromHeightField(height, v.y);
+float densityFn(canyon* c, vector pos) {
+	float u, v;
+	canyonSpaceFromWorld( c, pos.x, pos.z, &u, &v );
+	float height = canyonTerrain_sampleUV( u, v );
+	return height - pos.y;
 }
 
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
+	(void)bs;
+	(void)vertices;
 	render_resetModelView( );
 	if (bs.indexCount > 0 && marching_texture->gl_tex && marching_texture->gl_tex ) {
 		val draw = drawCall::create( &renderPass_main, *Shader::byName("dat/shaders/terrain.s"), bs.indexCount, bs.indices, vertices, marching_texture->gl_tex, modelview);
@@ -371,43 +379,16 @@ void drawMarchedCube(const Buffers& bs, vertex* vertices) {
 	}
 }
 
-cube makeTestCube(vector origin, float size ) {
-	cube c;
-
-	/*
-    v[0] = f(x,y,z); v[1] = f(x_dx,y,z);
-    v[2] = f(x_dx,y_dy,z); v[3] = f(x, y_dy, z);
-    v[4] = f(x,y,z_dz); v[5] = f(x_dx,y,z_dz);
-    v[6] = f(x_dx,y_dy,z_dz); v[7] = f(x, y_dy, z_dz);
-	*/
-
-	//two spirals, on front Z and back Z
-	c.corners[0] = origin;
-	c.corners[1] = vector_add(origin, Vector(size, 0.0, 0.0, 0.0));
-	c.corners[2] = vector_add(origin, Vector(size, size, 0.0, 0.0));
-	c.corners[3] = vector_add(origin, Vector(0.0, size, 0.0, 0.0));
-
-	c.corners[4] = vector_add(origin, Vector(0.0, 0.0, size, 0.0));
-	c.corners[5] = vector_add(origin, Vector(size, 0.0, size, 0.0));
-	c.corners[6] = vector_add(origin, Vector(size, size, size, 0.0));
-	c.corners[7] = vector_add(origin, Vector(0.0, size, size, 0.0));
-
-	for (int i = 0; i < 8; ++i)
-		c.densities[i] = densityFn(c.corners[i]);
-	return c;
-}
-
 // *** test statics
 static const int cubesPerWidth = 24;
 static const int drawTestCubes = cubesPerWidth * cubesPerWidth * cubesPerWidth;
 Buffers static_marching_buffers[drawTestCubes];
 vertex* static_marching_verts[drawTestCubes]; 
-MarchBlock* static_cube[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+#define TestCubes 8
+MarchBlock* static_cube[TestCubes] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 
 void test_marching_draw() {
-	//for (int i = 0; i < drawTestCubes; ++i)
-	//	drawMarchedCube( static_marching_buffers[i], static_marching_verts[i] );
-	for ( int i = 0; i < 8; ++i )
+	for ( int i = 0; i < TestCubes; ++i )
 		if (static_cube[i])
 			drawMarchedCube( static_cube[i]->buffers, static_cube[i]->verts );
 }
@@ -423,54 +404,30 @@ void test_interp() {
 	test( vector_equal(&r1, &r2), "interpD is commutative", "interpD is NOT commutative" ); 
 }
 
-void test_cube() {
+void buildMarchingCubes(canyon* c) {
 	test_interp();
 
-	if ( !marching_texture ) 			{ marching_texture		= texture_load( "dat/img/terrain/grass.tga" ); }
-	if ( !marching_texture_cliff )	{ marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
+	if ( !marching_texture )       { marching_texture       = texture_load( "dat/img/terrain/grass.tga" ); }
+	if ( !marching_texture_cliff ) { marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
 
-	//vector cubePos[drawTestCubes];
-	// TODO - for (auto i : 1 to 10)
-	float w = 5.0;
-	/*
-	val origin = Vector(-20.f, -100.f, -20.f, 0.f);
-	int i = 0;
-	for ( int x = 0; x < cubesPerWidth; ++x ) {
-		for ( int y = 0; y < cubesPerWidth; ++y ) {
-			for ( int z = 0; z < cubesPerWidth; ++z ) {
-				cubePos[i] = vector_add(Vector((float)x * w, (float)y * w, (float)z * w, 1.0 ), origin);
-				cube c = makeTestCube(cubePos[i], w);
-				val buffers = buffersFor(trianglesFor(c));
-				val verts = vertsFor(buffers);
-				static_marching_buffers[i] = buffers;
-				static_marching_verts[i] = verts;
-				++i;
-			}
-		}
-	}
-	*/
-	auto cubeDimensions = Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f);
+	const float w = 5.0;
+	const float width = w * cubesPerWidth;
+	auto blockDimensions = Vector(width, width, width, 0.f);
 	
-	BlockExtents b = BlockExtents( origin, vector_add(origin, Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f)), cubesPerWidth );
-	static_cube[0] = generateBlock(b, densityFn);
-	auto newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, 0.f, 0.f));
-	static_cube[1] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
-	newOrigin = vector_add(origin, Vector(0.f, 0.f, cubesPerWidth * w, 0.f));
-	static_cube[2] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
-	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, cubesPerWidth * w, 0.f));
-	static_cube[3] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	vector origins[8];
+	origins[0] = origin;
+	origins[1] = vector_add(origin, Vector(-width, 0.f, 0.f, 0.f));
+	origins[2] = vector_add(origin, Vector(0.f, 0.f, width, 0.f));
+	origins[3] = vector_add(origin, Vector(-width, 0.f, width, 0.f));
+	origins[4] = vector_add(origin, Vector(0.f, -width, 0.f, 0.f));
+	origins[5] = vector_add(origin, Vector(-width, -width, 0.f, 0.f));
+	origins[6] = vector_add(origin, Vector(0.f, -width, width, 0.f));
+	origins[7] = vector_add(origin, Vector(-width, -width, width, 0.f));
 
-	newOrigin = vector_add(origin, Vector(0.f, -cubesPerWidth * w, 0.f, 0.f));
-	static_cube[4] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
-	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, 0.f, 0.f));
-	static_cube[5] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
-	newOrigin = vector_add(origin, Vector(0.f, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
-	static_cube[6] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
-	newOrigin = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
-	static_cube[7] = generateBlock(BlockExtents( newOrigin, vector_add(newOrigin, cubeDimensions), cubesPerWidth ), densityFn);
+	val fn = function<float(vector)>([c](vector v) { return densityFn(c, v); });
+	val dnFn = fromHeightFieldWithCache(fn);
 
-	printf( "Offset (origin %d, edge %d): %d.\n", 0, 4, 0 * 3 + offsetOf(4, 4) );
-	printf( "Offset (origin %d, edge %d): %d.\n", 1, 0, 1 * 3 + offsetOf(0, 4) );
-//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
-//	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
+	for (int i = 0; i < TestCubes; ++i)
+		//static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), function<float(vector)>([c](vector v) { return densityFn(c, v); }));
+		static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), dnFn );
 }
