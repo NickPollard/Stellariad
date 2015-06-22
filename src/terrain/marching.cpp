@@ -63,7 +63,7 @@ struct MarchBlock {
 typedef float (*DensityFunction) (vector); // Sample a density at a coord
 
 // Triangle indices for 256 combinations
-static const int cubeSize = 16;
+static const int cubeSize = 48;
 
 // *** Forward Declarations
 
@@ -138,13 +138,14 @@ auto cornersFor(int edge) -> tuple<int, int> {
 
 int mkHash() {
 	static int hash = 0;
+	printf( "hash: %d.\n", hash );
 	return hash++;
 }
 
-int offsetOf( int index, int width ) {
+int offsetOf( int index, int w ) {
 	val offset = edgeOffset[index];
-	// TODO - could compute these offline if width is static?
-	int o = (offset.x * (width * width) + offset.y * width + offset.z) * 3 + offset.dir;
+	// TODO - could compute these offline if w is static?
+	int o = (offset.x * (w*w) + offset.y * w + offset.z) * 3 + offset.dir;
 	return o;
 }
 
@@ -161,12 +162,12 @@ auto cubeVert( cube c, int index, int origin ) -> vx {
 	val dB = c.densities[second];
 	val v = interpD( a, dA, b, dB );
 	// TODO
-	val width = cubeSize - 1;
-	val hash = origin * 3 + offsetOf(index, width);
-	printf("Vert hash %d. (origin %d, offset %d)\n", hash, origin, offsetOf(index, width));
+	val width = cubeSize;
+	auto hash = origin * 3 + offsetOf(index, width);
+//	printf("Vert hash %d. (origin %d, offset %d)\n", hash, origin, offsetOf(index, width));
 	vAssert( hash >= 0 );
 	//val hash = index; // Do we even need this? Isn't the index the hash?
-	//val hash = mkHash(); // Do we even need this? Isn't the index the hash?
+//	hash = mkHash(); // Do we even need this? Isn't the index the hash?
 	// No because it might be shared with a different cube
 	// So we need to know where the cube is in the block
 	return make_tuple(v, hash); // Except we need to tuple it with a hash
@@ -237,14 +238,17 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 
 		 */
 
-	static const int MaxVerts = (cubeSize + 1) * (cubeSize + 1) * (cubeSize + 1) * 3; // TODO fix
-	vertex verts[MaxVerts];
+	static const int MaxVerts = (cubeSize) * (cubeSize) * (cubeSize) * 3; // TODO fix
+	vertex* verts = (vertex*)mem_alloc( sizeof(vertex) * MaxVerts );
+	//vertex verts[MaxVerts];
 	for (int i = 0; i < MaxVerts; ++i)
 		verts[i].normal = Vector(0.0, 0.0, 0.0, 0.0);
 	for (const auto t: tris) {
 		val normal = t.normal();
 		for (int i = 0; i < 3; ++i ) {
 			var hash = t.hash(i);
+			vAssert( hash < MaxVerts );
+			vAssert( hash >= 0 );
 			verts[hash].position = t.pos(i);
 			verts[hash].normal = vector_add(verts[hash].normal, normal);
 			(void)hash;
@@ -267,6 +271,8 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	for ( auto t : tris ) {
 		for (int j = 0; j < 3; j++) {
 			val hash = t.hash(j);
+			vAssert( hash < MaxVerts );
+			vAssert( hash >= 0 );
 			bs.verts[i] = verts[hash].position;
 			bs.normals[i] = verts[hash].normal;
 			++i;
@@ -284,8 +290,11 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	// TODO - a non-naive solution, compacting verts by hash
 	// Should just be a group-by (more or less)?
 
+	mem_free( verts );
+
 	return bs;
 }
+
 typedef Grid<tuple<vector,float>, cubeSize> densityGrid;
 
 void setCorner(cube& c, int i, tuple<vector,float> t) {
@@ -297,7 +306,7 @@ seq<cube> cubesFor(const densityGrid& g) {
 	// generate a list of cubes for the block extents
 	// probably needs to LoD here too?
 	seq<cube> cubes;
-	int origin = 0;
+	//int origin = 0;
 	for ( int x = 0; x < cubeSize-1; ++x )
 		for ( int y = 0; y < cubeSize-1; ++y )
 			for ( int z = 0; z < cubeSize-1; ++z ) {
@@ -311,7 +320,9 @@ seq<cube> cubesFor(const densityGrid& g) {
 				setCorner(c, 5, g.values[x+1][y][z+1] );
 				setCorner(c, 6, g.values[x+1][y+1][z+1] );
 				setCorner(c, 7, g.values[x][y+1][z+1] );
-				c.origin = origin++;
+				c.origin = x * (cubeSize*cubeSize) +
+							y * cubeSize +
+							z;
 				cubes.push_front(c);
 			}
 	return cubes;
@@ -319,7 +330,7 @@ seq<cube> cubesFor(const densityGrid& g) {
 
 vertex* vertsFor(const Buffers& bs) {
 	vertex* vertices = (vertex*)mem_alloc(sizeof(vertex) * bs.vertCount);
-	const float scale = 1.f;
+	const float scale = 0.0325f;
 	for ( int i = 0; i < bs.vertCount; ++i ) {
 		vertices[i].position = bs.verts[i];
 		vertices[i].color = 0;
@@ -471,6 +482,24 @@ void test_cube() {
 
 	printf( "Offset (origin %d, edge %d): %d.\n", 0, 4, 0 * 3 + offsetOf(4, 4) );
 	printf( "Offset (origin %d, edge %d): %d.\n", 1, 0, 1 * 3 + offsetOf(0, 4) );
+
+	/*
+	int cubeWidth = 2;
+	int vertWidth = cubeWidth + 1;
+	for (int j = 0; j < cubeWidth * cubeWidth * cubeWidth ; ++j)
+		for (int i = 0; i < 12; ++i) {
+			val x = j / (cubeWidth * cubeWidth);
+			val y = (j / cubeWidth) % cubeWidth;
+			val z = j % cubeWidth;
+
+			val org = (x * vertWidth + y) * vertWidth + z;
+			val hash = org * 3 + offsetOf(i, vertWidth);
+			val vert = hash / 3;
+			//val dir = hash % 3;
+			printf( "Origin: %d, edge %d, Offset: %d - hash: %d (vert: %d)\n", org, i, offsetOf(i, vertWidth), hash, vert);
+			vAssert( vert < (vertWidth * vertWidth * vertWidth) );
+		}
+		*/
 //	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
 //	printf( "Offset (origin %d, edge %d): %d.\n", 0, 0, 0 - offsetOf(0, 4) );
 }
