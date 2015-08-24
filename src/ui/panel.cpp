@@ -15,6 +15,7 @@
 IMPLEMENT_LIST(animator);
 
 vector ui_color_default = {{ 0.f, 0.5f, 0.7f, 0.5f }};
+vmutex panelMutex = kMutexInitialiser;
 
 // *** Forward Declaratations
 void panel_tick( void* pnl, float dt, engine* e );
@@ -120,21 +121,35 @@ void animator_delete( animator* a ) {
 void panel_tick( void* pnl, float dt, engine* e ) {
 	(void)e;
 	panel*p = (panel*)pnl;
+	vmutex_lock(&panelMutex); {
 	animatorlist* prev = NULL;
 	for ( animatorlist* a = p->animators; a; ) {
 		animatorlist* next = a->tail;
 		if (animate( a->head, dt )) {
+			printf("Deleting animator " xPTRf "\n", (uintptr_t)a->head);
+			printf("animatorlist before " xPTRf "\n", (uintptr_t)p->animators);
 			if (prev) prev->tail = a->tail; else p->animators = a->tail; // Kill this one
+			printf("animatorlist after " xPTRf "\n", (uintptr_t)p->animators);
+			printf("panel " xPTRf "\n", (uintptr_t)p);
 			animator_delete( a->head );
 			mem_free( a );
+			a = nullptr; // In case of multi-delete, need prev (and hence a) to be null
 		}
 		prev = a;
 		a = next;
 	}
+	} vmutex_unlock(&panelMutex);
 }
 
 void panel_addAnimator( panel* p, animator* a ) {
-	p->animators = animatorlist_cons( a, p->animators );
+	// TODO - mutex?
+	vmutex_lock(&panelMutex); {
+		printf("Adding animator " xPTRf "\n", (uintptr_t)a);
+		printf("animatorlist before " xPTRf "\n", (uintptr_t)p->animators);
+		p->animators = animatorlist_cons( a, p->animators );
+		printf("animatorlist after " xPTRf "\n", (uintptr_t)p->animators);
+		printf("panel " xPTRf "\n", (uintptr_t)p);
+	} vmutex_unlock(&panelMutex);
 }
 
 void panel_fadeIn( panel* p, float overTime ) {
