@@ -46,6 +46,7 @@ template <typename T, int R> struct Grid {
 	}
 };
 
+void buildMarchingCubes( canyon* c );
+
 // Test
-void test_cube();
 void test_marching_draw();

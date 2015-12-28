@@ -18,6 +18,7 @@
 //-----------------------
 #include <forward_list>
 #include <tuple>
+#include "canyon.h"
 #include "terrain.h"
 #include "test.h"
 #include "maths/vector.h"
@@ -60,7 +61,8 @@ struct MarchBlock {
 //	int*	indices;
 	Buffers buffers;
 };
-typedef float (*DensityFunction) (vector); // Sample a density at a coord
+//typedef float (*DensityFunction) (vector); // Sample a density at a coord
+typedef function<float(vector)> DensityFunction; // Sample a density at a coord
 
 // Triangle indices for 256 combinations
 static const int cubeSize = 48;
@@ -79,6 +81,8 @@ MarchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 }
 
 auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
+	// b.min -> world space origin for the block
+	// calculate world-space positions and sample as such
 	val delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);
 
 	auto g = Grid<vector, cubeSize>();
@@ -90,7 +94,7 @@ auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
 }
 
 auto densitiesFor( BlockExtents b, DensityFunction d ) -> Grid<tuple<vector,float>, cubeSize> {
-	return coordsFor( b ).fproduct( function<float(vector)>(d) );
+	return coordsFor( b ).fproduct( d );
 }
 
 struct cube {
@@ -299,7 +303,6 @@ vertex* vertsFor(const Buffers& bs) {
 }
 
 MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
-	(void)b;
 	seq<cube> cubes = cubesFor(densities);
 
 	val triangles = new seq<triangle>();
@@ -319,18 +322,20 @@ MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
 
 //////////////////////////////
 float fromHeightField(float height, float y) {
-	return height - (y - 60.f);
+	return height - (y - 0.f);
 }
 
-float densityFn(vector v) {
-	float height = canyonTerrain_sampleUV( v.x, v.z );
-	return fromHeightField(height, v.y);
+// TODO - cache this so that we don't do a hugely high number of terrain samples
+float densityFn(canyon* c, vector pos) {
+	float u, v;
+	canyonSpaceFromWorld( c, pos.x, pos.z, &u, &v );
+	float height = canyonTerrain_sampleUV( u, v );
+	return fromHeightField(height, pos.y);
 }
 
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
 	(void)bs;
 	(void)vertices;
-	/*
 	render_resetModelView( );
 	if (bs.indexCount > 0 && marching_texture->gl_tex && marching_texture->gl_tex ) {
 		val draw = drawCall::create( &renderPass_main, *Shader::byName("dat/shaders/terrain.s"), bs.indexCount, bs.indices, vertices, marching_texture->gl_tex, modelview);
@@ -338,33 +343,6 @@ void drawMarchedCube(const Buffers& bs, vertex* vertices) {
 		draw->texture_c = marching_texture->gl_tex;		
 		draw->texture_d = marching_texture_cliff->gl_tex;		
 	}
-	*/
-}
-
-cube makeTestCube(vector origin, float size ) {
-	cube c;
-
-	/*
-    v[0] = f(x,y,z); v[1] = f(x_dx,y,z);
-    v[2] = f(x_dx,y_dy,z); v[3] = f(x, y_dy, z);
-    v[4] = f(x,y,z_dz); v[5] = f(x_dx,y,z_dz);
-    v[6] = f(x_dx,y_dy,z_dz); v[7] = f(x, y_dy, z_dz);
-	*/
-
-	//two spirals, on front Z and back Z
-	c.corners[0] = origin;
-	c.corners[1] = vector_add(origin, Vector(size, 0.0, 0.0, 0.0));
-	c.corners[2] = vector_add(origin, Vector(size, size, 0.0, 0.0));
-	c.corners[3] = vector_add(origin, Vector(0.0, size, 0.0, 0.0));
-
-	c.corners[4] = vector_add(origin, Vector(0.0, 0.0, size, 0.0));
-	c.corners[5] = vector_add(origin, Vector(size, 0.0, size, 0.0));
-	c.corners[6] = vector_add(origin, Vector(size, size, size, 0.0));
-	c.corners[7] = vector_add(origin, Vector(0.0, size, size, 0.0));
-
-	for (int i = 0; i < 8; ++i)
-		c.densities[i] = densityFn(c.corners[i]);
-	return c;
 }
 
 // *** test statics
@@ -392,26 +370,26 @@ void test_interp() {
 	test( vector_equal(&r1, &r2), "interpD is commutative", "interpD is NOT commutative" ); 
 }
 
-void test_cube() {
+void buildMarchingCubes(canyon* c) {
 	test_interp();
 
 	if ( !marching_texture )       { marching_texture       = texture_load( "dat/img/terrain/grass.tga" ); }
 	if ( !marching_texture_cliff ) { marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
 
 	const float w = 5.0;
-	auto blockDimensions = Vector(cubesPerWidth * w, cubesPerWidth * w, cubesPerWidth * w, 0.f);
+	const float width = w * cubesPerWidth;
+	auto blockDimensions = Vector(width, width, width, 0.f);
 	
 	vector origins[8];
 	origins[0] = origin;
-	origins[1] = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, 0.f, 0.f));
-	origins[2] = vector_add(origin, Vector(0.f, 0.f, cubesPerWidth * w, 0.f));
-	origins[3] = vector_add(origin, Vector(-cubesPerWidth * w, 0.f, cubesPerWidth * w, 0.f));
-	origins[4] = vector_add(origin, Vector(0.f, -cubesPerWidth * w, 0.f, 0.f));
-	origins[5] = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, 0.f, 0.f));
-	origins[6] = vector_add(origin, Vector(0.f, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
-	origins[7] = vector_add(origin, Vector(-cubesPerWidth * w, -cubesPerWidth * w, cubesPerWidth * w, 0.f));
+	origins[1] = vector_add(origin, Vector(-width, 0.f, 0.f, 0.f));
+	origins[2] = vector_add(origin, Vector(0.f, 0.f, width, 0.f));
+	origins[3] = vector_add(origin, Vector(-width, 0.f, width, 0.f));
+	origins[4] = vector_add(origin, Vector(0.f, -width, 0.f, 0.f));
+	origins[5] = vector_add(origin, Vector(-width, -width, 0.f, 0.f));
+	origins[6] = vector_add(origin, Vector(0.f, -width, width, 0.f));
+	origins[7] = vector_add(origin, Vector(-width, -width, width, 0.f));
 
-	(void)blockDimensions;
 	for (int i = 0; i < TestCubes; ++i)
-		static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), densityFn);
+		static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), function<float(vector)>([c](vector v) { return densityFn(c, v); }));
 }

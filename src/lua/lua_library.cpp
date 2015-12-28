@@ -28,6 +28,7 @@
 #include "script/lisp.h"
 #include "system/file.h"
 #include "system/string.h"
+#include "terrain/marching.h"
 #include "ui/panel.h"
 
 #define DEBUG_SANITY_CHECK_POINTERS
@@ -964,10 +965,14 @@ int LUA_createCanyon(lua_State* l) {
 	const int uSamples = 64;
 	const int vSamples = 48;
 	canyonTerrain* t = canyonTerrain_create( c, uBlocks, vBlocks, uSamples, vSamples, 640.f, 960.f );
+
+	// *** Marching cube terrain
+	buildMarchingCubes( c );
+	
 	//canyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
 	canyonTerrain_setLodIntervals( t, 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
-	engine_addRender( e, (void*)t, canyonTerrain_render );
+	//engine_addRender( e, (void*)t, canyonTerrain_render );
 	lua_pushptr( l, c );
 	return 1;
 }

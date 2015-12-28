@@ -24,10 +24,6 @@ cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
 
 vector terrainPointCached( canyon* c, canyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
 	(void)c;
-	(void)b;
-	//const int r = 4 / lodRatio(b);
-//	const int uReal = uRelative == -1 ? b->uMin-4 : b->uMin + uRelative;
-//	const int vReal = vRelative == -1 ? b->vMin-4 : b->vMin + vRelative;
 	const int uReal = b->uMin + uRelative;
 	const int vReal = b->vMin + vRelative;
 	const int uOffset = offset( uReal, CacheBlockSize );
