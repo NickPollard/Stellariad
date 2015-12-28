@@ -321,16 +321,50 @@ MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
 }
 
 //////////////////////////////
-float fromHeightField(float height, float y) {
-	return height - (y - 0.f);
-}
+//float fromHeightField(float height, float y) {
+//	return height - (y - 0.f);
+//}
 
 // TODO - cache this so that we don't do a hugely high number of terrain samples
+/*
+   We need to cache these in some kind of struct beforehand
+   do we
+     a) on demand cache them
+	 b) ahead of time cache them
+   */
+struct CachedHeights {
+	CachedHeights() {
+			for (int i = 0; i < width; ++i)
+				for (int j = 0; j < height; ++j)
+						positions[i][j] = FLT_MAX;
+	}
+	auto getOrElseUpdate(vector v, function<float(vector)> sample) -> float {
+		static const int wrap = 1024;
+		val i = (wrap - (int)floorf(v.x)) % wrap;
+		val j = (wrap - (int)floorf(v.z)) % wrap;
+		if (positions[i][j] == FLT_MAX)
+			positions[i][j] = sample(v);
+		return positions[i][j];
+	}
+
+	static const int width = 1024;
+	static const int height = 1024;
+	float positions[width][height];
+};
+
+auto fromHeightFieldWithCache(function<float(vector)> heightfield) -> function<float(vector)> {
+	CachedHeights* cached = new CachedHeights();
+	return function<float(vector)>([cached, heightfield](vector v) { 
+		val height = cached->getOrElseUpdate(v, heightfield);
+		return height - v.y;
+	});
+}
+
 float densityFn(canyon* c, vector pos) {
 	float u, v;
 	canyonSpaceFromWorld( c, pos.x, pos.z, &u, &v );
 	float height = canyonTerrain_sampleUV( u, v );
-	return fromHeightField(height, pos.y);
+	return height - pos.y;
 }
 
 void drawMarchedCube(const Buffers& bs, vertex* vertices) {
@@ -390,6 +424,10 @@ void buildMarchingCubes(canyon* c) {
 	origins[6] = vector_add(origin, Vector(0.f, -width, width, 0.f));
 	origins[7] = vector_add(origin, Vector(-width, -width, width, 0.f));
 
+	val fn = function<float(vector)>([c](vector v) { return densityFn(c, v); });
+	val dnFn = fromHeightFieldWithCache(fn);
+
 	for (int i = 0; i < TestCubes; ++i)
-		static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), function<float(vector)>([c](vector v) { return densityFn(c, v); }));
+		//static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), function<float(vector)>([c](vector v) { return densityFn(c, v); }));
+		static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), dnFn );
 }
