@@ -90,8 +90,8 @@ void main() {
 	//vec4 reflection = texture2D( tex_b, refl_coord ) * material_diffuse.a;
 
 	//float fresnel = 0.5 + 0.5 * clamp(1.0 - dot( -view_direction, normal ), 0.0, 1.0);
-	float m = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.f;
-	material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.0f);
+	float m = (material_diffuse.r + material_diffuse.g + material_diffuse.b)/3.0;
+	material_diffuse = mix(vec4(m, m, m, 1.0), vec4( 0.7, 0.5, 0.5, 1.0 ), 0.0);
 	vec4 fragColor = total_light_color * material_diffuse;// + reflection * fresnel;
 	float sun = sun( camera_space_sun_direction, view_direction );
 	float fogSun = sun_fog( camera_space_sun_direction, view_direction );

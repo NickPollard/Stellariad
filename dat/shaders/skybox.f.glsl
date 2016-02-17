@@ -24,7 +24,7 @@ float sun_fog( vec4 sunLocal, vec4 fragment_position ) {
 }
 
 vec4 myNormalize( vec4 v ) {
-	float scale = 1.f / sqrt( v.x * v.x +
+	float scale = 1.0 / sqrt( v.x * v.x +
 		   	v.y * v.y +
 		   	v.z * v.z +
 		   	v.w * v.w );

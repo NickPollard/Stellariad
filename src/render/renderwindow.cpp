@@ -21,9 +21,23 @@
 #endif
 
 EGLConfig eglConfig( EGLDisplay display, const EGLint* attribs ) {
+	(void)attribs;
 	EGLConfig config;
 	EGLint numConfigs;
+	/*
+    const EGLint attribs2[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+		EGL_DEPTH_SIZE, 8,
+		EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+	*/
+
     EGLBoolean r = eglChooseConfig( display, attribs, &config, 1, &numConfigs );
+	vAssertMsg( numConfigs > 0 , "Could not find a valid EGL config.");
 	vAssert( r == EGL_TRUE );
 	return config;
 }
