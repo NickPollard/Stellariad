@@ -58,8 +58,8 @@ void main() {
 	vec4 local_fog_color = fog_color + (sun_color * sun_fog( camera_space_sun_direction, view_direction ));
 	gl_FragColor = vec4( mix( fragColor, local_fog_color, fog ).xyz, 1.0);
 #else
-	float f = frag_position.z / 100.f;
-	float g = frag_position.y / 10.f;
+	float f = frag_position.z / 100.0;
+	float g = frag_position.y / 10.0;
 	gl_FragColor = vec4( f, g, f, 1.0);
 #endif
 }
