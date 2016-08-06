@@ -970,7 +970,7 @@ int LUA_createCanyon(lua_State* l) {
 	buildMarchingCubes( c );
 	
 	//canyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
-	canyonTerrain_setLodIntervals( t, 1, 3 );
+	t->setLodIntervals( 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
 	//engine_addRender( e, (void*)t, canyonTerrain_render );
 	lua_pushptr( l, c );

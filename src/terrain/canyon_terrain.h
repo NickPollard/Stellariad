@@ -14,11 +14,14 @@
 #define kMaxTerrainBlockWidth 80
 #define kMaxTerrainBlockElements (kMaxTerrainBlockWidth * kMaxTerrainBlockWidth * 6)
 
-typedef struct absolute_s {
+struct absolute {
 	int coord;
-} absolute;
+};
 
 struct CanyonTerrainBlock {
+
+  CanyonTerrainBlock( canyonTerrain* t, absolute _u, absolute _v, engine* e );
+
 	int u_samples;
 	int v_samples;
 	absolute u;
@@ -96,6 +99,11 @@ struct canyonTerrain_s {
 
 	bool firstUpdate;
 	vmutex mutex;
+
+	void setLodIntervals( int u, int v ) {
+		lod_interval_u = u;
+		lod_interval_v = v;
+	}
 };
 
 extern texture* terrain_texture;
@@ -105,7 +113,6 @@ extern texture* terrain_texture_cliff;
 void canyonTerrain_staticInit();
 
 canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int u_samples, int v_samples, float u_radius, float v_radius );
-void canyonTerrain_setLodIntervals( canyonTerrain* t, int u, int v );
 void canyonTerrain_render( void* data, scene* s );
 void canyonTerrain_tick( void* data, float dt, engine* eng );
 
