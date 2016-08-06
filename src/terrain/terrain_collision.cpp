@@ -2,19 +2,19 @@
 #include "common.h"
 #include "terrain_collision.h"
 //-----------------------
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 #include "collision.h"
 #include "terrain_render.h"
 
 // total verts, including those not rendered but that are generated for correct normal generation at block boundaries
 
-void terrainBlock_removeCollision( canyonTerrainBlock* b ) {
+void terrainBlock_removeCollision( CanyonTerrainBlock* b ) {
 	transform_delete( b->collision->trans );
 	collision_removeBody( b->collision );
 	b->collision = NULL;
 }
 
-void terrainBlock_calculateCollision( canyonTerrainBlock* b ) {
+void terrainBlock_calculateCollision( CanyonTerrainBlock* b ) {
 	if ( b->collision)
 		terrainBlock_removeCollision( b );
 

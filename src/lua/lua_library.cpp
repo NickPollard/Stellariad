@@ -3,7 +3,7 @@
 #include "lua_library.h"
 //---------------------
 #include "canyon.h"
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 #include "canyon_zone.h"
 #include "collision.h"
 #include "dynamicfog.h"

@@ -5,6 +5,8 @@
 #include "render/render.h"
 #include "system/thread.h"
 
+#include "concurrent/future.h"
+
 #define PoolMaxBlocks 768
 
 #define CANYON_TERRAIN_INDEXED 1
@@ -16,7 +18,7 @@ typedef struct absolute_s {
 	int coord;
 } absolute;
 
-struct canyonTerrainBlock_s {
+struct CanyonTerrainBlock {
 	int u_samples;
 	int v_samples;
 	absolute u;
@@ -43,11 +45,13 @@ struct canyonTerrainBlock_s {
 
 	terrainRenderable* renderable;
 	engine* _engine;
-	future* ready;
+	brando::concurrent::Promise<bool> readyP;
+
+	auto ready() -> brando::concurrent::Future<bool> { return readyP.future(); }
 };
 
 struct terrainRenderable_s {
-	canyonTerrainBlock* block;
+	CanyonTerrainBlock* block;
 
 	shader** terrainShader;
 	int element_count;
@@ -73,7 +77,7 @@ struct canyonTerrain_s {
 	int u_block_count;
 	int v_block_count;
 	int total_block_count;
-	canyonTerrainBlock** blocks;
+	CanyonTerrainBlock** blocks;
 	
 	int uSamplesPerBlock;
 	int vSamplesPerBlock;
@@ -108,13 +112,13 @@ void canyonTerrain_tick( void* data, float dt, engine* eng );
 float canyonTerrain_sample( canyon* c, float u, float v );
 float canyonTerrain_sampleUV( float u, float v );
 
-int lodRatio( canyonTerrainBlock* b );
-int lodStride( canyonTerrainBlock* b );
-int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v );
+int lodRatio( CanyonTerrainBlock* b );
+int lodStride( CanyonTerrainBlock* b );
+int canyonTerrainBlock_renderIndexFromUV( CanyonTerrainBlock* b, int u, int v );
 
 // To move to terrain_generate
-void canyonTerrainBlock_generateVerts( canyon* c, canyonTerrainBlock* b, vector* verts );
-void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals );
+void canyonTerrainBlock_generateVerts( canyon* c, CanyonTerrainBlock* b, vector* verts );
+void canyonTerrainBlock_generateVertices( CanyonTerrainBlock* b, vector* verts, vector* normals );
 void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );
 
-void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBlock* b );
+void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, CanyonTerrainBlock* b );

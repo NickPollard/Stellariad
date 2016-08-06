@@ -10,10 +10,10 @@
 #include "terrain_collision.h"
 #include "terrain/cache.h"
 
-int vertCount( canyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_samples + 2); }
+int vertCount( CanyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_samples + 2); }
 
 // Adjusted as we have a 1-vert margin for normal calculation at edges
-int indexFromUV( canyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
+int indexFromUV( CanyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
 cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
 	for ( cacheBlocklist* b = blist; b; b = b->tail )
@@ -22,7 +22,7 @@ cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
 	return NULL;
 }
 
-vector terrainPointCached( canyon* c, canyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
+vector terrainPointCached( canyon* c, CanyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
 	(void)c;
 	const int uReal = b->uMin + uRelative;
 	const int vReal = b->vMin + vRelative;
@@ -49,24 +49,24 @@ void vertPositions_delete( vertPositions* vs ) {
 }
 
 // Hopefully this should just be hitting the cache we were given
-void generatePoints( canyonTerrainBlock* b, vertPositions* vertSources, vector* verts ) {
+void generatePoints( CanyonTerrainBlock* b, vertPositions* vertSources, vector* verts ) {
 	for ( int vRelative = -1; vRelative < b->v_samples +1; ++vRelative )
 		for ( int uRelative = -1; uRelative < b->u_samples +1; ++uRelative )
 			verts[indexFromUV(b, uRelative, vRelative)] = pointForUV(vertSources,uRelative,vRelative);
 }
 
-vector lodV( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio ) {
+vector lodV( CanyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio ) {
 	const int previous = indexFromUV( b, u, v - ( v % lod_ratio ));
 	const int next = indexFromUV( b, u, v - ( v % lod_ratio ) + lod_ratio );
 	return vector_lerp( &verts[previous], &verts[next], (float)( v % lod_ratio ) / (float)lod_ratio );
 }
-vector lodU( canyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio ) {
+vector lodU( CanyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio ) {
 	const int previous = indexFromUV( b, u - ( u % lod_ratio ), v );
 	const int next = indexFromUV( b, u - ( u % lod_ratio ) + lod_ratio, v );
 	return vector_lerp( &verts[previous], &verts[next], (float)( v % lod_ratio ) / (float)lod_ratio );
 }
 
-void lodVectors( canyonTerrainBlock* b, vector* vectors ) {
+void lodVectors( CanyonTerrainBlock* b, vector* vectors ) {
 	const int lod_ratio = lodRatio( b );
 	for ( int v = 0; v < b->v_samples; ++v )
 		if ( v % lod_ratio != 0 ) {
@@ -81,7 +81,7 @@ void lodVectors( canyonTerrainBlock* b, vector* vectors ) {
 }
 
 // Generate Normals
-void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, vector* normals ) {
+void generateNormals( CanyonTerrainBlock* block, int vert_count, vector* verts, vector* normals ) {
 	const int lod_ratio = lodRatio( block );
 	for ( int v = 0; v < block->v_samples; ++v ) {
 		for ( int u = 0; u < block->u_samples; ++u ) {
@@ -129,7 +129,7 @@ void generateNormals( canyonTerrainBlock* block, int vert_count, vector* verts, 
 
 // When given an array of vert positions, use them to build a renderable terrainBlock
 // (This will be sent from the canyon that has already calculated positions)
-void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
+void terrainBlock_build( CanyonTerrainBlock* b, vertPositions* vertSources ) {
 	vector* verts = (vector*)stackArray( vector, vertCount( b ));
 	vector* normals = (vector*)stackArray( vector, vertCount( b ));
 
@@ -144,24 +144,28 @@ void terrainBlock_build( canyonTerrainBlock* b, vertPositions* vertSources ) {
 
 void* setBlock( const void* data, void* args ) {
 	(void)data;
-	canyonTerrainBlock* b = (canyonTerrainBlock*)args;
+	CanyonTerrainBlock* b = (CanyonTerrainBlock*)args;
 	terrain_setBlock( b->terrain, b->u, b->v, b );
 	return NULL;
 }
 
-void canyonTerrainBlock_generate( vertPositions* vs, canyonTerrainBlock* b ) {
+void canyonTerrainBlock_generate( vertPositions* vs, CanyonTerrainBlock* b ) {
 	canyonTerrainBlock_createBuffers( b );
 
 	terrainBlock_build( b, vs );
 	terrainBlock_calculateCollision( b );
 	terrainBlock_calculateAABB( b->renderable );
 
-	future_onComplete( terrainBlock_initVBO( b ), setBlock, b );
+	//future_onComplete( terrainBlock_initVBO( b ), setBlock, b );
+	terrainBlock_initVBO( b ).foreach( [=](bool data){ 
+		(void)data;  
+		terrain_setBlock( b->terrain, b->u, b->v, b ); 
+	});
 }
 
 void* canyonTerrain_workerGenerateBlock( void* args ) {
 	vertPositions* verts = (vertPositions*)_1(args);
-	canyonTerrainBlock_generate( verts, (canyonTerrainBlock*)_2(args) );
+	canyonTerrainBlock_generate( verts, (CanyonTerrainBlock*)_2(args) );
 	vertPositions_delete( verts );
 	mem_free( args );
 	return NULL;

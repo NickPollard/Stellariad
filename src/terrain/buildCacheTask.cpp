@@ -3,7 +3,7 @@
 #include "src/terrain/buildCacheTask.h"
 //---------------------
 #include "canyon.h"
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 #include "future.h"
 #include "terrain_generate.h"
 #include "terrain/cache.h"
@@ -14,7 +14,7 @@
 #include "system/thread.h"
 
 void* buildCacheBlockTask(void* args) {
-	canyonTerrainBlock* b = (canyonTerrainBlock*)_1(args);
+	CanyonTerrainBlock* b = (CanyonTerrainBlock*)_1(args);
 	future* f = (future*)_2(args);
 	int uMin = (uintptr_t)_3(args);
 	int vMin = (uintptr_t)_4(args);
@@ -36,7 +36,7 @@ void* buildCacheBlockTask(void* args) {
 }
 
 // Request a cacheBlock of at least the required Lod for (U,V)
-future* requestCache( canyonTerrainBlock* b, int u, int v ) {
+future* requestCache( CanyonTerrainBlock* b, int u, int v ) {
 	// If already built, or building, return that future, else start it building
 	future* f = NULL;
 	bool needCreating = cacheBlockFuture( b->terrain->_canyon->cache, u, v, b->lod_level, &f);
@@ -57,7 +57,7 @@ void releaseAllCaches( cacheBlocklist* caches ) {
 
 /* At this point all the terrain caches should be filled,
    so we can just use them safely */
-void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBlocklist* caches ) {
+void generateVerts( CanyonTerrainBlock* b, vertPositions* vertSources, cacheBlocklist* caches ) {
 	vector* verts = vertSources->positions;
 	const int max = vertCount( b );
 	for ( int v = -1; v < b->v_samples+1; ++v )
@@ -77,13 +77,13 @@ void generateVerts( canyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 }
 
 void* worker_generateVerts( void* args ) {
-	cacheBlocklist* caches = cachesForBlock( (canyonTerrainBlock*)_1(args) );
-	generateVerts( (canyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches );
+	cacheBlocklist* caches = cachesForBlock( (CanyonTerrainBlock*)_1(args) );
+	generateVerts( (CanyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches );
 	mem_free(args);
 	return NULL;
 }
 
-futurelist* generateAllCaches( canyonTerrainBlock* b ) {
+futurelist* generateAllCaches( CanyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
 
@@ -97,7 +97,7 @@ futurelist* generateAllCaches( canyonTerrainBlock* b ) {
 }
 
 void* buildCacheTask( void* args ) {
-	futurelist* fs = generateAllCaches( (canyonTerrainBlock*)_1( args ));
+	futurelist* fs = generateAllCaches( (CanyonTerrainBlock*)_1( args ));
 	future_completeWith( (future*)_2(args), futures_sequence( fs ));
 	futurelist_delete( fs );
 	mem_free(args);
@@ -106,13 +106,13 @@ void* buildCacheTask( void* args ) {
 
 /* Builds a vertPositions to be passed to a child worker to actually construct the terrain.
    This should normally just pull from cache - if blocks aren't there, build them */
-future* buildCache(canyonTerrainBlock* b) {
+future* buildCache(CanyonTerrainBlock* b) {
 	future* f = future_create();
 	worker_addTask( task(buildCacheTask, Pair( b, f )));
 	return f;
 }
 
-void generatePositions( canyonTerrainBlock* b) {
+void generatePositions( CanyonTerrainBlock* b) {
 	vertPositions* vertSources = (vertPositions*)mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
@@ -125,10 +125,10 @@ void generatePositions( canyonTerrainBlock* b) {
 }
 
 void* generateVertices_( void* args ) {
-	generatePositions( (canyonTerrainBlock*)args );
+	generatePositions( (CanyonTerrainBlock*)args );
 	return NULL;
 }
 
-Msg generateVertices( canyonTerrainBlock* b ) { 
+Msg generateVertices( CanyonTerrainBlock* b ) { 
 	return task( generateVertices_, b );
 }

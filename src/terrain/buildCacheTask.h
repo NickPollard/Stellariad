@@ -2,4 +2,4 @@
 #pragma once
 
 // *** Worker Task ***
-Msg generateVertices( canyonTerrainBlock* b );
+Msg generateVertices( CanyonTerrainBlock* b );

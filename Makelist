@@ -1,7 +1,6 @@
 SRCS =	src/bounds.cpp \
 		src/camera.cpp \
 		src/canyon.cpp \
-		src/canyon_terrain.cpp \
 		src/canyon_zone.cpp \
 		src/collision.cpp \
 		src/dynamicfog.cpp \
@@ -22,10 +21,6 @@ SRCS =	src/bounds.cpp \
 		src/ribbon.cpp \
 		src/scene.cpp \
 		src/skybox.cpp \
-		src/terrain.cpp \
-		src/terrain_collision.cpp \
-		src/terrain_generate.cpp \
-		src/terrain_render.cpp \
 		src/test.cpp \
 		src/ticker.cpp \
 		src/vtime.cpp \
@@ -73,8 +68,13 @@ SRCS =	src/bounds.cpp \
 		src/system/thread.cpp \
 		src/terrain/buildCacheTask.cpp \
 		src/terrain/cache.cpp \
+		src/terrain/canyon_terrain.cpp \
 		src/terrain/grid.cpp \
 		src/terrain/marching.cpp \
 		src/terrain/marching_triangles.cpp \
+		src/terrain/terrain.cpp \
+		src/terrain/terrain_collision.cpp \
+		src/terrain/terrain_generate.cpp \
+		src/terrain/terrain_render.cpp \
 		src/ui/panel.cpp \
 		src/external/murmur.cpp

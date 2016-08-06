@@ -49,12 +49,12 @@ bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, f
 void* takeCacheRef( const void* value, void* args );
 
 // Return a list of cacheblocks needed for building a given block
-cacheBlocklist* cachesForBlock( canyonTerrainBlock* b );
+cacheBlocklist* cachesForBlock( CanyonTerrainBlock* b );
 
 // Calculate the cacheblock indices for a given point coord
-void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache );
+void cacheBlockFor( CanyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache );
 
 // Get cache extents needed to build a given block
-void getCacheExtents( canyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV );
+void getCacheExtents( CanyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV );
 
 bool cacheBlockContains( cacheBlock* b, int u, int v );

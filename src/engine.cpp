@@ -3,7 +3,6 @@
 #include "src/engine.h"
 //---------------------
 #include "canyon.h"
-#include "canyon_terrain.h"
 #include "canyon_zone.h"
 #include "collision.h"
 #include "dynamicfog.h"
@@ -36,6 +35,7 @@
 #include "system/string.h"
 #include "system/thread.h"
 #include "terrain/marching.h"
+#include "terrain/canyon_terrain.h"
 
 // Lua Libraries
 #ifdef __cplusplus

@@ -3,7 +3,7 @@
 #include "src/terrain/cache.h"
 //---------------------
 #include "canyon.h"
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 #include "future.h"
 #include "terrain_generate.h"
 #include "worker.h"
@@ -291,7 +291,7 @@ bool cacheBlockFuture( terrainCache* cache, int uMin, int vMin, int lodNeeded, f
 	return empty;
 }
 
-void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
+void cacheBlockFor( CanyonTerrainBlock* b, int uRelative, int vRelative, int* uCache, int* vCache ) {
 	const int uReal = b->uMin + uRelative;
 	const int vReal = b->vMin + vRelative;
 	*uCache = uReal - offset( uReal, CacheBlockSize );
@@ -300,14 +300,14 @@ void cacheBlockFor( canyonTerrainBlock* b, int uRelative, int vRelative, int* uC
 
 cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) { return gridBlock( gridFor( cache, uMin, vMin ), uMin, vMin ); }
 
-void getCacheExtents( canyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV ) {
+void getCacheExtents( CanyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV ) {
 	const int maxStride = 4;
 	const int stride = lodStride( b );
 	cacheBlockFor( b, -maxStride, -maxStride, &cacheMinU, &cacheMinV );
 	cacheBlockFor( b, b->u_samples * stride + maxStride, b->v_samples * stride + maxStride, &cacheMaxU, &cacheMaxV );
 }
 
-cacheBlocklist* cachesForBlock( canyonTerrainBlock* b ) {
+cacheBlocklist* cachesForBlock( CanyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
 

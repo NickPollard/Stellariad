@@ -12,6 +12,7 @@
 #include "render/shader.h"
 #include "render/graphicsbuffer.h"
 #include "render/texture.h"
+#include "concurrent/future.h"
 
 const float texture_scale = 0.0325f;
 const float texture_repeat = 10.f;
@@ -34,16 +35,16 @@ void initialiseDefaultElementBuffer( ) { for ( int i = 0; i < kMaxTerrainBlockEl
 // Used to stop our UV coordinates getting so big that floating point rounding issues cause aliasing in the texture
 float canyon_uvMapped( float block_minimum, float f ) { return f - ( texture_repeat * floorf( block_minimum / texture_repeat )); }
 
-bool validIndex( canyonTerrainBlock* b, int u, int v ) { return ( v >= 0 && v < b->v_samples && u >= 0 && u < b->u_samples ); }
+bool validIndex( CanyonTerrainBlock* b, int u, int v ) { return ( v >= 0 && v < b->v_samples && u >= 0 && u < b->u_samples ); }
 // Not adjusted as this is for renderable verts only
-int canyonTerrainBlock_renderIndexFromUV( canyonTerrainBlock* b, int u, int v ) {
+int canyonTerrainBlock_renderIndexFromUV( CanyonTerrainBlock* b, int u, int v ) {
 	vAssert( u >= 0 && u < b->u_samples ); vAssert( v >= 0 && v < b->v_samples );
 	return u + v * b->u_samples;
 }
 
-int canyonTerrainBlock_triangleCount( canyonTerrainBlock* b ) { return ( b->u_samples - 1 ) * ( b->v_samples - 1 ) * 2; }
+int canyonTerrainBlock_triangleCount( CanyonTerrainBlock* b ) { return ( b->u_samples - 1 ) * ( b->v_samples - 1 ) * 2; }
 
-vector calcUV(canyonTerrainBlock* b, vector* v, float v_pos) {
+vector calcUV(CanyonTerrainBlock* b, vector* v, float v_pos) {
 	(void)b;
 	(void)v_pos;
 	return Vector( v->coord.x * texture_scale,
@@ -52,7 +53,7 @@ vector calcUV(canyonTerrainBlock* b, vector* v, float v_pos) {
 					canyon_uvMapped( b->v_min * texture_scale, v_pos * texture_scale ));
 }
 
-bool canyonTerrainBlock_triangleInvalid( canyonTerrainBlock* b, int u_index, int v_index, int u_offset, int v_offset ) {
+bool canyonTerrainBlock_triangleInvalid( CanyonTerrainBlock* b, int u_index, int v_index, int u_offset, int v_offset ) {
 	u_offset = u_offset / 2 + u_offset % 2;
 	u_offset = min( u_offset, 0 );
 	return ( u_index + u_offset >= b->u_samples - 1 ) ||
@@ -62,7 +63,7 @@ bool canyonTerrainBlock_triangleInvalid( canyonTerrainBlock* b, int u_index, int
 }
 
 // As this is just renderable verts, we dont have the extra buffer space for normal generation
-int canyonTerrainBlock_renderVertCount( canyonTerrainBlock* b ) {
+int canyonTerrainBlock_renderVertCount( CanyonTerrainBlock* b ) {
 #if CANYON_TERRAIN_INDEXED
    	return ( b->u_samples ) * ( b->v_samples );
 #else
@@ -80,7 +81,7 @@ void canyonTerrain_renderInit() {
 	if ( !terrain_texture_cliff_2 )	{ terrain_texture_cliff_2 = texture_load( "dat/img/terrain/cliff_industrial.tga" ); }
 }
 
-void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int v_index, float* u, float* v ) {
+void canyonTerrainBlock_positionsFromUV( CanyonTerrainBlock* b, int u_index, int v_index, float* u, float* v ) {
 	int lod_ratio = lodRatio( b );
 	if ( u_index == -1 ) u_index = -lod_ratio;
 	if ( u_index == b->u_samples ) u_index = b->u_samples -1 + lod_ratio;
@@ -101,7 +102,7 @@ void canyonTerrainBlock_positionsFromUV( canyonTerrainBlock* b, int u_index, int
 #if CANYON_TERRAIN_INDEXED
 #else
 // Given a vertex that has been generated, fill in the correct triangles for it after it has been unrolled
-void canyonTerrainBlock_fillTrianglesForVertex( canyonTerrainBlock* b, vector* positions, vertex* vertices, int u_index, int v_index, vertex* vert ) {
+void canyonTerrainBlock_fillTrianglesForVertex( CanyonTerrainBlock* b, vector* positions, vertex* vertices, int u_index, int v_index, vertex* vert ) {
 	// Each vertex is in a maximum of 6 triangles
 	// The triangle indices can be computed as: (where row == ( u_samples - 1 ) * 2)
 	//  first row:
@@ -220,15 +221,15 @@ short unsigned int* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
 }
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
-future* terrainBlock_initVBO( canyonTerrainBlock* b ) {
+brando::concurrent::Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
 	terrainRenderable* r = b->renderable;
 	r->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
 	r->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	r->element_buffer,	sizeof( GLushort ) 	* r->element_count );
-	return b->ready;
+	return b->ready();
 }
 
-bool canyonTerrainBlock_render( canyonTerrainBlock* b, scene* s ) {
+bool canyonTerrainBlock_render( CanyonTerrainBlock* b, scene* s ) {
 	terrainRenderable* r = b->renderable;
 	// If we have new render buffers, free the old ones and switch to the new
 	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt )) {
@@ -280,7 +281,7 @@ void canyonTerrain_render( void* data, scene* s ) {
 	//printf( "Rendering %d out of %d blocks.\n", count, t->total_block_count );
 }
 
-void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, vector* normals ) {
+void canyonTerrainBlock_generateVertices( CanyonTerrainBlock* b, vector* verts, vector* normals ) {
 	terrainRenderable* r = b->renderable;
 #if CANYON_TERRAIN_INDEXED
 	for ( int v_index = 0; v_index < b->v_samples; ++v_index ) {
@@ -334,7 +335,7 @@ void canyonTerrainBlock_generateVertices( canyonTerrainBlock* b, vector* verts, 
 #endif // CANYON_TERRAIN_INDEXED
 }
 
-void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
+void canyonTerrainBlock_createBuffers( CanyonTerrainBlock* b ) {
 	terrainRenderable* r = b->renderable;
 	r->element_count = canyonTerrainBlock_triangleCount( b ) * 3;
 	vAssert( r->element_count > 0 );
@@ -348,7 +349,7 @@ void canyonTerrainBlock_createBuffers( canyonTerrainBlock* b ) {
 	if ( !r->vertex_buffer ) r->vertex_buffer = canyonTerrain_nextVertexBuffer( b->terrain );
 }
 
-terrainRenderable* terrainRenderable_create( canyonTerrainBlock* b ) {
+terrainRenderable* terrainRenderable_create( CanyonTerrainBlock* b ) {
 	terrainRenderable* r = pool_terrainRenderable_allocate( static_renderable_pool ); 
 	memset( r, 0, sizeof( terrainRenderable ));
 	r->terrainShader = Shader::byName("dat/shaders/terrain.s");

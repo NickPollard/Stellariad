@@ -1,6 +1,6 @@
 // canyon_terrain.c
 #include "common.h"
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 //-----------------------
 #include "bounds.h"
 #include "camera.h"
@@ -24,21 +24,21 @@
 #define LowestLod 2
 
 // *** Forward Declarations
-canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* e );
-void				deleteBlock( canyonTerrainBlock* b );
+CanyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* e );
+void				deleteBlock( CanyonTerrainBlock* b );
 void				canyonTerrain_calculateBounds( canyon* c, int bounds[2][2], canyonTerrain* t, vector* sample_point );
-void				canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v );
+void				canyonTerrainBlock_calculateExtents( CanyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v );
 int					canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, absolute u, absolute v );
 
 // ***
 
-DECLARE_POOL(canyonTerrainBlock)
-IMPLEMENT_POOL(canyonTerrainBlock)
+DECLARE_POOL(CanyonTerrainBlock)
+IMPLEMENT_POOL(CanyonTerrainBlock)
 
-pool_canyonTerrainBlock* static_block_pool = NULL;
+pool_CanyonTerrainBlock* static_block_pool = NULL;
 
 void canyonTerrain_staticInit() {
-	static_block_pool = pool_canyonTerrainBlock_create( PoolMaxBlocks );
+	static_block_pool = pool_CanyonTerrainBlock_create( PoolMaxBlocks );
 
 	canyonTerrain_renderInit();
 }
@@ -72,11 +72,11 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 
 		if (t->firstUpdate || !boundsEqual( bounds, t->bounds )) {
 			boundsIntersection( intersection, bounds, t->bounds );
-			canyonTerrainBlock** newBlocks = (canyonTerrainBlock**)stackArray( canyonTerrainBlock*, t->total_block_count );
-			memset( newBlocks, 0, sizeof( canyonTerrainBlock* ) * t->total_block_count );
+			CanyonTerrainBlock** newBlocks = (CanyonTerrainBlock**)stackArray( CanyonTerrainBlock*, t->total_block_count );
+			memset( newBlocks, 0, sizeof( CanyonTerrainBlock* ) * t->total_block_count );
 
 			//for ( int i = 0; i < t->total_block_count; ++i ) {
-				//canyonTerrainBlock* b = t->blocks[i];
+				//CanyonTerrainBlock* b = t->blocks[i];
 				//vAssert( (uintptr_t)b < 0x0001000000000000 );
 			//}
 
@@ -93,7 +93,7 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 				}
 			}
 
-			canyonTerrainBlock** blocks = (canyonTerrainBlock**)stackArray( canyonTerrainBlock*, t->total_block_count );
+			CanyonTerrainBlock** blocks = (CanyonTerrainBlock**)stackArray( CanyonTerrainBlock*, t->total_block_count );
 			int blockCount = 0;
 			for ( int v = 0; v < t->v_block_count; v++ ) {
 				for ( int u = 0; u < t->u_block_count; u++ ) {
@@ -106,22 +106,22 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 					const int oldLOD = t->blocks[i] ? t->blocks[i]->lod_level : LowestLod;
 					const int newLOD = canyonTerrain_lodLevelForBlock( c, t, uu, vv );
 					if ( !boundsContains( intersection, coord ) || t->firstUpdate || newLOD < oldLOD ) {
-						canyonTerrainBlock* b = newBlock( t, uu, vv, e );
+						CanyonTerrainBlock* b = newBlock( t, uu, vv, e );
 						blocks[blockCount++] = b;
 					}
 				}
 			}
 			for ( int i = 0; i < blockCount; ++i ) {
-				canyonTerrainBlock* b = blocks[i];
+				CanyonTerrainBlock* b = blocks[i];
 				tell( b->actor, generateVertices( b ));
 			}
 
 			memcpy( t->bounds, bounds, sizeof( int ) * 2 * 2 );
 			//for ( int i = 0; i < t->total_block_count; ++i ) {
-				//canyonTerrainBlock* b = newBlocks[i];
+				//CanyonTerrainBlock* b = newBlocks[i];
 				//vAssert( (uintptr_t)b < 0x0001000000000000 );
 			//}
-			memcpy( t->blocks, newBlocks, sizeof( canyonTerrainBlock* ) * t->total_block_count );
+			memcpy( t->blocks, newBlocks, sizeof( CanyonTerrainBlock* ) * t->total_block_count );
 			bool vl = true;
 			for ( int v = 0; v < t->v_block_count; v++ ) {
 				for ( int u = 0; u < t->u_block_count; u++ ) {
@@ -137,17 +137,17 @@ void canyonTerrain_updateBlocks( canyon* c, canyonTerrain* t, engine* e ) {
 
 void canyonTerrainBlock_tick( void* arg, float dt, engine* e ) {
 	(void)dt;(void)e;
-	canyonTerrainBlock* b = (canyonTerrainBlock*)arg;
+	CanyonTerrainBlock* b = (CanyonTerrainBlock*)arg;
 	terrainRenderable* r = b->renderable;
-	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt )) {
-			if (!b->ready->complete)
-				future_complete_( b->ready );
-	}
+	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt ))
+		b->readyP.complete(true);
 }
 
-canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* e ) {
-	canyonTerrainBlock* b = pool_canyonTerrainBlock_allocate( static_block_pool ); 
-	memset( b, 0, sizeof( canyonTerrainBlock ));
+CanyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* e ) {
+	//CanyonTerrainBlock* b = pool_CanyonTerrainBlock_allocate( static_block_pool ); 
+	// Placement new
+	CanyonTerrainBlock* b = new (pool_CanyonTerrainBlock_allocate( static_block_pool )) CanyonTerrainBlock(); 
+	//memset( b, 0, sizeof( CanyonTerrainBlock ));
 	b->u_samples = t->uSamplesPerBlock;
 	b->v_samples = t->vSamplesPerBlock;
 	b->terrain = t;
@@ -160,17 +160,16 @@ canyonTerrainBlock* newBlock( canyonTerrain* t, absolute u, absolute v, engine* 
 	//printf( "Generating new block 0x" xPTRf " at lod %d.\n", (uintptr_t)b, b->lod_level );
 	b->_engine = e;
 	startTick( b->_engine, b, canyonTerrainBlock_tick );
-	b->ready = future_create();
 	return b;
 }
 
-void deleteBlock( canyonTerrainBlock* b ) {
+void deleteBlock( CanyonTerrainBlock* b ) {
 	vAssert( b );
 	stopTick( b->_engine, b, canyonTerrainBlock_tick );
 	terrainBlock_removeCollision( b );
 	stopActor( b->actor );
 	terrainRenderable_delete( b->renderable );
-	pool_canyonTerrainBlock_free( static_block_pool, b );
+	pool_CanyonTerrainBlock_free( static_block_pool, b );
 }
 
 void canyonTerrain_blockContaining( canyon* c, int coord[2], canyonTerrain* t, vector* point ) {
@@ -194,7 +193,7 @@ int canyonTerrain_lodLevelForBlock( canyon* c, canyonTerrain* t, absolute u, abs
 #endif
 }
 
-void canyonTerrainBlock_calculateSamplesForLoD( canyon* c, canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v ) {
+void canyonTerrainBlock_calculateSamplesForLoD( canyon* c, CanyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v ) {
 	b->lod_level = canyonTerrain_lodLevelForBlock( c, t, u, v );
 	// Set samples based on U offset, We add one so that we always get a centre point
 	int ratio = max( 1, 2 * b->lod_level );
@@ -202,7 +201,7 @@ void canyonTerrainBlock_calculateSamplesForLoD( canyon* c, canyonTerrainBlock* b
 	b->v_samples = t->vSamplesPerBlock / ratio + 1;
 }
 
-void canyonTerrainBlock_calculateExtents( canyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v ) {
+void canyonTerrainBlock_calculateExtents( CanyonTerrainBlock* b, canyonTerrain* t, absolute u, absolute v ) {
 	float uf = (2 * t->u_radius) / (float)t->u_block_count;
 	float vf = (2 * t->v_radius) / (float)t->v_block_count;
 	b->u_min = ((float)u.coord - 0.5f) * uf;
@@ -229,7 +228,7 @@ void canyonTerrain_calculateBounds( canyon* c, int bounds[2][2], canyonTerrain* 
 	bounds[1][1] = block[1] + ry;
 }
 
-void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, canyonTerrainBlock* b ) {
+void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, CanyonTerrainBlock* b ) {
 	vAssert( (uintptr_t)b < 0x0001000000000000 );
 	vmutex_lock( &t->mutex ); {
 		int i = canyonTerrain_blockIndexFromAbsoluteUV( t, u, v );
@@ -248,8 +247,8 @@ void canyonTerrain_createBlocks( canyon* c, canyonTerrain* t ) {
 	vAssert( t->u_block_count > 0 );
 	vAssert( t->v_block_count > 0 );
 	t->total_block_count = t->u_block_count * t->v_block_count;
-	t->blocks = (canyonTerrainBlock**)mem_alloc( sizeof( canyonTerrainBlock* ) * t->total_block_count );
-	memset( t->blocks, 0, sizeof( canyonTerrainBlock* ) * t->total_block_count );
+	t->blocks = (CanyonTerrainBlock**)mem_alloc( sizeof( CanyonTerrainBlock* ) * t->total_block_count );
+	memset( t->blocks, 0, sizeof( CanyonTerrainBlock* ) * t->total_block_count );
 
 	canyonTerrain_calculateBounds( c, t->bounds, t, &t->sample_point );
 }
@@ -285,8 +284,8 @@ canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	return t;
 }
 
-int lodRatio( canyonTerrainBlock* b ) { return b->u_samples / ( b->terrain->uSamplesPerBlock / 4 ); }
-int lodStride( canyonTerrainBlock* b ) { return 4 / lodRatio(b); }
+int lodRatio( CanyonTerrainBlock* b ) { return b->u_samples / ( b->terrain->uSamplesPerBlock / 4 ); }
+int lodStride( CanyonTerrainBlock* b ) { return 4 / lodRatio(b); }
 
 void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	(void)dt; (void)eng;

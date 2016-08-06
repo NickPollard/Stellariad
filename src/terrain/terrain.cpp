@@ -4,7 +4,7 @@
 //-----------------------
 #include "canyon.h"
 #include "noise.h"
-#include "canyon_terrain.h"
+#include "terrain/canyon_terrain.h"
 
 float terrain_mountainFunc( float x ) {
 	return cosf( x - 0.5 * sinf( 2 * x ));
