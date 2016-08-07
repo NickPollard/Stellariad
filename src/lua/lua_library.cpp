@@ -964,12 +964,12 @@ int LUA_createCanyon(lua_State* l) {
 	const int vBlocks = 17;
 	const int uSamples = 64;
 	const int vSamples = 48;
-	canyonTerrain* t = canyonTerrain_create( c, uBlocks, vBlocks, uSamples, vSamples, 640.f, 960.f );
+	CanyonTerrain* t = canyonTerrain_create( c, uBlocks, vBlocks, uSamples, vSamples, 640.f, 960.f );
 
 	// *** Marching cube terrain
 	buildMarchingCubes( c );
 	
-	//canyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
+	//CanyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
 	t->setLodIntervals( 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
 	//engine_addRender( e, (void*)t, canyonTerrain_render );

@@ -2,6 +2,7 @@
 #define __COMMON_FWD_H__
 
 struct CanyonTerrainBlock;
+struct CanyonTerrain;
 
 #ifndef __cplusplus
 struct actor_s;
@@ -11,7 +12,7 @@ struct cacheBlock_s;
 struct camera_s;
 struct canyon_s;
 struct canyonData_s;
-struct canyonTerrain_s;
+//struct canyonTerrain_s;
 //struct CanyonTerrainBlock;
 struct canyonZone_s;
 struct debugtextframe_s;
@@ -55,7 +56,7 @@ typedef struct cacheBlock_s cacheBlock;
 typedef struct camera_s camera;
 typedef struct canyon_s canyon;
 typedef struct canyonData_s canyonData;
-typedef struct canyonTerrain_s canyonTerrain;
+//typedef struct canyonTerrain_s canyonTerrain;
 //typedef struct canyonTerrainBlock_s canyonTerrainBlock;
 typedef struct canyonZone_s canyonZone;
 typedef struct debugtextframe_s debugtextframe;

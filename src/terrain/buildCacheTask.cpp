@@ -65,10 +65,10 @@ void generateVerts( CanyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 			const int index = indexFromUV(b, u, v);
 			vAssert( index >= 0 && index < max );
 			const int strideMax = 4;
-			const int stride = lodStride(b);
+			const int stride = b->lodStride();
 			int uu = (u == -1) ? -strideMax : (u == b->u_samples ? ((b->u_samples - 1) * stride + strideMax) : u * stride);
 			int vv = (v == -1) ? -strideMax : (v == b->v_samples ? ((b->v_samples - 1) * stride + strideMax) : v * stride);
-			//int vv = (v == -1) ? -strideMax : v * lodStride(b);
+			//int vv = (v == -1) ? -strideMax : v * b->lodStride();
 			verts[index] = terrainPointCached( b->_canyon, b, caches, uu, vv );
 		}
 

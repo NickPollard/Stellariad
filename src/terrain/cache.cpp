@@ -114,7 +114,7 @@ int cacheGetNeededLod( terrainCache* cache, int u, int v ) {
 	return g ? gridLod( g, u, v ) : lowestLod;
 }
 
-cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod ) {
+cacheBlock* terrainCacheBuildAndAdd( canyon* c, CanyonTerrain* t, int uMin, int vMin, int lod ) {
 	vmutex_lock( &terrainMutex );
 		const int highestLodNeeded = min( cacheGetNeededLod( c->cache, uMin, vMin), lod );
 	vmutex_unlock( &terrainMutex );
@@ -154,7 +154,7 @@ vector vecSample( vector* array, int w, int h, float u, float v ) {
 	return veclerp(veclerp( A, B, vLerp), veclerp( C, D, vLerp), uLerp);
 }
 
-cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
+cacheBlock* terrainCacheBlock( canyon* c, CanyonTerrain* t, int uMin, int vMin, int requiredLOD ) {
 	++numCaches;
 	cacheBlock* b = (cacheBlock*)mem_alloc( sizeof( cacheBlock )); // TODO - don't do full mem_alloc here
 	b->uMin = uMin;
@@ -167,7 +167,7 @@ cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, 
 	for ( int vOffset = 0; vOffset < LodVerts; ++vOffset ) {
 		for ( int uOffset = 0; uOffset < LodVerts; ++uOffset ) {
 			float u, v, x, z;
-			terrain_positionsFromUV( t, uMin + uOffset*canyonSampleInterval, vMin + vOffset*canyonSampleInterval, &u, &v );
+			t->positionsFromUV( uMin + uOffset*canyonSampleInterval, vMin + vOffset*canyonSampleInterval, &u, &v );
 			terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
 			worldSpace[uOffset][vOffset] = Vector(x, 0.f, z, 0.f);
 		}
@@ -176,7 +176,7 @@ cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, 
 	for ( int vOffset = 0; vOffset < CacheBlockSize; vOffset+=lod ) {
 		for ( int uOffset = 0; uOffset < CacheBlockSize; uOffset+=lod ) {
 			float u, v;
-			terrain_positionsFromUV( t, uMin + uOffset, vMin + vOffset, &u, &v );
+			t->positionsFromUV( uMin + uOffset, vMin + vOffset, &u, &v );
 			vector vec = vecSample( (vector*)worldSpace, LodVerts, LodVerts, ((float)uOffset) / f, ((float)vOffset) / f );
 			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyonTerrain_sampleUV( u, v ), vec.coord.z, 1.f );
 		}
@@ -302,7 +302,7 @@ cacheBlock* cachedBlock( terrainCache* cache, int uMin, int vMin ) { return grid
 
 void getCacheExtents( CanyonTerrainBlock* b, int& cacheMinU, int& cacheMinV, int& cacheMaxU, int& cacheMaxV ) {
 	const int maxStride = 4;
-	const int stride = lodStride( b );
+	const int stride = b->lodStride();
 	cacheBlockFor( b, -maxStride, -maxStride, &cacheMinU, &cacheMinV );
 	cacheBlockFor( b, b->u_samples * stride + maxStride, b->v_samples * stride + maxStride, &cacheMaxU, &cacheMaxV );
 }

@@ -20,7 +20,7 @@ struct absolute {
 
 struct CanyonTerrainBlock {
 
-  CanyonTerrainBlock( canyonTerrain* t, absolute _u, absolute _v, engine* e );
+  CanyonTerrainBlock( CanyonTerrain* t, absolute _u, absolute _v, engine* e );
 
 	int u_samples;
 	int v_samples;
@@ -41,7 +41,7 @@ struct CanyonTerrainBlock {
 	// *** Collision
 	body*			collision;
 
-	canyonTerrain* terrain;
+	CanyonTerrain* terrain;
 	canyon* _canyon;
 
 	ActorRef actor;
@@ -50,6 +50,8 @@ struct CanyonTerrainBlock {
 	engine* _engine;
 	brando::concurrent::Promise<bool> readyP;
 
+	int lodRatio() const;
+	int lodStride() const;
 	auto ready() -> brando::concurrent::Future<bool> { return readyP.future(); }
 };
 
@@ -71,7 +73,7 @@ struct terrainRenderable_s {
 	GLuint*			element_VBO_alt;
 } ;
 
-struct canyonTerrain_s {
+struct CanyonTerrain {
 	transform* trans;
 	actorSystem* system;
 
@@ -104,6 +106,9 @@ struct canyonTerrain_s {
 		lod_interval_u = u;
 		lod_interval_v = v;
 	}
+
+	void setBlock( absolute u, absolute v, CanyonTerrainBlock* b );
+	void positionsFromUV( int u_index, int v_index, float* u, float* v );
 };
 
 extern texture* terrain_texture;
@@ -112,20 +117,16 @@ extern texture* terrain_texture_cliff;
 // *** Functions 
 void canyonTerrain_staticInit();
 
-canyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int u_samples, int v_samples, float u_radius, float v_radius );
-void canyonTerrain_render( void* data, scene* s );
+CanyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int u_samples, int v_samples, float u_radius, float v_radius );
+
 void canyonTerrain_tick( void* data, float dt, engine* eng );
 
 float canyonTerrain_sample( canyon* c, float u, float v );
 float canyonTerrain_sampleUV( float u, float v );
 
-int lodRatio( CanyonTerrainBlock* b );
-int lodStride( CanyonTerrainBlock* b );
 int canyonTerrainBlock_renderIndexFromUV( CanyonTerrainBlock* b, int u, int v );
 
 // To move to terrain_generate
 void canyonTerrainBlock_generateVerts( canyon* c, CanyonTerrainBlock* b, vector* verts );
 void canyonTerrainBlock_generateVertices( CanyonTerrainBlock* b, vector* verts, vector* normals );
-void terrain_positionsFromUV( canyonTerrain* t, int u_index, int v_index, float* u, float* v );
 
-void terrain_setBlock( canyonTerrain* t, absolute u, absolute v, CanyonTerrainBlock* b );

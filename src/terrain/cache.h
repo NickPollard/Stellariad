@@ -29,10 +29,10 @@ terrainCache* terrainCache_create();
 cacheBlock* terrainCached( terrainCache* cache, int uMin, int vMin );
 
 // Create and add a cacheBlock to the cache, and return the block
-cacheBlock* terrainCacheBuildAndAdd( canyon* c, canyonTerrain* t, int uMin, int vMin, int lod );
+cacheBlock* terrainCacheBuildAndAdd( canyon* c, CanyonTerrain* t, int uMin, int vMin, int lod );
 
 // Create a new cache block
-cacheBlock* terrainCacheBlock( canyon* c, canyonTerrain* t, int uMin, int vMin, int requiredLOD );
+cacheBlock* terrainCacheBlock( canyon* c, CanyonTerrain* t, int uMin, int vMin, int requiredLOD );
 
 // Trim cache blocks (and grids) that are too far behind the V coord
 void terrainCache_trim( terrainCache* t, int v );

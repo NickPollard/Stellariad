@@ -82,13 +82,13 @@ void canyonTerrain_renderInit() {
 }
 
 void canyonTerrainBlock_positionsFromUV( CanyonTerrainBlock* b, int u_index, int v_index, float* u, float* v ) {
-	int lod_ratio = lodRatio( b );
+	int lod_ratio = b->lodRatio();
 	if ( u_index == -1 ) u_index = -lod_ratio;
 	if ( u_index == b->u_samples ) u_index = b->u_samples -1 + lod_ratio;
 	if ( v_index == -1 ) v_index = -lod_ratio;
 	if ( v_index == b->v_samples ) v_index = b->v_samples -1 + lod_ratio;
 
-	canyonTerrain* t = b->terrain;
+	CanyonTerrain* t = b->terrain;
 
 	float r = 4 / lod_ratio;
 	float uPerBlock = (2 * t->u_radius) / (float)t->u_block_count;
@@ -157,7 +157,7 @@ void canyonTerrainBlock_fillTrianglesForVertex( CanyonTerrainBlock* b, vector* p
 }
 #endif
 
-vertex* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
+vertex* canyonTerrain_allocVertexBuffer( CanyonTerrain* t ) {
 #if CANYON_TERRAIN_INDEXED
 	int max_vert_count = ( t->uSamplesPerBlock + 1 ) * ( t->vSamplesPerBlock + 1 );
 	return (vertex*)mem_alloc( sizeof( vertex ) * max_vert_count );
@@ -167,7 +167,7 @@ vertex* canyonTerrain_allocVertexBuffer( canyonTerrain* t ) {
 #endif // CANYON_TERRAIN_INDEX
 }
 
-void canyonTerrain_initVertexBuffers( canyonTerrain* t ) {
+void canyonTerrain_initVertexBuffers( CanyonTerrain* t ) {
 	// Init w*h*2 buffers that we can use for vertex_buffers
 	vAssert( t->vertex_buffers == 0 );
 	const int count = t->u_block_count * t->v_block_count * 2;
@@ -176,7 +176,7 @@ void canyonTerrain_initVertexBuffers( canyonTerrain* t ) {
 		t->vertex_buffers[i] = canyonTerrain_allocVertexBuffer( t );
 	}
 }
-void canyonTerrain_freeVertexBuffer( canyonTerrain* t, vertex* buffer ) {
+void canyonTerrain_freeVertexBuffer( CanyonTerrain* t, vertex* buffer ) {
 	// Find the buffer in the list
 	// Switch it with the last
 	int count = t->vertex_buffer_count;
@@ -185,17 +185,17 @@ void canyonTerrain_freeVertexBuffer( canyonTerrain* t, vertex* buffer ) {
 	t->vertex_buffers[count-1] = buffer;
 	--t->vertex_buffer_count;
 }
-vertex* canyonTerrain_nextVertexBuffer( canyonTerrain* t ) {
+vertex* canyonTerrain_nextVertexBuffer( CanyonTerrain* t ) {
 	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
 	void* buffer = t->vertex_buffers[t->vertex_buffer_count++];
 	return (vertex*)buffer;
 }
 
-unsigned short* canyonTerrain_allocElementBuffer( canyonTerrain* t ) {
+unsigned short* canyonTerrain_allocElementBuffer( CanyonTerrain* t ) {
 	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
 	return (unsigned short*)mem_alloc( sizeof( unsigned short ) * max_element_count );
 }
-void canyonTerrain_initElementBuffers( canyonTerrain* t ) {
+void canyonTerrain_initElementBuffers( CanyonTerrain* t ) {
 	// Init w*h*2 buffers that we can use for element_buffers
 	vAssert( t->element_buffers == 0 );
 	int count = t->u_block_count * t->v_block_count * 3;
@@ -204,7 +204,7 @@ void canyonTerrain_initElementBuffers( canyonTerrain* t ) {
 		t->element_buffers[i] = canyonTerrain_allocElementBuffer( t );
 	}
 }
-void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer ) {
+void canyonTerrain_freeElementBuffer( CanyonTerrain* t, unsigned short* buffer ) {
 	// Find the buffer in the list
 	// Switch it with the last
 	int count = t->element_buffer_count;
@@ -213,7 +213,7 @@ void canyonTerrain_freeElementBuffer( canyonTerrain* t, unsigned short* buffer )
 	t->element_buffers[count-1] = buffer;
 	--t->element_buffer_count;
 }
-short unsigned int* canyonTerrain_nextElementBuffer( canyonTerrain* t ) {
+short unsigned int* canyonTerrain_nextElementBuffer( CanyonTerrain* t ) {
 	//printf( "Allocate\n" );
 	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
 	void* buffer = t->element_buffers[t->element_buffer_count++];
@@ -269,7 +269,7 @@ bool canyonTerrainBlock_render( CanyonTerrainBlock* b, scene* s ) {
 
 void canyonTerrain_render( void* data, scene* s ) {
 	(void)s;
-	canyonTerrain* t = (canyonTerrain*)data;
+	CanyonTerrain* t = (CanyonTerrain*)data;
 	render_resetModelView();
 	matrix_mulInPlace( modelview, modelview, t->trans->world );
 

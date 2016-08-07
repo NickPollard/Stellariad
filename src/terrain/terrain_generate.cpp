@@ -67,7 +67,7 @@ vector lodU( CanyonTerrainBlock* b, vector* verts, int u, int v, int lod_ratio )
 }
 
 void lodVectors( CanyonTerrainBlock* b, vector* vectors ) {
-	const int lod_ratio = lodRatio( b );
+	const int lod_ratio = b->lodRatio();
 	for ( int v = 0; v < b->v_samples; ++v )
 		if ( v % lod_ratio != 0 ) {
 			vectors[indexFromUV( b, 0, v)] = lodV( b, vectors, 0, v, lod_ratio );
@@ -82,7 +82,7 @@ void lodVectors( CanyonTerrainBlock* b, vector* vectors ) {
 
 // Generate Normals
 void generateNormals( CanyonTerrainBlock* block, int vert_count, vector* verts, vector* normals ) {
-	const int lod_ratio = lodRatio( block );
+	const int lod_ratio = block->lodRatio();
 	for ( int v = 0; v < block->v_samples; ++v ) {
 		for ( int u = 0; u < block->u_samples; ++u ) {
 			const vector left = verts[indexFromUV( block, u, (v == block->v_samples - 1) ? v - lod_ratio : v - 1 )];
@@ -142,13 +142,6 @@ void terrainBlock_build( CanyonTerrainBlock* b, vertPositions* vertSources ) {
 	canyonTerrainBlock_generateVertices( b, verts, normals );
 }
 
-void* setBlock( const void* data, void* args ) {
-	(void)data;
-	CanyonTerrainBlock* b = (CanyonTerrainBlock*)args;
-	terrain_setBlock( b->terrain, b->u, b->v, b );
-	return NULL;
-}
-
 void canyonTerrainBlock_generate( vertPositions* vs, CanyonTerrainBlock* b ) {
 	canyonTerrainBlock_createBuffers( b );
 
@@ -156,10 +149,9 @@ void canyonTerrainBlock_generate( vertPositions* vs, CanyonTerrainBlock* b ) {
 	terrainBlock_calculateCollision( b );
 	terrainBlock_calculateAABB( b->renderable );
 
-	//future_onComplete( terrainBlock_initVBO( b ), setBlock, b );
 	terrainBlock_initVBO( b ).foreach( [=](bool data){ 
 		(void)data;  
-		terrain_setBlock( b->terrain, b->u, b->v, b ); 
+		b->terrain->setBlock( b->u, b->v, b ); 
 	});
 }
 
