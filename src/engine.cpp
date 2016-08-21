@@ -4,7 +4,7 @@
 //---------------------
 #include "canyon.h"
 #include "canyon_zone.h"
-#include "collision.h"
+#include "collision/collision.h"
 #include "dynamicfog.h"
 #include "font.h"
 #include "future.h"

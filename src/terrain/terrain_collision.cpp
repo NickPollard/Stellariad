@@ -3,7 +3,7 @@
 #include "terrain_collision.h"
 //-----------------------
 #include "terrain/canyon_terrain.h"
-#include "collision.h"
+#include "collision/collision.h"
 #include "terrain_render.h"
 
 // total verts, including those not rendered but that are generated for correct normal generation at block boundaries

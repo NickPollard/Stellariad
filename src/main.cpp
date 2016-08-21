@@ -8,7 +8,7 @@
 #ifndef ANDROID
 
 #include "common.h"
-#include "collision.h"
+#include "collision/collision.h"
 #include "engine.h"
 #include "input.h"
 #include "maths/maths.h"

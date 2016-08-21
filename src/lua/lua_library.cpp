@@ -5,7 +5,7 @@
 #include "canyon.h"
 #include "terrain/canyon_terrain.h"
 #include "canyon_zone.h"
-#include "collision.h"
+#include "collision/collision.h"
 #include "dynamicfog.h"
 #include "engine.h"
 #include "input.h"

@@ -6,7 +6,7 @@
 #include "camera.h"
 #include "canyon.h"
 #include "canyon_zone.h"
-#include "collision.h"
+#include "collision/collision.h"
 #include "future.h"
 #include "terrain_collision.h"
 #include "terrain_generate.h"

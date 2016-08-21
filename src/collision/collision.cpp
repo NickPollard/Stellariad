@@ -1,6 +1,6 @@
 // collision.c
 #include "common.h"
-#include "collision.h"
+#include "collision/collision.h"
 //---------------------
 #include "engine.h"
 #include "model.h"
