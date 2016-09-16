@@ -12,6 +12,17 @@
 #include "base/pair.h"
 #include "mem/allocator.h"
 #include "system/thread.h"
+// Brando
+#include "concurrent/future.h"
+#include "concurrent/task.h"
+#include "functional/traverse.h"
+#include "immutable/list.h"
+
+using brando::concurrent::Future;
+using brando::concurrent::ThreadPoolExecutor;
+using brando::functional::sequenceFutures;
+using brando::immutable::List;
+using brando::immutable::nil;
 
 void* buildCacheBlockTask(void* args) {
 	CanyonTerrainBlock* b = (CanyonTerrainBlock*)_1(args);
@@ -36,7 +47,7 @@ void* buildCacheBlockTask(void* args) {
 }
 
 // Request a cacheBlock of at least the required Lod for (U,V)
-future* requestCache( CanyonTerrainBlock* b, int u, int v ) {
+Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v ) {
 	// If already built, or building, return that future, else start it building
 	future* f = NULL;
 	bool needCreating = cacheBlockFuture( b->terrain->_canyon->cache, u, v, b->lod_level, &f);
@@ -47,7 +58,8 @@ future* requestCache( CanyonTerrainBlock* b, int u, int v ) {
 		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
 	future_onComplete( f, takeCacheRef, NULL );
-	return f;
+	return Future<bool>::now(true);
+	//return f;
 }
 
 void releaseAllCaches( cacheBlocklist* caches ) {
@@ -76,13 +88,28 @@ void generateVerts( CanyonTerrainBlock* b, vertPositions* vertSources, cacheBloc
 	worker_addTask( task( canyonTerrain_workerGenerateBlock, Pair( vertSources, b )));
 }
 
+/*
 void* worker_generateVerts( void* args ) {
 	cacheBlocklist* caches = cachesForBlock( (CanyonTerrainBlock*)_1(args) );
 	generateVerts( (CanyonTerrainBlock*)_1(args), (vertPositions*)_2(args), caches );
 	mem_free(args);
 	return NULL;
 }
+*/
 
+Future<Bool> generateAllCaches( CanyonTerrainBlock* b ) {
+	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
+	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
+
+	auto futures = nil<Future<bool>>();
+	for (int u = cacheMinU; u <= cacheMaxU; u += CacheBlockSize )
+		for (int v = cacheMinV; v <= cacheMaxV; v += CacheBlockSize ) {
+			futures = requestCache( b, u, v ) << futures;
+		}
+	return sequenceFutures(futures).map(std::function<bool(List<bool>)>([](auto a){ (void)a; return true; }));
+}
+
+/*
 futurelist* generateAllCaches( CanyonTerrainBlock* b ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
@@ -95,7 +122,18 @@ futurelist* generateAllCaches( CanyonTerrainBlock* b ) {
 		}
 	return fs;
 }
+*/
 
+/*
+Future<Unit> buildCache( CanyonTerrainBlock* block ) {
+	futurelist* fs = generateAllCaches( block );
+	futurelist_delete( fs );
+	mem_free(args);
+	return NULL;
+}
+*/
+
+/*
 void* buildCacheTask( void* args ) {
 	futurelist* fs = generateAllCaches( (CanyonTerrainBlock*)_1( args ));
 	future_completeWith( (future*)_2(args), futures_sequence( fs ));
@@ -103,14 +141,17 @@ void* buildCacheTask( void* args ) {
 	mem_free(args);
 	return NULL;
 }
+*/
 
 /* Builds a vertPositions to be passed to a child worker to actually construct the terrain.
    This should normally just pull from cache - if blocks aren't there, build them */
+/*
 future* buildCache(CanyonTerrainBlock* b) {
 	future* f = future_create();
 	worker_addTask( task(buildCacheTask, Pair( b, f )));
 	return f;
 }
+*/
 
 void generatePositions( CanyonTerrainBlock* b) {
 	vertPositions* vertSources = (vertPositions*)mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
@@ -120,8 +161,12 @@ void generatePositions( CanyonTerrainBlock* b) {
 	vertSources->vCount = b->v_samples + 2;
 	vertSources->positions = (vector*)mem_alloc( sizeof( vector ) * vertCount( b ));
 
-	future* f = buildCache( b );
-	future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
+	//future* f = buildCache( b );
+	//future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
+
+	ThreadPoolExecutor ex(1);
+	generateAllCaches( b ).foreach( [&](auto a){ (void)a; generateVerts( b, vertSources, cachesForBlock( b )); });
+	//async( ex, generateAllCaches( b )).foreach( [&]{ generateVerts( b, vertSources, cachesForBlock( b )); });
 }
 
 void* generateVertices_( void* args ) {
