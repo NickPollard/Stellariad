@@ -21,6 +21,9 @@ SpaceSim/lua/compiled/*
 SpaceSim/lua/compiled/*.lua
 SpaceSim/moon/*.lua
 
+# external dependencies
+dep
+
 # profile output
 android_profile_results
 profile_results
