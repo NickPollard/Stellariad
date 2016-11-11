@@ -1,1 +1,1 @@
-bash -c "`curl https://raw.github.com/larsyencken/marelle/master/bootstrap.sh`"
+bash -c "`curl -L https://raw.github.com/larsyencken/marelle/master/bootstrap.sh`"
