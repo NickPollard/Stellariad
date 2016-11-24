@@ -16,6 +16,8 @@
 #include "system/string.h"
 #include <assert.h>
 
+#undef exec
+
 static term lisp_false = { 
 	typeFalse, 
 	{ NULL },		// Head 

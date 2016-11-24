@@ -80,7 +80,6 @@ void engine_inputInputs( engine* e );
 graph* fpsgraph; 
 graphData* fpsdata;
 frame_timer* fps_timer;
-frame_timer* scratch_timer;
 #endif // GRAPH_FPS
 
 void test_engine_init( engine* e ) {
@@ -93,7 +92,6 @@ void test_engine_init( engine* e ) {
 	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
 	fpsgraph = graph_new( fpsdata, 100, 100, 480, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
 	fps_timer = vtimer_create();
-	scratch_timer = vtimer_create();
 #endif //GRAPH_FPS
 }
 
@@ -135,40 +133,20 @@ void countActiveParticleEmitters( engine* e ) {
 	printf( "Active particle emitters: %d.\n", count );
 }
 
-// tick - process a frame of game update
-void engine_tick( engine* e ) {
-
-	++e->frame_counter;
-
-	PROFILE_BEGIN( PROFILE_ENGINE_TICK );
-	float real_dt = timer_getDelta( e->timer );
-	float dt = e->paused ? 0.f : real_dt;
-
-	float time = 0.f;
-	for ( int i = 0; i < 29; i++ ) {
-		frame_times[i] = frame_times[i+1];
-		time += frame_times[i];
-	}
-	frame_times[29] = dt;
-	time += dt;
-	time = time / 30.f;
-	//printf( "frame time: %.4f, fps: %.2f\n", time, 1.f/time );
-
-	debugdraw_preTick( dt );
-	lua_preTick( e->lua, dt );
-
-	input_tick( e->_input, dt );
+void lua_tick( engine* e, float dt ) {
 	if ( e->onTick && luaCallback_enabled( e->onTick ) ) {
 		lua_setActiveState( e->lua );
 #if DEBUG_LUA
 		printf("Calling engine::onTick handler: %s\n", e->onTick->func);
 #endif
+    // TODO - abstract into a templated call-lua function
 		lua_pushcfunction( e->lua, lua_errorHandler );
 		lua_getglobal( e->lua, e->onTick->func );				
 		lua_pushnumber( e->lua, dt );
-		int err = lua_pcall( e->lua,	/* args */			1,
-				/* returns */		0,
-				/* error handler */ -3); // TODO - call an error handler!
+    const int numArgs = 1;
+    const int numReturns = 0;
+    const int errorHandler = -3;
+		int err = lua_pcall( e->lua, numArgs, numReturns, errorHandler);
 
 		if ( err != 0 ) {
 			printError( "LUA ERROR: ErrorNum: %d.", err );
@@ -178,6 +156,32 @@ void engine_tick( engine* e ) {
 		}
 		lua_setActiveState( NULL );
 	}
+}
+
+void engine_countFrames(float dt) {
+	float time = 0.f;
+	for ( int i = 0; i < 29; i++ ) {
+		frame_times[i] = frame_times[i+1];
+		time += frame_times[i];
+	}
+	frame_times[29] = dt;
+	time += dt;
+	time = time / 30.f;
+	//printf( "frame time: %.4f, fps: %.2f\n", time, 1.f/time );
+}
+
+// tick - process a frame of game update
+void engine_tick( engine* e ) {
+	++e->frame_counter;
+	float real_dt = timer_getDelta( e->timer );
+	float dt = e->paused ? 0.f : real_dt;
+  engine_countFrames( dt );
+
+	debugdraw_preTick( dt );
+	lua_preTick( e->lua, dt );
+
+	input_tick( e->_input, dt );
+  lua_tick( e, dt );
 
 	futures_tick( dt );
 
@@ -191,11 +195,6 @@ void engine_tick( engine* e ) {
 	scene_tick( theScene, dt );
 	
 	engine_tickPostTickers( e, dt );
-	
-	//countVisibleParticleEmitters( e );
-	//countActiveParticleEmitters( e );
-	
-	PROFILE_END( PROFILE_ENGINE_TICK );
 }
 
 // Handle a key press from the user
@@ -219,17 +218,20 @@ void engine_handleKeyPress(engine* e, uchar key, int x, int y) {
 
 
 // Initialise the Lua subsystem so that it is ready for use
-void engine_initLua(engine* e, int argc, char** argv) {
+void engine_initLua(engine* e, const char* script, int argc, char** argv) {
 	(void)argc;
 	(void)argv;
-	lua_setGameLuaPath( "SpaceSim/lua/" );
-	e->lua = vlua_create( e, e->script_file );
+	lua_setGameLuaPath( "SpaceSim/lua/" ); // TODO - instead this is inserted in android lua load
+	e->lua = vlua_create( e, script );
 }
 
 // Create a new engine
 engine* engine_create() {
-	engine* e = (engine*)mem_alloc(sizeof(engine));
-	memset( e, 0, sizeof( engine ));
+	//engine* e = (engine*)mem_alloc(sizeof(engine));
+	void* eSpace = mem_alloc(sizeof(engine));
+	engine* e = new (eSpace) engine(); // placement new
+	//memset( e, 0, sizeof( engine ));
+  // TODO - move to constructor
 	e->timer = (frame_timer*)mem_alloc(sizeof(frame_timer));
 	e->callbacks = luaInterface_create();
 	e->onTick = luaInterface_addCallback(e->callbacks, "onTick");
@@ -240,6 +242,8 @@ engine* engine_create() {
 	e->frame_counter = -1;
 	return e;
 }
+
+Executor& engine::ex() { return *executor; }
 
 // Initialise the engine
 void engine_init(engine* e, int argc, char** argv) {
@@ -268,12 +272,12 @@ void engine_init(engine* e, int argc, char** argv) {
 	//font_init();
 
 	// *** Initialise Lua
-	e->script_file = "SpaceSim/lua/main.lua";
+	const char* script_file = "SpaceSim/lua/main.lua";
 	if ( argc > 1 ) {
 		printf( "Setting script file: %s\n", argv[1] );
-		e->script_file = argv[1];
+		script_file = argv[1];
 	}
-	engine_initLua(e, argc, argv);
+	engine_initLua(e, script_file, argc, argv);
 	luaInterface_registerCallback(e->callbacks, "onTick", "tick");
 
 	// *** Canyon
@@ -433,7 +437,7 @@ void engine_run(engine* e) {
 			static int framecount = 0;
 			++framecount;
 			graphData_append( fpsdata, (float)framecount, dt );
-			//printf( "CPU Delta %6.5f\n", dt );
+//			printf( "CPU Delta %6.5f\n", dt );
 //			printf( "CPU fps %6.5f\n", 1.0/dt );
 
 #endif // GRAPH_FPS
@@ -616,28 +620,6 @@ void engine_addRender( engine* e, void* entity, renderfunc render ) {
 
 void engine_removeRender( engine* e, void* entity, renderfunc render ) {
 	engine_removeDelegateEntry( e->renders, entity, (void*)render );
-}
-
-
-int array_find( void** array, int count, void* ptr ) {
-	for ( int i = 0; i < count; ++i ) {
-		if ( array[i] == ptr )
-			return i;
-	}
-	return -1;
-}
-
-void array_add( void** array, int* count, void* ptr ) {
-	array[(*count)++] = ptr;
-}
-
-void array_remove( void** array, int* count, void* ptr ) {
-	int i = array_find( array, *count, ptr );
-	if ( i != -1 ) {
-		--(*count);
-		array[i] = array[*count];
-		array[*count] = NULL;
-	}
 }
 
 window engine_mainWindow( engine* e ) {

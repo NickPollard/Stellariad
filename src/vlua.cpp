@@ -257,7 +257,7 @@ lua_State* vlua_create( engine* e, const char* filename ) {
 	luaL_openlibs( l );	// Load the Lua libs into our lua l
 
 #ifdef ANDROID
-	lua_setupAndroidLoader( l );
+	lua_setupAndroidLoader( l ); // TODO - insert game LUA path here?
 #endif // ANDROID
 	lua_setPackagePath( l, "./SpaceSim/lua/?.lua;./SpaceSim/lua/compiled/?.lua" );
 

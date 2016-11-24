@@ -27,8 +27,8 @@
 #include "render/shader.h"
 #include "render/texture.h"
 
-#define val const auto
-#define var auto
+//#define val const auto
+//#define var auto
 
 template<typename T> using seq = std::forward_list<T>;
 using std::tuple;
@@ -83,7 +83,7 @@ MarchBlock* generateBlock(const BlockExtents b, const DensityFunction d) {
 auto coordsFor(BlockExtents b) -> Grid<vector, cubeSize> {
 	// b.min -> world space origin for the block
 	// calculate world-space positions and sample as such
-	val delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);
+	const auto delta = (b.max.x - b.min.x) / (float)(cubeSize - 1);
 
 	auto g = Grid<vector, cubeSize>();
 	for ( int i = 0; i < cubeSize; ++i )
@@ -105,7 +105,7 @@ struct cube {
 
 int triIndex(cube c) {
 	int index = 0;
-	val surface = 0.f;
+	const auto surface = 0.f;
 	for (int i = 0; i < 8; ++i) index |= ((c.densities[i] <= surface) ? 1 << i : 0);
 	return index;
 }
@@ -125,7 +125,7 @@ struct triangle {
 
 // Assuming dA is the smallest
 vector interpD( vector a, float dA, vector b, float dB ) {
-	val f = fabsf(dA) / (max(dA,dB) - min(dA,dB));
+	const auto f = fabsf(dA) / (max(dA,dB) - min(dA,dB));
 	return veclerp( a, b, f );
 }
 
@@ -134,7 +134,7 @@ auto cornersFor(int edge) -> tuple<int, int> {
 }
 
 int offsetOf( int index, int w ) {
-	val offset = edgeOffset[index];
+	const auto offset = edgeOffset[index];
 	// TODO - could compute these offline if w is static?
 	return (offset.x * (w*w) + offset.y * w + offset.z) * 3 + offset.dir;
 }
@@ -143,22 +143,22 @@ int offsetOf( int index, int w ) {
 auto cubeVert( cube c, int index, int origin ) -> vx {
 	// given a cube c, and an index indicating an edge-vertex on that cube, calculate the actual
 	// vertex position using the corner densities and positions
-	val corners = cornersFor(index);
+	const auto corners = cornersFor(index);
 	int first = get<0>(corners);
 	int second = get<1>(corners);
-	val a = c.corners[first];
-	val b = c.corners[second];
-	val dA = c.densities[first];
-	val dB = c.densities[second];
-	val v = interpD( a, dA, b, dB );
-	val width = cubeSize;
+	const auto a = c.corners[first];
+	const auto b = c.corners[second];
+	const auto dA = c.densities[first];
+	const auto dB = c.densities[second];
+	const auto v = interpD( a, dA, b, dB );
+	const auto width = cubeSize;
 	auto hash = origin * 3 + offsetOf(index, width);
 	vAssert( hash >= 0 );
 	return make_tuple(v, hash); // Except we need to tuple it with a hash
 }
 
 triangle tri(vx a, vx b, vx c) {
-	val t = triangle { { a, b, c } };
+	const auto t = triangle { { a, b, c } };
 	return t;
 }
 
@@ -172,8 +172,8 @@ triangle tri(vx a, vx b, vx c) {
 	 corner densities
 	 */
 auto trianglesFor(cube c) -> seq<triangle>{
-	val index = triIndex(c);
-	val maxIndexSize = 16;
+	const auto index = triIndex(c);
+	const auto maxIndexSize = 16;
 	int8_t* indices = triangles[index];
 	// Now we have the index list for the triangle, to pull out correct verts
 	auto tris = seq<triangle>();
@@ -216,10 +216,10 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	vertex* verts = (vertex*)mem_alloc( sizeof(vertex) * MaxVerts );
 	for (int i = 0; i < MaxVerts; ++i)
 		verts[i].normal = Vector(0.0, 0.0, 0.0, 0.0);
-	for (val t: tris) {
-		val normal = t.normal();
+	for (const auto t: tris) {
+		const auto normal = t.normal();
 		for (int i = 0; i < 3; ++i ) {
-			var hash = t.hash(i);
+			auto hash = t.hash(i);
 			vAssert( hash >= 0 && hash < MaxVerts );
 			verts[hash].position = t.pos(i);
 			verts[hash].normal = vector_add(verts[hash].normal, normal);
@@ -238,9 +238,9 @@ auto buffersFor(const seq<triangle>& tris) -> Buffers {
 	bs.normals = (vector*)mem_alloc(sizeof(vector) * length);
 
 	int i = 0;
-	for ( val t : tris ) {
+	for ( const auto t : tris ) {
 		for (int j = 0; j < 3; j++) {
-			val hash = t.hash(j);
+			const auto hash = t.hash(j);
 			vAssert( i < length );
 			vAssert( hash >= 0 && hash < MaxVerts );
 			bs.verts[i] = verts[hash].position;
@@ -305,14 +305,14 @@ vertex* vertsFor(const Buffers& bs) {
 MarchBlock* march(const BlockExtents b, const densityGrid& densities) {
 	seq<cube> cubes = cubesFor(densities);
 
-	val triangles = new seq<triangle>();
+	const auto triangles = new seq<triangle>();
 	for( auto c : cubes ) {
-		val tris = trianglesFor(c);
+		const auto tris = trianglesFor(c);
 		for( auto t : tris) triangles->push_front(t);
 	}
 
-	val buffers = buffersFor(*triangles);
-	val verts = vertsFor(buffers);
+	const auto buffers = buffersFor(*triangles);
+	const auto verts = vertsFor(buffers);
 	MarchBlock* m = (MarchBlock*)mem_alloc(sizeof( MarchBlock ));
 	m->extents = b;
 	m->verts = verts;
@@ -340,8 +340,8 @@ struct CachedHeights {
 	}
 	auto getOrElseUpdate(vector v, function<float(vector)> sample) -> float {
 		static const int wrap = 1024;
-		val i = (wrap - (int)floorf(v.x)) % wrap;
-		val j = (wrap - (int)floorf(v.z)) % wrap;
+		const auto i = (wrap - (int)floorf(v.x)) % wrap;
+		const auto j = (wrap - (int)floorf(v.z)) % wrap;
 		if (positions[i][j] == FLT_MAX)
 			positions[i][j] = sample(v);
 		return positions[i][j];
@@ -355,7 +355,7 @@ struct CachedHeights {
 auto fromHeightFieldWithCache(function<float(vector)> heightfield) -> function<float(vector)> {
 	CachedHeights* cached = new CachedHeights();
 	return function<float(vector)>([cached, heightfield](vector v) { 
-		val height = cached->getOrElseUpdate(v, heightfield);
+		const auto height = cached->getOrElseUpdate(v, heightfield);
 		return height - v.y;
 	});
 }
@@ -372,7 +372,7 @@ void drawMarchedCube(const Buffers& bs, vertex* vertices) {
 	(void)vertices;
 	render_resetModelView( );
 	if (bs.indexCount > 0 && marching_texture->gl_tex && marching_texture->gl_tex ) {
-		val draw = drawCall::create( &renderPass_main, *Shader::byName("dat/shaders/terrain.s"), bs.indexCount, bs.indices, vertices, marching_texture->gl_tex, modelview);
+		const auto draw = drawCall::create( &renderPass_main, *Shader::byName("dat/shaders/terrain.s"), bs.indexCount, bs.indices, vertices, marching_texture->gl_tex, modelview);
 		draw->texture_b = marching_texture_cliff->gl_tex;		
 		draw->texture_c = marching_texture->gl_tex;		
 		draw->texture_d = marching_texture_cliff->gl_tex;		
@@ -424,8 +424,8 @@ void buildMarchingCubes(canyon* c) {
 	origins[6] = vector_add(origin, Vector(0.f, -width, width, 0.f));
 	origins[7] = vector_add(origin, Vector(-width, -width, width, 0.f));
 
-	val fn = function<float(vector)>([c](vector v) { return densityFn(c, v); });
-	val dnFn = fromHeightFieldWithCache(fn);
+	const auto fn = function<float(vector)>([c](vector v) { return densityFn(c, v); });
+	const auto dnFn = fromHeightFieldWithCache(fn);
 
 	for (int i = 0; i < TestCubes; ++i)
 		//static_cube[i] = generateBlock(BlockExtents(origins[i], blockDimensions, cubesPerWidth), function<float(vector)>([c](vector v) { return densityFn(c, v); }));

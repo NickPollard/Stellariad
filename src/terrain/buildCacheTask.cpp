@@ -19,7 +19,6 @@
 #include "immutable/list.h"
 
 using brando::concurrent::Future;
-using brando::concurrent::ThreadPoolExecutor;
 using brando::functional::sequenceFutures;
 using brando::immutable::List;
 using brando::immutable::nil;
@@ -47,7 +46,7 @@ void* buildCacheBlockTask(void* args) {
 }
 
 // Request a cacheBlock of at least the required Lod for (U,V)
-Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v ) {
+Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v, Executor& ex ) {
 	// If already built, or building, return that future, else start it building
 	future* f = NULL;
 	bool needCreating = cacheBlockFuture( b->terrain->_canyon->cache, u, v, b->lod_level, &f);
@@ -58,7 +57,7 @@ Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v ) {
 		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
 	future_onComplete( f, takeCacheRef, NULL );
-	return Future<bool>::now(true);
+	return Future<bool>::now(true, ex);
 	//return f;
 }
 
@@ -97,16 +96,18 @@ void* worker_generateVerts( void* args ) {
 }
 */
 
-Future<Bool> generateAllCaches( CanyonTerrainBlock* b ) {
+Future<bool> generateAllCaches( CanyonTerrainBlock* b, Executor& ex ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
+
+  //assert(&ex != nullptr);
 
 	auto futures = nil<Future<bool>>();
 	for (int u = cacheMinU; u <= cacheMaxU; u += CacheBlockSize )
 		for (int v = cacheMinV; v <= cacheMaxV; v += CacheBlockSize ) {
-			futures = requestCache( b, u, v ) << futures;
+			futures = requestCache( b, u, v, ex ) << futures;
 		}
-	return sequenceFutures(futures).map(std::function<bool(List<bool>)>([](auto a){ (void)a; return true; }));
+	return sequenceFutures(futures, ex).map(std::function<bool(List<bool>)>([](auto a){ (void)a; return true; }));
 }
 
 /*
@@ -153,7 +154,8 @@ future* buildCache(CanyonTerrainBlock* b) {
 }
 */
 
-void generatePositions( CanyonTerrainBlock* b) {
+void generatePositions( CanyonTerrainBlock* b, Executor& ex ) {
+  //assert(&ex != nullptr);
 	vertPositions* vertSources = (vertPositions*)mem_alloc( sizeof( vertPositions )); // TODO - don't do a full mem_alloc here
 	vertSources->uMin = -1;
 	vertSources->vMin = -1;
@@ -164,16 +166,23 @@ void generatePositions( CanyonTerrainBlock* b) {
 	//future* f = buildCache( b );
 	//future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
 
-	ThreadPoolExecutor ex(1);
-	generateAllCaches( b ).foreach( [&](auto a){ (void)a; generateVerts( b, vertSources, cachesForBlock( b )); });
+	generateAllCaches( b, ex ).foreach( [&](auto a){ (void)a; generateVerts( b, vertSources, cachesForBlock( b )); });
 	//async( ex, generateAllCaches( b )).foreach( [&]{ generateVerts( b, vertSources, cachesForBlock( b )); });
 }
 
 void* generateVertices_( void* args ) {
-	generatePositions( (CanyonTerrainBlock*)args );
+  auto b = (CanyonTerrainBlock*)_1(args);
+  auto ex = (Executor*)_2(args);
+  assert(ex != nullptr);
+	generatePositions( b, *ex );
+	//generatePositions( (CanyonTerrainBlock*)args );
 	return NULL;
 }
 
-Msg generateVertices( CanyonTerrainBlock* b ) { 
-	return task( generateVertices_, b );
+Msg generateVertices( CanyonTerrainBlock* b, Executor& ex ) { 
+  //assert(&ex != nullptr);
+	//return task( generateVertices_, b );
+  Executor* e = &ex;
+  assert(e != nullptr);
+	return task( generateVertices_, Pair( b, &ex ));
 }

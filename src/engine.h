@@ -6,6 +6,8 @@
 #include "ticker.h"
 #include "vtime.h"
 
+#include "concurrent/task.h"
+
 #ifdef ANDROID
 // Android Libraries
 #include <android/log.h>
@@ -35,30 +37,19 @@ extern "C"
 #define GRAPH_FPS
 #endif
 
+using brando::concurrent::Executor;
+using brando::concurrent::ThreadPoolExecutor;
+
+// TODO - remove this! No static scene
 extern scene* theScene;
 
-extern float depth;
-
 extern int threadsignal_render;
-
-#ifdef GRAPH_FPS
-extern frame_timer* scratch_timer;
-#endif
 
 DEF_LIST(delegate)
 #define kDefaultDelegateSize 16
 
-#ifdef ANDROID
-typedef struct egl_renderer_s {
-    EGLDisplay display;
-    EGLSurface surface;
-    EGLContext context;
-    int32_t width;
-    int32_t height;
-} egl_renderer;
-#endif
-
 #ifdef LINUX_X
+// TODO - move out of Engine
 struct xwindow_s {
 	Display* display;
 	Window window;
@@ -68,8 +59,9 @@ struct xwindow_s {
 extern xwindow xwindow_main;
 #endif
 
+struct engine {
+  engine() : executor(new ThreadPoolExecutor(1)) {}
 
-struct engine_s {
 	// *** General
 	frame_timer* timer;
 	int	frame_counter;
@@ -77,11 +69,12 @@ struct engine_s {
 	bool paused;
 
 	// *** Lua
-	lua_State* lua;					//!< Engine wide persistant lua state
-	luaInterface* callbacks;		//!< Lua Interface for callbacks from the engine
-	luaCallback* onTick;			//!< OnTick event handler
-	const char* script_file;
+  // TODO - move into one Lua struct?
+	lua_State* lua;          //!< Engine wide persistant lua state
+	luaInterface* callbacks; //!< Lua Interface for callbacks from the engine
+	luaCallback* onTick;     //!< OnTick event handler
 
+  // TODO - write new templated delegate
 	delegatelist* tickers;	
 	delegatelist* post_tickers;	
 	delegatelist* renders;
@@ -89,11 +82,17 @@ struct engine_s {
 
 	debugtextframe* debugtext;
 
+  Executor& ex();
+
+  // TODO Do we need both of these?
 	bool running;
-	bool active;
+	bool active; // seems to come from android only?
 #ifdef ANDROID
 	struct android_app* app;
 #endif
+
+  private:
+    unique_ptr<Executor> executor;
 };
 
 extern engine* static_engine_hack;
@@ -120,16 +119,16 @@ engine* engine_create();
 void engine_init(engine* e, int argc, char** argv);
 
 // Initialise the OpenGL subsystem so it is ready for use
-void engine_initOpenGL(engine* e, int argc, char** argv);
+//void engine_initOpenGL(engine* e, int argc, char** argv);
 
 // Initialise the Lua subsystem so that it is ready for use
-void engine_initLua(engine* e, int argc, char** argv);
+//void engine_initLua(engine* e, int argc, char** argv);
 
 // terminate - de-initialises the engine
 void engine_terminate(engine* e);
 
 // terminateLua - de-initialises the Lua interpreter
-void engine_terminateLua(engine* e);
+//void engine_terminateLua(engine* e);
 
 // run - executes the main loop of the application
 void engine_run(engine* e);
@@ -152,12 +151,5 @@ void engine_addRender( engine* e, void* entity, renderfunc render );
 void engine_removeRender( engine* e, void* entity, renderfunc render );
 void stopTick( engine* e, void* entity, tickfunc tick );
 void stopPostTick( engine* e, void* entity, tickfunc tick );
-
-// *** Array funcs
-int array_find( void** array, int count, void* ptr );
-#define arrayAdd( a, b, c ) array_add( (void**)(a), (b), (c) )
-void array_add( void** array, int* count, void* ptr );
-#define arrayRemove( a, b, c ) array_remove( (void**)(a), (b), (c) )
-void array_remove( void** array, int* count, void* ptr );
 
 window engine_mainWindow( engine* e );

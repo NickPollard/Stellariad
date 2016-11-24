@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "future.h"
 #include "terrain_generate.h"
+#include "base/array.h"
 #include "maths/geometry.h"
 #include "maths/vector.h"
 #include "render/drawcall.h"

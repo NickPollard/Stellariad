@@ -12,6 +12,7 @@
 #include "particle.h"
 #include "physic.h"
 #include "ribbon.h"
+#include "base/array.h"
 #include "debug/debugtext.h"
 #include "input/keyboard.h"
 #include "maths/vector.h"

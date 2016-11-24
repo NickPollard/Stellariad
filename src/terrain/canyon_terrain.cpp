@@ -105,7 +105,9 @@ void canyonTerrain_updateBlocks( canyon* c, CanyonTerrain* t, engine* e ) {
 			}
 			for ( int i = 0; i < blockCount; ++i ) {
 				CanyonTerrainBlock* b = blocks[i];
-				tell( b->actor, generateVertices( b ));
+        Executor* exec = &e->ex();
+        assert( exec != nullptr );
+				tell( b->actor, generateVertices( b, e->ex() ));
 			}
 
 			memcpy( t->bounds, bounds, sizeof( int ) * 2 * 2 );
@@ -142,7 +144,8 @@ CanyonTerrainBlock::CanyonTerrainBlock( CanyonTerrain* t, absolute _u, absolute 
 	v( _v ),
 	terrain( t ),
 	_canyon( t->_canyon ),
-	_engine( e ) {
+	_engine( e ),
+  readyP( e->ex() ) {
 	actor = spawnActor( t->system );
 	renderable = terrainRenderable_create( this );
 	canyonTerrainBlock_calculateExtents( this, terrain, u, v );

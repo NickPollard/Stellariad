@@ -4,6 +4,7 @@
 //-----------------------
 #include "engine.h"
 #include "future.h"
+#include "base/array.h"
 #include "mem/allocator.h"
 #include "worker.h"
 

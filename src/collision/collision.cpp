@@ -7,6 +7,7 @@
 #include "test.h"
 #include "transform.h"
 #include "worker.h"
+#include "base/array.h"
 #include "base/ringqueue.h"
 #include "maths/geometry.h"
 #include "render/debugdraw.h"

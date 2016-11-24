@@ -26,6 +26,7 @@ SRCS =	src/bounds.cpp \
 		src/transform.cpp \
 		src/worker.cpp \
 		src/actor/actor.cpp \
+		src/base/array.cpp \
 		src/base/pair.cpp \
 		src/base/ringqueue.cpp \
 		src/base/window_buffer.cpp \

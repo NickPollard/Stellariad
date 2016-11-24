@@ -4,6 +4,7 @@
 //---------------------
 #include "log.h"
 #include "model.h"
+#include "base/array.h"
 #include "maths/vector.h"
 #include "mem/allocator.h"
 #include "render/drawcall.h"

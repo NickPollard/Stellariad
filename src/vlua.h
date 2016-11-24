@@ -43,6 +43,7 @@ typedef struct luaCallback_s luaCallback;
  *  Every class that wants to use Lua callbacks has one of these
  *  This is what is passed to the lua state for control of callbacks
  */
+//TODO: Map<Name, Func> ? plus maybe enabled flag? Or Map<Name, Option<Func>>?
 struct luaInterface_s {
 	int	callbackCount;
 	luaCallback callbackArray[MAX_CALLBACKS];

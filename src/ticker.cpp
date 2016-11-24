@@ -3,6 +3,7 @@
 #include "src/ticker.h"
 //---------------------
 #include "engine.h"
+#include "base/array.h"
 #include "mem/allocator.h"
 #include <assert.h>
 
