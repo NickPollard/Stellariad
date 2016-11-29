@@ -19,6 +19,7 @@
 #include "immutable/list.h"
 
 using brando::concurrent::Future;
+using brando::concurrent::Promise;
 using brando::functional::sequenceFutures;
 using brando::immutable::List;
 using brando::immutable::nil;
@@ -45,6 +46,13 @@ void* buildCacheBlockTask(void* args) {
 	return NULL;
 }
 
+void* completeBrandoPromise(const void* v, void* promise) {
+  (void)v;
+  Promise<bool>* p = (Promise<bool>*)promise;
+  p->complete(true);
+  return nullptr;
+}
+
 // Request a cacheBlock of at least the required Lod for (U,V)
 Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v, Executor& ex ) {
 	// If already built, or building, return that future, else start it building
@@ -56,9 +64,12 @@ Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v, Executor& ex ) {
 		void* vv = (void*)(uintptr_t)v;
 		worker_addTask( task( buildCacheBlockTask, Quad(b, f, uu, vv)));
 	}
-	future_onComplete( f, takeCacheRef, NULL );
-	return Future<bool>::now(true, ex);
-	//return f;
+	future_onComplete( f, takeCacheRef, nullptr );
+  // TODO - fix future so it doesn't return immediately
+  Promise<bool>* p = new Promise<bool>(ex);
+  future_onComplete( f, completeBrandoPromise, p );
+	return p->future();
+	//return Future<bool>::now(true, ex);
 }
 
 void releaseAllCaches( cacheBlocklist* caches ) {
@@ -99,8 +110,6 @@ void* worker_generateVerts( void* args ) {
 Future<bool> generateAllCaches( CanyonTerrainBlock* b, Executor& ex ) {
 	int cacheMinU = 0, cacheMinV = 0, cacheMaxU = 0, cacheMaxV = 0;
 	getCacheExtents(b, cacheMinU, cacheMinV, cacheMaxU, cacheMaxV );
-
-  //assert(&ex != nullptr);
 
 	auto futures = nil<Future<bool>>();
 	for (int u = cacheMinU; u <= cacheMaxU; u += CacheBlockSize )
@@ -166,7 +175,7 @@ void generatePositions( CanyonTerrainBlock* b, Executor& ex ) {
 	//future* f = buildCache( b );
 	//future_onComplete( f, runTask, taskAlloc( worker_generateVerts, Pair( b, vertSources )));
 
-	generateAllCaches( b, ex ).foreach( [&](auto a){ (void)a; generateVerts( b, vertSources, cachesForBlock( b )); });
+	generateAllCaches( b, ex ).foreach( [=](auto a){ (void)a; generateVerts( b, vertSources, cachesForBlock( b )); });
 	//async( ex, generateAllCaches( b )).foreach( [&]{ generateVerts( b, vertSources, cachesForBlock( b )); });
 }
 

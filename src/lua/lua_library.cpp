@@ -3,7 +3,6 @@
 #include "lua_library.h"
 //---------------------
 #include "canyon.h"
-#include "terrain/canyon_terrain.h"
 #include "canyon_zone.h"
 #include "collision/collision.h"
 #include "dynamicfog.h"
@@ -29,6 +28,8 @@
 #include "system/file.h"
 #include "system/string.h"
 #include "terrain/marching.h"
+#include "terrain/canyon_terrain.h"
+#include "terrain/terrain_render.h"
 #include "ui/panel.h"
 
 #define DEBUG_SANITY_CHECK_POINTERS
@@ -967,12 +968,12 @@ int LUA_createCanyon(lua_State* l) {
 	CanyonTerrain* t = canyonTerrain_create( c, uBlocks, vBlocks, uSamples, vSamples, 640.f, 960.f );
 
 	// *** Marching cube terrain
-	buildMarchingCubes( c );
+	//buildMarchingCubes( c );
 	
 	//CanyonTerrain* t = canyonTerrain_create( c, 7, 9, 80, 80, 640.f, 960.f );
 	t->setLodIntervals( 1, 3 );
 	startTick( e, (void*)t, canyonTerrain_tick );
-	//engine_addRender( e, (void*)t, canyonTerrain_render );
+	engine_addRender( e, (void*)t, canyonTerrain_render );
 	lua_pushptr( l, c );
 	return 1;
 }
