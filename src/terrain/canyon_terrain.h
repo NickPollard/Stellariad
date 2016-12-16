@@ -93,6 +93,7 @@ struct CanyonTerrain {
 	int				bounds[2][2];
 	vector			sample_point;
 
+  TerrainCache* cache;
 	canyon*				_canyon;
 	vertex**			vertex_buffers;
 	int					vertex_buffer_count;

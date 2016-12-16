@@ -11,13 +11,12 @@
 #define TrailingCanyonSegments 30
 
 struct canyon_s { 
-	canyonZone	zones[kNumZones];
-	int			zone_count;
-	int			current_zone;
-	vector		zone_sample_point;
-	scene*		_scene;
+	canyonZone  zones[kNumZones];
+	int         zone_count;
+	int         current_zone;
+	vector      zone_sample_point;
+	scene*      _scene;
 	window_buffer* canyon_streaming_buffer;
-	terrainCache* cache;
 };
 
 struct canyonData_s {

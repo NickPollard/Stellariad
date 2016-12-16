@@ -67,7 +67,7 @@ void canyonTerrain_updateBlocks( canyon* c, CanyonTerrain* t, engine* e ) {
 		canyonTerrain_calculateBounds( c, bounds, t, &t->sample_point );
 
 		const int vTrim = ((float)bounds[0][1] - 0.5f) * ((2 * t->v_radius) / (float)t->v_block_count);
-		terrainCache_trim( c->cache, vTrim );
+		terrainCache_trim( t->cache, vTrim );
 
 		if (t->firstUpdate || !boundsEqual( bounds, t->bounds )) {
 			boundsIntersection( intersection, bounds, t->bounds );
@@ -252,6 +252,7 @@ CanyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	t->setLodIntervals( 3, 2 );
 	t->system = actorSystemCreate();
 	vmutex_init( &t->mutex );
+	t->cache = terrainCache_create();
 
 	canyonTerrain_initVertexBuffers( t );
 	if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
@@ -273,7 +274,7 @@ void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	canyon_seekForWorldPosition( t->_canyon, t->sample_point );
 	zone_sample_point = t->sample_point;
 
-	terrainCache_tick( t->_canyon->cache, dt, t->sample_point );
+	terrainCache_tick( t->cache, dt, t->sample_point );
 	canyonTerrain_updateBlocks( t->_canyon, t, eng );
 }
 

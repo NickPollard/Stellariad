@@ -328,7 +328,6 @@ canyon* canyon_create( scene* s, const char* file ) {
 	c->_scene = s;
 	canyonZone_load( c, file );
 	c->canyon_streaming_buffer = window_bufferCreate( sizeof( canyonData ), MaxCanyonPoints );
-	c->cache = terrainCache_create();
 	canyon_generateInitialPoints( c );
 	canyonBuffer_seek( c, 0 );
 	return c;

@@ -15,28 +15,6 @@ int vertCount( CanyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_sa
 // Adjusted as we have a 1-vert margin for normal calculation at edges
 int indexFromUV( CanyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
-cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
-	for ( cacheBlocklist* b = blist; b; b = b->tail )
-		if ( b && cacheBlockContains( b->head, u, v ) )
-			return b->head;
-	return NULL;
-}
-
-vector terrainPointCached( canyon* c, CanyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
-	(void)c;
-	const int uReal = b->uMin + uRelative;
-	const int vReal = b->vMin + vRelative;
-	const int uOffset = offset( uReal, CacheBlockSize );
-	const int vOffset = offset( vReal, CacheBlockSize );
-	const int uMin = uReal - uOffset;
-	const int vMin = vReal - vOffset;
-
-	cacheBlock* cache = terrainCachedFromList( caches, uMin, vMin );
-	if ( !cache ) printf( "Missing cache block %d %d.\n", uMin, vMin );
-	vAssert( cache && cache->lod <= b->lod_level );
-	return cache->positions[uOffset][vOffset];
-}
-
 // if it's in p, return the cached version
 vector pointForUV( vertPositions* p, int u, int v ) {
 	vAssert(u >= p->uMin && u < p->uMin + p->uCount && v >= p->vMin && v < p->vMin + p->vCount );
@@ -153,12 +131,4 @@ void canyonTerrainBlock_generate( vertPositions* vs, CanyonTerrainBlock* b ) {
 		(void)data;  
 		b->terrain->setBlock( b->u, b->v, b ); 
 	});
-}
-
-void* canyonTerrain_workerGenerateBlock( void* args ) {
-	vertPositions* verts = (vertPositions*)_1(args);
-	canyonTerrainBlock_generate( verts, (CanyonTerrainBlock*)_2(args) );
-	vertPositions_delete( verts );
-	mem_free( args );
-	return NULL;
 }
