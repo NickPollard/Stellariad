@@ -40,6 +40,7 @@ long int initial_seed = 0x0;
 
 // *** Forward declarations
 vector terrain_newCanyonPoint( vector current, vector previous );
+void canyon_generateInitialPoints( canyon* c );
 // ***
 
 

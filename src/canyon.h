@@ -24,6 +24,7 @@ struct canyonData_s {
 	vector normal;
 };
 
+// TODO move these to canyon members
 extern const float canyon_base_radius;
 extern const float canyon_width;
 extern const float canyon_height;
@@ -31,8 +32,8 @@ extern const float canyon_height;
 // Canyon functions
 canyon* canyon_create( scene* s, const char* file );
 void canyon_tick( void* canyon_data, float dt, engine* eng );
-void canyon_generateInitialPoints( canyon* c );
-void canyon_staticInit();
+//void canyon_generateInitialPoints( canyon* c );
+void canyon_staticInit(); // TODO - does this actually need to be static?
 void canyon_seekForWorldPosition( canyon* c, vector position );
 // Convert world-space X and Z coords into canyon space U and V
 void canyonSpaceFromWorld( canyon* c, float x, float z, float* u, float* v );

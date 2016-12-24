@@ -23,8 +23,9 @@ IMPLEMENT_LIST(cacheBlock);
 IMPLEMENT_LIST(cacheGrid);
 
 struct TerrainCache {
+  TerrainCache() : grids(nullptr), toDelete(nullptr) { }
+
 	cacheGridlist* grids;	
-	cacheBlocklist* blocks;	
 	cacheBlocklist* toDelete;
 };
 
@@ -35,10 +36,7 @@ vmutex blockMutex = kMutexInitialiser;
 cacheBlock* terrainCacheBlock( canyon* c, CanyonTerrain* t, int uMin, int vMin, int requiredLOD );
 
 TerrainCache* terrainCache_create() {
-	TerrainCache* t = (TerrainCache*)mem_alloc(sizeof(TerrainCache));
-	t->blocks = cacheBlocklist_create();
-	t->toDelete = NULL;
-	t->grids = NULL;
+	TerrainCache* t = new (mem_alloc(sizeof(TerrainCache))) TerrainCache();
 	return t;
 }
 
@@ -341,8 +339,8 @@ cacheBlock* terrainCachedFromList( cacheBlocklist* blist, int u, int v ) {
 	return NULL;
 }
 
-vector terrainPointCached( canyon* c, CanyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
-	(void)c;
+// Read a position from the terrain Cache
+vector terrainPointCached( CanyonTerrainBlock* b, cacheBlocklist* caches, int uRelative, int vRelative ) {
 	const int uReal = b->uMin + uRelative;
 	const int vReal = b->vMin + vRelative;
 	const int uOffset = offset( uReal, CacheBlockSize );
@@ -403,6 +401,7 @@ void* completeBrandoPromise(const void* v, void* promise) {
 Future<bool> requestCache( CanyonTerrainBlock* b, int u, int v, Executor& ex ) {
 	// If already built, or building, return that future, else start it building
 	future* f = nullptr;
+  // TODO replace with Brando future
 	bool needCreating = cacheBlockFuture( b->terrain->cache, u, v, b->lod_level, &f);
 	vAssert( f );
 	if (needCreating)
@@ -430,6 +429,10 @@ vertPositions* newVertPositions( CanyonTerrainBlock* b ) {
   return vertSources;
 }
 
+int f(int stride, int strideMax, int samples, int i) {
+  return (i == -1) ? -strideMax : (i == samples ? ((samples - 1) * stride + strideMax) : i * stride);
+}
+
 /* At this point all the terrain caches should be filled,
    so we can just use them safely */
 void generateVerts( CanyonTerrainBlock* b, cacheBlocklist* caches, Executor& ex ) {
@@ -442,10 +445,9 @@ void generateVerts( CanyonTerrainBlock* b, cacheBlocklist* caches, Executor& ex 
 			vAssert( index >= 0 && index < max );
 			const int strideMax = 4;
 			const int stride = b->lodStride();
-			int uu = (u == -1) ? -strideMax : (u == b->u_samples ? ((b->u_samples - 1) * stride + strideMax) : u * stride);
-			int vv = (v == -1) ? -strideMax : (v == b->v_samples ? ((b->v_samples - 1) * stride + strideMax) : v * stride);
-			//int vv = (v == -1) ? -strideMax : v * b->lodStride();
-			verts[index] = terrainPointCached( b->_canyon, b, caches, uu, vv );
+      int uu = f(stride, strideMax, b->u_samples, u);
+      int vv = f(stride, strideMax, b->v_samples, v);
+			verts[index] = terrainPointCached( b, caches, uu, vv );
 		}
 
 	releaseAllCaches( caches );

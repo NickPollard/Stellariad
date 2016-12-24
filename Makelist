@@ -67,7 +67,6 @@ SRCS =	src/bounds.cpp \
 		src/system/library.cpp \
 		src/system/string.cpp \
 		src/system/thread.cpp \
-		src/terrain/buildCacheTask.cpp \
 		src/terrain/cache.cpp \
 		src/terrain/canyon_terrain.cpp \
 		src/terrain/grid.cpp \

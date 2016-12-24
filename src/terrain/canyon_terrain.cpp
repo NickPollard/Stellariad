@@ -19,7 +19,7 @@
 #include "mem/allocator.h"
 #include "render/texture.h"
 #include "terrain/cache.h"
-#include "terrain/buildCacheTask.h"
+//#include "terrain/buildCacheTask.h"
 
 #define LowestLod 2
 
