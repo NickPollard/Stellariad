@@ -6,7 +6,7 @@
 #include "input/keyboard.h"
 #include "render/render.h"
 
-EGLNativeWindowType os_createWindow( window* w, const char* title ) {
+EGLNativeWindowType os_createWindow( window* w, xwindow& xwin, const char* title ) {
 	Display* display = XOpenDisplay(NULL); // Get the XServer display
 
 	int x = 0, y = 0, border_width = 0;
@@ -40,13 +40,13 @@ EGLNativeWindowType os_createWindow( window* w, const char* title ) {
 		if ( e.type == MapNotify ) break;
 	}
 
-	xwindow_main.display = display;
-	xwindow_main.window = window;
-	xwindow_main.open = true;
+	xwin.display = display;
+	xwin.window = window;
+	xwin.open = true;
 
 	// TODO - this shouldn't happen here.
 	// Window creation needs to be moved out of Render
-	input_initKeyCodes( &xwindow_main );
+	input_initKeyCodes( &xwin );
 
 	return window;
 }

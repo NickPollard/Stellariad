@@ -82,7 +82,8 @@ EGLNativeDisplayType defaultOSDisplay() {
 	IF_ANDROID( return EGL_DEFAULT_DISPLAY; )
 }
 
-void render_createWindow( void* app, window* w ) {
+void render_createWindow( void* app, engine* e, window* w ) {
+  (void)e;
 	(void)app;
     /* Initialize OpenGL and EGL
      * Below, we select an EGLConfig with at least 8 bits per color
@@ -109,7 +110,7 @@ void render_createWindow( void* app, window* w ) {
 
 	// We need to create a window first, outside EGL
 	EGLNativeWindowType native_win = 
-		IF_LINUX( os_createWindow( w, "Skies of Antares" ); )
+		IF_LINUX( os_createWindow( w, e->xwin, "Skies of Antares" ); )
 		IF_ANDROID(	os_createWindow( &w->display, &config, (AndroidApp*)app ); )
 
     w->surface = eglCreateWindowSurface( w->display, config, native_win, NULL );

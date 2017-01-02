@@ -49,18 +49,16 @@ extern "C"
 // System Libraries
 #include <stdlib.h>
 
+// TODO - move to new Delegate System
 IMPLEMENT_LIST(delegate)
 
 #define kNumWorkerThreads 4
 
 // System libraries
 
+// TODO - move this somewhere better
 // *** Static Hacks
 scene* theScene = NULL;
-
-#ifdef LINUX_X
-xwindow xwindow_main = { NULL, 0x0, false };
-#endif
 
 // Function Declarations
 void engine_tickTickers( engine* e, float dt );
@@ -80,19 +78,6 @@ graphData* fpsdata;
 frame_timer* fps_timer;
 #endif // GRAPH_FPS
 
-void test_engine_init( engine* e ) {
-	theScene = test_scene_init( e );
-	lua_setScene( e->lua, theScene );
-
-#ifdef GRAPH_FPS
-#define kMaxFPSFrames 512
-	fpsdata = graphData_new( kMaxFPSFrames );
-	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
-	fpsgraph = graph_new( fpsdata, 100, 100, 480, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
-	fps_timer = vtimer_create();
-#endif //GRAPH_FPS
-}
-
 /*
  *
  *  Engine Methods
@@ -100,37 +85,14 @@ void test_engine_init( engine* e ) {
  */
 
 void engine_input( engine* e ) {
-	scene_input( theScene, e->_input );
-	
-	// Process all generic inputs
+	scene_input( e->_scene, e->_input );
 	engine_inputInputs( e );
 }
 
 float frame_times[30];
 
-void countVisibleParticleEmitters( engine* e ) {
-	int count = 0;
-	delegatelist* d_list = e->renders;
-	while ( d_list ) {
-		if ( d_list->head->tick == particleEmitter_render) {
-			count += d_list->head->count;
-		}
-		d_list = d_list->tail;
-	}
-	printf( "Visible particle emitters: %d.\n", count );
-}
-void countActiveParticleEmitters( engine* e ) {
-	int count = 0;
-	delegatelist* d_list = e->tickers;
-	while ( d_list ) {
-		if ( d_list->head->tick == particleEmitter_tick) {
-			count += d_list->head->count;
-		}
-		d_list = d_list->tail;
-	}
-	printf( "Active particle emitters: %d.\n", count );
-}
-
+// TODO - move to Lua and abstract
+// luaCall "ontick" engine
 void lua_tick( engine* e, float dt ) {
 	if ( e->onTick && luaCallback_enabled( e->onTick ) ) {
 		lua_setActiveState( e->lua );
@@ -181,8 +143,9 @@ void engine_tick( engine* e ) {
 	input_tick( e->_input, dt );
   lua_tick( e, dt );
 
-	futures_tick( dt );
+	futures_tick( dt ); // TODO replace this when executor is merged
 
+  // TODO - collision move to Brando execution?
 	collision_processResults( e->frame_counter, dt );
 	// Memory barrier?
 	collision_queueWorkerTick( e->frame_counter+1, dt );
@@ -190,7 +153,7 @@ void engine_tick( engine* e ) {
 	engine_tickTickers( e, dt );
 
 	// This happens last, as transform concatenation needs to take into account every other input
-	scene_tick( theScene, dt );
+	scene_tick( e->_scene, dt );
 	
 	engine_tickPostTickers( e, dt );
 }
@@ -238,6 +201,9 @@ engine* engine_create() {
 	e->inputs = NULL;
 	e->renders = NULL;
 	e->frame_counter = -1;
+#ifdef LINUX_X
+  e->xwin = { NULL, 0x0, false };
+#endif
 	return e;
 }
 
@@ -245,7 +211,7 @@ Executor& engine::ex() { return *executor; }
 
 // Initialise the engine
 void engine_init(engine* e, int argc, char** argv) {
-	e->running = true;
+	e->alive = true;
 	e->paused = false;
 
 	timer_init(e->timer);
@@ -285,8 +251,17 @@ void engine_init(engine* e, int argc, char** argv) {
 		vthread_create( worker_threadFunc, NULL );
 	}
 
-	// TEST
-	test_engine_init( e );
+	e->_scene = scene_create( e );
+	lua_setScene( e->lua, e->_scene );
+  theScene = e->_scene; // TODO remove
+
+#ifdef GRAPH_FPS
+#define kMaxFPSFrames 512
+	fpsdata = graphData_new( kMaxFPSFrames );
+	vector graph_green = Vector( 0.2f, 0.8f, 0.2f, 1.f );
+	fpsgraph = graph_new( fpsdata, 100, 100, 480, 240, (float)kMaxFPSFrames, 0.033f, graph_green );
+	fps_timer = vtimer_create();
+#endif //GRAPH_FPS
 }
 
 // Initialises the application
@@ -316,12 +291,8 @@ void engine_terminateLua(engine* e) {
 
 // terminate - terminates (De-initialises) the engine
 void engine_terminate(engine* e) {
-	// *** clean up Lua
 	engine_terminateLua(e);
-
-	// *** clean up Renderer
 	render_terminate();
-
 	exit(0);
 }
 
@@ -329,12 +300,19 @@ void engine_waitForRenderThread() {
 	vthread_waitCondition( finished_render );
 }
 
-void engine_render( engine* e ) {
+bool shouldRender( engine* e ) {
+  (void)e;
 #ifdef ANDROID
-	if ( window_main.context != 0 )
+	return window_main.context != 0;
+#else
+  return true;
 #endif // ANDROID
-	{
-		render( &window_main, theScene );
+}
+
+// TODO - refactor this to be per-window?
+void engine_render( engine* e ) {
+	if ( shouldRender( e )) {
+		render( &window_main, e->_scene );
 		engine_renderRenders( e );
 		skybox_render( NULL );
 
@@ -350,18 +328,19 @@ void engine_render( engine* e ) {
 	vthread_signalCondition( start_render );
 }
 
+// TODO - move to OS
 #ifdef LINUX_X
 void engine_xwindowPollEvents( engine* e ) {
 	XEvent event;
-	if ( XPending( xwindow_main.display ) > 0 ) {
-		XNextEvent( xwindow_main.display, &event );
+	if ( XPending( e->xwin.display ) > 0 ) {
+		XNextEvent( e->xwin.display, &event );
 		if ( event.type == DestroyNotify ) {
 			// This message means we received our own message to destroy the window, so we clean up
-			xwindow_main.open = false;
+			e->xwin.open = false;
 		}
 		if ( event.type == ClientMessage ) {
 			// This message means the user has asked to close the window, so we send the message
-			XDestroyWindow( xwindow_main.display, xwindow_main.window );
+			XDestroyWindow( e->xwin.display, e->xwin.window );
 		}
 		if ( event.type == KeyPress ) {
 			input_xKeyPress( event.xkey.keycode );
@@ -375,6 +354,7 @@ void engine_xwindowPollEvents( engine* e ) {
 }
 #endif // LINUX_X
 
+// TODO - move to OS
 #ifdef ANDROID
 void engine_androidPollEvents( engine* e ) {       
 //	printf( "Polling for android events." );
@@ -394,34 +374,33 @@ void engine_androidPollEvents( engine* e ) {
 
 		// Check if we are exiting.
 		if ( e->app->destroyRequested != 0 ) {
-			e->running = false;
+			e->alive = false;
 			return;
 		}
 	}
 }
 #endif // ANDROID
 
-// run - executes the main loop of the engine
-void engine_run(engine* e) {
-#if PROFILE_ENABLE
-	profile_init();
-#endif
-	PROFILE_BEGIN( PROFILE_MAIN );
-	//	TextureLibrary* textures = texture_library_create();
+bool os_pollEvents( engine* e ) {
+#ifdef ANDROID
+  engine_androidPollEvents( e );
+	return e->active;
+#endif 
 
+#ifdef LINUX_X
+	engine_xwindowPollEvents( e );
+#endif
+  return true;
+}
+
+// TODO - pull out graph/timer/debug code to simplify this loop
+// run - executes the main loop of the engine
+void engine_run( engine* e ) {
 	// We need to ensure we can run the first time without waiting for render
 	vthread_signalCondition( finished_render );
 	
-	while ( e->running ) {
-#ifdef ANDROID
-		engine_androidPollEvents( e );
-		bool active = e->active;
-#else
-#ifdef LINUX_X
-		engine_xwindowPollEvents( e );
-#endif
-		bool active = true;
-#endif // ANDROID
+	while ( e->alive ) {
+    bool active = os_pollEvents( e );
 		if ( active ) {
 			engine_input( e );
 			engine_tick( e );
@@ -439,13 +418,13 @@ void engine_run(engine* e) {
 			timer_getDelta( fps_timer );
 #endif
 			engine_render( e );
-			e->running = e->running && !input_keyPressed( e->_input, KEY_ESC );
+			e->alive = e->alive && !input_keyPressed( e->_input, KEY_ESC );
 		}
 		bool window_open = true;
 #ifdef LINUX_X
-		window_open = xwindow_main.open;
+		window_open = e->xwin.open;
 #endif // LINUX_X
-		e->running = e->running && window_open;
+		e->alive = e->alive && window_open;
 
 		// Make sure we don't have too many tasks outstanding - ideally this should never get this high
 		// Prevents an eventual overflow assertion
@@ -454,20 +433,15 @@ void engine_run(engine* e) {
 			usleep( 2 );
 		}
 		*/
-#ifndef ANDROID
-		//usleep( 10000 );
-#endif
 
-#if PROFILE_ENABLE
-		profile_newFrame();
-#endif
 	}
-	PROFILE_END( PROFILE_MAIN );
-#if PROFILE_ENABLE
-	profile_newFrame();
-	profile_dumpProfileTimes();
-#endif
 }
+
+/*
+ *
+ * TODO - move and reimplement this section - Delegates
+ *
+ */
 
 void engine_tickDelegateList( delegatelist* d, engine* e, float dt ) {
 	while (d != NULL) {
@@ -491,11 +465,12 @@ void engine_renderRenders( engine* e ) {
 	delegatelist* d = e->renders;
 	while (d != NULL) {
 		assert( d->head );	// Should never be NULL heads
-		delegate_render( d->head, theScene ); // render the whole of this delegate
+		delegate_render( d->head, e->_scene ); // render the whole of this delegate
 		d = d->tail;
 	}
 }
 
+// Process all inputs
 void engine_inputInputs( engine* e ) {
 	delegatelist* d = e->inputs;
 	while ( d != NULL ) {
@@ -517,10 +492,6 @@ delegate* engine_findDelegate( delegatelist* d, void* func ) {
 	return NULL;
 }
 
-delegate* engine_findTickDelegate( engine* e, tickfunc tick ) {
-	return engine_findDelegate( e->tickers, (void*)tick );
-}
-
 delegate* engine_findRenderDelegate( engine* e, renderfunc render ) {
 	return engine_findDelegate( e->renders, (void*)render );
 }
@@ -528,11 +499,10 @@ delegate* engine_findRenderDelegate( engine* e, renderfunc render ) {
 delegate* engine_findInputDelegate( engine* e, inputfunc in ) {
 	return engine_findDelegate( e->inputs, (void*)in );
 }
+
 // Add a new delegate to the delegatelist
 // (a delegate is a list of entities to all receive the same tick function)
 // (the delegatelist contains all the delegates, ie. for each different tick function)
-
-
 delegate* engine_addDelegate( delegatelist** d, void* func ) {
 	delegatelist* dl = *d;
 	if ( !*d ) {
@@ -548,10 +518,6 @@ delegate* engine_addDelegate( delegatelist** d, void* func ) {
 	dl->tail = NULL;
 	dl->head = delegate_create( func, kDefaultDelegateSize );
 	return dl->head;
-}
-
-delegate* engine_addTickDelegate( engine* e, tickfunc tick ) {
-	return engine_addDelegate( &e->tickers, (void*)tick );
 }
 
 delegate* engine_addRenderDelegate( engine* e, renderfunc render ) {
@@ -619,5 +585,3 @@ window engine_mainWindow( engine* e ) {
 	(void)e;
 	return window_main;
 }
-
-// TODO - move array funcs out and unit-test (0, negative, out of bounds, end of array)

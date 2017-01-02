@@ -195,15 +195,6 @@ void scene_free( scene* s ) {
 	mem_free( s );
 }
 
-
-
-// Initialise a scene with some test data
-scene* test_scene_init( engine* e ) { 
-	scene* s = scene_create( e );
-	scene_setAmbient( s, 0.2f, 0.2f, 0.2f, 1.f );
-	return s;
-}
-
 void scene_setAmbient(scene* s, float r, float g, float b, float a) {
 	s->ambient[0] = r;
 	s->ambient[1] = g;
@@ -250,6 +241,7 @@ scene* scene_create( engine* e ) {
 	s->emitters =		(particleEmitter**)mem_alloc( sizeof( particleEmitter* ) * MAX_EMITTERS );
 	s->ribbon_emitters =		(ribbonEmitter**)mem_alloc( sizeof( ribbonEmitter* ) * MAX_EMITTERS );
 	s->fog_color = Vector( 0.f, 1.f, 0.f, 1.f );
+	scene_setAmbient( s, 0.2f, 0.2f, 0.2f, 1.f );
 	s->eng = e;
 	return s;
 }
@@ -303,9 +295,6 @@ void scene_tick(scene* s, float dt) {
 		scene_debugTransforms( s );
 	if ( s->debug_flags & kSceneLightsTransforms )
 		scene_debugLights( s );
-
-	// TEST
-	//test_scene_tick(s, dt);
 }
 
 void scene_setCamera(scene* s, float x, float y, float z, float w) {
@@ -314,23 +303,6 @@ void scene_setCamera(scene* s, float x, float y, float z, float w) {
 	matrix_cpy( trans, s->cam->trans->world );
 	matrix_setTranslation( trans, &v );
 	transform_setWorldSpace( s->cam->trans, trans );
-}
-
-void test_scene_tick(scene* s, float dt) {
-	static float time = 0.f;
-	time += dt;
-
-	static const float period = 2.f;
-	float animate = 2.f * sinf(time * 2 * PI / period);
-
-	// Animate cubes
-	vector translateA = Vector( animate, 0.f, 0.f, 1.f );
-	transform_setLocalTranslation( s->modelInstances[0]->trans, &translateA );
-	vector translateB = Vector( 0.f, animate, 0.f, 1.f );
-	transform_setLocalTranslation( s->modelInstances[1]->trans, &translateB );
-	
-	vector translateC = Vector( 0.f, 0.f, animate,  1.f );
-	transform_setLocalTranslation( s->modelInstances[0]->trans->parent, &translateC);
 }
 
 // All sceneData data is owned by the sceneData

@@ -123,8 +123,3 @@ void scene_addRibbonEmitter( scene* s, ribbonEmitter* e );
 sceneData* scene_save( scene* s );
 scene* scene_load( sceneData* data );
 void sceneData_free( sceneData* data );
-
-// ### TEST #############################
-// Initialise a scene with some test data
-scene* test_scene_init( engine* e );
-void test_scene_tick(scene* s, float dt);

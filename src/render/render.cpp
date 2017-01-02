@@ -241,8 +241,8 @@ renderPass RenderPass( bool alpha, bool color, bool depth ) {
 }
 
 // Initialise the 3D rendering
-void render_init( void* app ) {
-	render_createWindow( app, &window_main );
+void render_init( void* app, engine* e ) {
+	render_createWindow( app, e, &window_main );
 
 	printf("[RENDER] Initialising OpenGL rendering settings.\n");
 #if 0
@@ -758,7 +758,7 @@ void* render_renderThreadFunc( void* args ) {
 	void* app = NULL;
 #endif
 
-	render_init( app );
+	render_init( app, e );
 	render_initialised = true;
 	printf( "[RENDER] Render system initialised.\n");
 	vthread_signalCondition( finished_render );
