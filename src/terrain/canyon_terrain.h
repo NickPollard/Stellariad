@@ -55,6 +55,7 @@ struct CanyonTerrainBlock {
 	auto ready() -> brando::concurrent::Future<bool> { return readyP.future(); }
 };
 
+// Move to terrainRender
 struct terrainRenderable_s {
 	CanyonTerrainBlock* block;
 
@@ -71,7 +72,7 @@ struct terrainRenderable_s {
 	GLuint*			element_VBO;
 	GLuint*			vertex_VBO_alt;
 	GLuint*			element_VBO_alt;
-} ;
+};
 
 struct CanyonTerrain {
 	transform* trans;
@@ -126,8 +127,3 @@ float canyonTerrain_sample( canyon* c, float u, float v );
 float canyonTerrain_sampleUV( float u, float v );
 
 int canyonTerrainBlock_renderIndexFromUV( CanyonTerrainBlock* b, int u, int v );
-
-// To move to terrain_generate
-void canyonTerrainBlock_generateVerts( canyon* c, CanyonTerrainBlock* b, vector* verts );
-void canyonTerrainBlock_generateVertices( CanyonTerrainBlock* b, vector* verts, vector* normals );
-

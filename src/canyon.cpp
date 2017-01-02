@@ -2,7 +2,6 @@
 #include "common.h"
 #include "canyon.h"
 //-----------------------
-#include "vtime.h"
 #include "base/window_buffer.h"
 #include "maths/geometry.h"
 #include "maths/maths.h"
@@ -35,17 +34,15 @@ const float canyon_base_radius = 40.f;
 const float canyon_width = 20.f;
 const float canyon_height = 40.f;
 
-randSeq canyon_random_seed;
 long int initial_seed = 0x0;
 
 // *** Forward declarations
-vector terrain_newCanyonPoint( vector current, vector previous );
+vector terrain_newCanyonPoint( canyon* c, vector current, vector previous );
 void canyon_generateInitialPoints( canyon* c );
 // ***
 
 
-void canyon_seedRandom( long int seed ) { deterministic_seedRandSeq( seed, &canyon_random_seed ); }
-void canyon_staticInit() { canyon_seedRandom( initial_seed ); }
+void canyon_seedRandom( canyon* c, long int seed ) { deterministic_seedRandSeq( seed, &c->randomSeed ); }
 
 // Returns a point from the buffer that corresponds to absolute stream position STREAM_INDEX
 static inline vector canyon_point( window_buffer* buffer, size_t stream_index ) {
@@ -70,7 +67,7 @@ void canyonBuffer_generatePoints( canyon* c, size_t from, size_t to ) {
 	vector current = canyonBuffer_point( b, windowBuffer_index( b, b->tail ));
 	while ( from < to ) {
 		size_t i = windowBuffer_mappedPosition( b, from );
-		vector next = terrain_newCanyonPoint( current, before );
+		vector next = terrain_newCanyonPoint( c, current, before );
 		vector normal = normalized( vector_add( segmentNormal( before, current), segmentNormal( current, next )));
 
 		before = current;
@@ -263,19 +260,19 @@ void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float*
 	} vmutex_unlock( &terrainMutex );
 }
 
-vector terrain_newCanyonPoint( vector current, vector previous ) {
+vector terrain_newCanyonPoint( canyon* c, vector current, vector previous ) {
 	float previous_angle = acosf( normalized(vector_sub( current, previous )).coord.x );
 	const float max_angle_delta = PI / 8.f;
 	float min_angle = fmaxf( PI * 0.25f, previous_angle - max_angle_delta );
 	float max_angle = fminf( PI * 0.75f, previous_angle + max_angle_delta );
-	float angle = deterministic_frand( &canyon_random_seed, min_angle, max_angle );
+	float angle = deterministic_frand( &c->randomSeed, min_angle, max_angle );
 	vector offset = Vector( cosf( angle ) * CanyonSegmentLength, 0.f, sinf( angle ) * CanyonSegmentLength, 0.f );
 	return vector_add( current, offset );
 }
 
 // Generate n points of the canyon
 void canyon_generateInitialPoints( canyon* c ) {
-	canyon_seedRandom( initial_seed );
+	canyon_seedRandom( c, initial_seed );
 	window_buffer* b = c->canyon_streaming_buffer;
 	int initial_straight_segments = 2;
 	for ( int i = 0; i < initial_straight_segments + 1; ++i ) {

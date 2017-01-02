@@ -13,6 +13,7 @@ short unsigned int* canyonTerrain_nextElementBuffer( CanyonTerrain* t );
 brando::concurrent::Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b );
 
 void canyonTerrainBlock_createBuffers( CanyonTerrainBlock* b );
+void canyonTerrainBlock_generateVertices( CanyonTerrainBlock* b, vector* verts, vector* normals );
 int canyonTerrainBlock_renderVertCount( CanyonTerrainBlock* b );
 
 void canyonTerrain_render( void* data, scene* s );

@@ -47,7 +47,6 @@ void canyonTerrain_staticInit() {
 int canyonTerrain_blockIndexFromUV( CanyonTerrain* t, int u, int v ) { return u + v * t->u_block_count; }
 int canyonTerrain_blockIndexFromAbsoluteUV( CanyonTerrain* t, absolute u, absolute v ) { return u.coord - t->bounds[0][0] + (v.coord - t->bounds[0][1]) * t->u_block_count; }
 
-
 int blockCoord( int coord[2], int bounds[2][2], int uCount ) {
 	return (coord[0] - bounds[0][0]) + (coord[1] - bounds[0][1]) * uCount;
 }

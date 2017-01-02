@@ -2,8 +2,6 @@
 #include "src/common.h"
 #include "src/engine.h"
 //---------------------
-#include "canyon.h"
-#include "canyon_zone.h"
 #include "collision/collision.h"
 #include "dynamicfog.h"
 #include "font.h"
@@ -281,7 +279,6 @@ void engine_init(engine* e, int argc, char** argv) {
 	luaInterface_registerCallback(e->callbacks, "onTick", "tick");
 
 	// *** Canyon
-	canyon_staticInit();
 	canyonTerrain_staticInit();
 
 	for ( int i = 0; i < kNumWorkerThreads; ++i ) {
@@ -329,13 +326,10 @@ void engine_terminate(engine* e) {
 }
 
 void engine_waitForRenderThread() {
-	PROFILE_BEGIN( PROFILE_ENGINE_WAIT );
 	vthread_waitCondition( finished_render );
-	PROFILE_END( PROFILE_ENGINE_WAIT );
 }
 
 void engine_render( engine* e ) {
-	PROFILE_BEGIN( PROFILE_ENGINE_RENDER );
 #ifdef ANDROID
 	if ( window_main.context != 0 )
 #endif // ANDROID
@@ -354,7 +348,6 @@ void engine_render( engine* e ) {
 
 	// Allow the render thread to start
 	vthread_signalCondition( start_render );
-	PROFILE_END( PROFILE_ENGINE_RENDER );
 }
 
 #ifdef LINUX_X

@@ -1,5 +1,6 @@
 // canyon.h
 #pragma once
+#include "vtime.h"
 #include "canyon_zone.h"
 #include "maths/vector.h"
 
@@ -17,6 +18,7 @@ struct canyon_s {
 	vector      zone_sample_point;
 	scene*      _scene;
 	window_buffer* canyon_streaming_buffer;
+  randSeq     randomSeed; 
 };
 
 struct canyonData_s {
@@ -32,8 +34,6 @@ extern const float canyon_height;
 // Canyon functions
 canyon* canyon_create( scene* s, const char* file );
 void canyon_tick( void* canyon_data, float dt, engine* eng );
-//void canyon_generateInitialPoints( canyon* c );
-void canyon_staticInit(); // TODO - does this actually need to be static?
 void canyon_seekForWorldPosition( canyon* c, vector position );
 // Convert world-space X and Z coords into canyon space U and V
 void canyonSpaceFromWorld( canyon* c, float x, float z, float* u, float* v );

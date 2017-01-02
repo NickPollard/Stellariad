@@ -6,6 +6,19 @@
 #include "noise.h"
 #include "terrain/canyon_terrain.h"
 
+/*
+ * This is just terrain height functions
+ */
+
+/*
+ * TODO
+typedef function<float(vector)> densityFunction;
+typedef function<float(vec2)> heightFunction;
+
+densityFunction fromHeightMap(heightFunction f);
+heightFunction cache(heightFunction f);
+*/
+
 float terrain_mountainFunc( float x ) {
 	return cosf( x - 0.5 * sinf( 2 * x ));
 }

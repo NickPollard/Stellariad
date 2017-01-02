@@ -956,8 +956,6 @@ int LUA_createCanyon(lua_State* l) {
 	engine* e = (engine*)lua_toptr( l, 1 );
 	scene* s = (scene*)lua_toptr( l, 2 );
 	canyon* c = canyon_create( s, "dat/script/lisp/canyon_zones.s" );
-	// TODO - don't think we need this //canyon_generateInitialPoints( c );
-	canyonBuffer_seek( c, 0 );
 	theCanyon = c;
 	startTick( e, c, canyon_tick );
 	
