@@ -178,13 +178,7 @@ void canyonTerrain_initVertexBuffers( CanyonTerrain* t ) {
 	}
 }
 void canyonTerrain_freeVertexBuffer( CanyonTerrain* t, vertex* buffer ) {
-	// Find the buffer in the list
-	// Switch it with the last
-	int count = t->vertex_buffer_count;
-	int i = array_find( (void**)t->vertex_buffers, count, buffer );
-	t->vertex_buffers[i] = t->vertex_buffers[count-1];
-	t->vertex_buffers[count-1] = buffer;
-	--t->vertex_buffer_count;
+  arrayRemove( t->vertex_buffers, &t->vertex_buffer_count, buffer );
 }
 vertex* canyonTerrain_nextVertexBuffer( CanyonTerrain* t ) {
 	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
@@ -206,13 +200,7 @@ void canyonTerrain_initElementBuffers( CanyonTerrain* t ) {
 	}
 }
 void canyonTerrain_freeElementBuffer( CanyonTerrain* t, unsigned short* buffer ) {
-	// Find the buffer in the list
-	// Switch it with the last
-	int count = t->element_buffer_count;
-	int i = array_find( (void**)t->element_buffers, count, buffer );
-	t->element_buffers[i] = t->element_buffers[count-1];
-	t->element_buffers[count-1] = buffer;
-	--t->element_buffer_count;
+  arrayRemove( t->element_buffers, &t->element_buffer_count, buffer );
 }
 short unsigned int* canyonTerrain_nextElementBuffer( CanyonTerrain* t ) {
 	//printf( "Allocate\n" );

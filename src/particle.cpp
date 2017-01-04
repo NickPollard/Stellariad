@@ -490,7 +490,6 @@ void particle_staticInit() {
 
 #ifdef DEBUG_PARTICLE_LIVENESS_TEST
 void particleEmitter_assertActive( particleEmitter* e ) {
-	int found = array_find( (void**)active_particles, active_particle_count, (void*)e );
-	vAssert( found != -1 )
+	vAssert( arrayContains( active_particles, active_particle_count, e ));
 }
 #endif // DEBUG_PARTICLE_LIVENESS_TEST

@@ -48,3 +48,8 @@ void array_remove( void** array, int* count, void* ptr ) {
 		array[*count] = NULL;
 	}
 }
+
+bool array_contains( void** array, int count, void* ptr ) {
+	int foundAt = array_find( array, count, ptr );
+  return foundAt != -1;
+}

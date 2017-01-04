@@ -75,7 +75,8 @@ void test_array();
 #endif // UNIT_TEST
 
 // *** Array funcs
-int array_find( void** array, int count, void* ptr );
+#define arrayContains( a, b, c ) array_contains( (void**)(a), (b), (void*)(c) )
+bool array_contains( void** array, int count, void* ptr );
 #define arrayAdd( a, b, c ) array_add( (void**)(a), (b), (c) )
 void array_add( void** array, int* count, void* ptr );
 #define arrayRemove( a, b, c ) array_remove( (void**)(a), (b), (c) )

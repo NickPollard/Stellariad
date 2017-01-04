@@ -25,10 +25,10 @@ typedef void (*inputfunc)( void*, input* );
 //  delegate_tick(physics, dt);
 //
 typedef struct {
-	void*		tick;
-	void**		data;
-	int			count;
-	int			max;
+	void*  tick;
+	void** data;
+	int    count;
+	int    max;
 } delegate;
 
 // tick all objects in a delegate

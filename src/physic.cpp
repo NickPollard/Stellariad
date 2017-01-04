@@ -54,7 +54,6 @@ void physic_tick( void* data, float dt, engine* eng ) {
 
 #ifdef DEBUG_PHYSIC_LIVENESS_TEST
 void physic_assertActive( physic* p ) {
-	int found = array_find( (void**)active_physics, active_physic_count, (void*)p );
-	vAssert( found != -1 );
+	vAssert( arrayContains( active_physics, active_physic_count, p ));
 }
 #endif // DEBUG_PHYSIC_LIVENESS_TEST
