@@ -1,78 +1,7 @@
 // Array.h
 #pragma once
 
-/*
-	Fixed Array
-
-	An array of Fixed size, containing objects rather than pointers-to-objects.
-	i.e. object array[size];
-
-	Objects are Fixed and are never moved once created (though can be destroyed)
-
-	Use a linked list of empty pointers in unused spaces to define which points are valid and which are not
-
-	Initializing is O(n)
-	Adding an element is O(1)
-	Removing an element is proportional to the fragmentation of the array
-   */
-
-#define DECLARE_FIXED_ARRAY( A ) \
-typedef struct A##FixedArray_s { \
-	A*	array; 					\
-	int	size;					\
-	A*	first_free;				\
-	A*	end;					\
-} A##FixedArray;					\
-								\
-A* A##FixedArray_add( A##FixedArray* array, A object );			\
-void A##FixedArray_remove( A##FixedArray* array, A* object ); 	\
-A##FixedArray* A##FixedArray_create( int size );					\
-
-#define IMPLEMENT_FIXED_ARRAY( A ) \
-A* A##FixedArray_add( A##FixedArray* array, A object ) { \
-	/* Assert there is a space; */						\
-	vAssert( a->first_free < a->end );					\
-														\
-	A* next_free = *a->first_free;						\
-	*(a->first_free) = object;							\
-	A* inserted_position = a->first_free;				\
-	a->first_free = next_free;							\
-														\
-	return inserted_position;							\
-}														\
-														\
-void A##FixedArray_remove( A##FixedArray* array, A* object ) {	\
-	vAssert( object >= array->array && object < array->end );	\
-																\
-	void* previous_free = &array->first_free;					\
-	void* next_free = array->first_free;						\
-																\
-	while ( next_free < object ) {								\
-		previous_free = next_free;								\
-		next_free = *next_free;									\
-	}															\
-																\
-	/* Find previous and next free, and update them */			\
-	*object = next_free;										\
-	*previous_free = object;									\
-}																\
-																\
-A##FixedArray* A##FixedArray_create( int size ) {					\
-	A##FixedArray* array = mem_alloc( sizeof( A##FixedArray ));	\
-	*array = {};												\
-	array->size = size;											\
-	array->array = mem_alloc( sizeof( A ) * array->size ));		\
-	array->end = &array->array[size];							\
-	array->first_free = &array->array[0]; /* When created the array is empty, so the first element must be free*/ \
-	/* init all spare spaces, they all point to the next (and the last points past the end) */ \
-	for ( int i = 0; i < array->size; ++i ) { 					\
-		array->array[i] = array->array[i + 1];					\
-	}															\
-}
-
-#ifdef UNIT_TEST
-void test_array();
-#endif // UNIT_TEST
+#include "mem/allocator.h"
 
 // *** Array funcs
 #define arrayContains( a, b, c ) array_contains( (void**)(a), (b), (void*)(c) )
@@ -82,3 +11,81 @@ void array_add( void** array, int* count, void* ptr );
 #define arrayRemove( a, b, c ) array_remove( (void**)(a), (b), (c) )
 void array_remove( void** array, int* count, void* ptr );
 int array_find( void** array, int count, void* ptr );
+
+/* 
+ * Template Array
+ *
+ * Maintains a packed, unsorted array of elements for fast inserting, removing and iterating
+ * Designed for efficient cache use when iterating elements in-order, not for random access
+ */
+
+namespace Vitae {
+  template <typename T> struct Array {
+    // Must be used with POD types only
+    //static_assert( std::is_pod<T>::value == true );
+
+    // amortised O(1) add
+    // returns whether was able to successfully add (or not if array is full)
+    bool add(T t);
+
+    // O(1) remove
+    // Returns whether element was in the array and succesfully removed
+    bool remove(T t);
+
+    // O(n) contains
+    bool contains(T t);
+
+    // O(n) find
+    int find(T t);
+
+    // O(1) size
+    size_t size() { return count; }
+
+    // O(1) isFull
+    bool isFull() { return (count == max); }
+
+    T* asArray() { return buffer; }
+
+    Array(size_t maxItems) : buffer((T*)mem_alloc(sizeof(T) * maxItems)), max(maxItems), count(0) {}
+    ~Array() { mem_free( buffer ); }
+
+    private:
+      T*     buffer;
+      size_t max;
+      size_t count;
+  };
+
+
+  template <typename T>
+    bool Array<T>::add(T t) {
+      if (!isFull()) {
+	      buffer[count++] = t;
+        return true;
+      }
+      return false;
+    };
+
+  template <typename T>
+    bool Array<T>::remove(T t) {
+	    int i = find( t );
+	    if ( i != -1 ) {
+        // switch with end
+		    --count;
+		    buffer[i] = buffer[count];
+		    memset(&buffer[count], 0, sizeof(T)); // zero out removed mem
+        return true;
+	    }
+      return false;
+    };
+
+  template <typename T>
+    int Array<T>::find(T t) {
+	    for ( size_t i = 0; i < count; ++i )
+		    if ( buffer[i] == t )
+			    return i;
+      return -1;
+    };
+
+  template <typename T>
+    bool Array<T>::contains(T t) { return (find(t) != -1); };
+}

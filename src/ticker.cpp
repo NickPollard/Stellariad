@@ -4,6 +4,7 @@
 //---------------------
 #include "engine.h"
 #include "base/array.h"
+#include "base/delegate.h"
 #include "mem/allocator.h"
 #include <assert.h>
 
@@ -54,17 +55,41 @@ int delegate_isFull( delegate* d ) {
 	return d->count == d->max;
 }
 
-//////////////
-//
-// Tick Test
-//
-//////////////
-
-void tick_tester_tick(void* t, float dt) {
-	(void)dt;
-	tick_tester* tester = (tick_tester*)t;
-	tester->tickcount += tester->tickinc;
-	printf("Tick Tester: Tick count is %d.\n", tester->tickcount);
+void f(int a, int b) {
+  mem_alloc(a + b);
 }
 
-///////////////
+void g(int a, int b, bool d) {
+  if (d)
+    mem_alloc(a + b);
+  else
+    mem_alloc(a);
+}
+
+void h(bool a, int b, bool d) {
+  if (a && d)
+    mem_alloc(b);
+  else
+    mem_alloc(0);
+}
+
+void testD() {
+  using Vitae::Delegate;
+  using Vitae::DelegateList;
+  auto d = *(new Delegate<int,int>(32, f));
+  d.add(1);
+  d.add(2);
+  d.call(12);
+
+  auto e = *(new Delegate<int,int,bool>(32, g));
+  e.add(1);
+  e.add(2);
+  e.call(12,false);
+
+  auto dl = *(new DelegateList<int,bool>());
+  dl.add(1, g);
+  dl.add(2, g);
+  dl.add(false, h);
+  dl.call(12,false);
+  dl.remove(false, h);
+}

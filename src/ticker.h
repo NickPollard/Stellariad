@@ -1,6 +1,5 @@
 // ticker.h
-#ifndef __TICKER_H__
-#define __TICKER_H__
+#pragma once
 
 // Tick function signature
 typedef void (*tickfunc)( void*, float, engine* );
@@ -50,20 +49,3 @@ int delegate_add(delegate* t, void* entry);
 void delegate_remove(delegate* t, void* entry);
 
 int delegate_isFull( delegate* t );
-
-//////////////
-//
-// Tick Test
-//
-//////////////
-
-typedef struct tick_tester_t {
-	int tickcount;
-	int tickinc;
-} tick_tester;
-
-void tick_tester_tick(void* t, float dt);
-
-///////////////
-
-#endif // __TICKER_H__
