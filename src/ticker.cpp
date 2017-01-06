@@ -5,6 +5,7 @@
 #include "engine.h"
 #include "base/array.h"
 #include "base/delegate.h"
+#include "base/sequence.h"
 #include "mem/allocator.h"
 #include <assert.h>
 
@@ -74,8 +75,10 @@ void h(bool a, int b, bool d) {
 }
 
 void testD() {
+  using Vitae::Array;
   using Vitae::Delegate;
   using Vitae::DelegateList;
+  using Vitae::Sequence;
   auto d = *(new Delegate<int,int>(32, f));
   d.add(1);
   d.add(2);
@@ -92,4 +95,17 @@ void testD() {
   dl.add(false, h);
   dl.call(12,false);
   dl.remove(false, h);
+
+  auto intArray = *(new Array<int>(32));
+  intArray.add(1);
+  intArray.add(2);
+  for (auto& i : intArray) {
+    i += 1;
+  }
+  auto intSequence = *(new Sequence<int>(32));
+  intSequence.add(1);
+  intSequence.add(2);
+  for (auto& i : intSequence) {
+    i += 1;
+  }
 }

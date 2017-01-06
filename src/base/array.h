@@ -24,11 +24,11 @@ namespace Vitae {
     // Must be used with POD types only
     //static_assert( std::is_pod<T>::value == true );
 
-    // amortised O(1) add
+    // O(1) add
     // returns whether was able to successfully add (or not if array is full)
     bool add(T t);
 
-    // O(1) remove
+    // O(n) remove
     // Returns whether element was in the array and succesfully removed
     bool remove(T t);
 
@@ -43,6 +43,14 @@ namespace Vitae {
 
     // O(1) isFull
     bool isFull() { return (count == max); }
+
+    // O(1) popBack
+    T popBack();
+
+    using Iterator = T*;
+
+    Iterator begin() { return &buffer[0]; }
+    Iterator end() { return &buffer[count]; }
 
     T* asArray() { return buffer; }
 
@@ -88,4 +96,9 @@ namespace Vitae {
 
   template <typename T>
     bool Array<T>::contains(T t) { return (find(t) != -1); };
+
+  template <typename T>
+    T Array<T>::popBack() {
+      return buffer[--count];
+    };
 }

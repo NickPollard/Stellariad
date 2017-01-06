@@ -1,0 +1,107 @@
+// sequence.h
+#pragma once
+
+#include <forward_list>
+#include "base/array.h"
+
+/*
+ * Template Sequence
+ *
+ * Maintains a growable sequence of elements, backed by zero or more Vitae::Arrays
+ * Fast insertion, removal, and traversal
+ * Use when you want a dynamically sized container instead of a simple Vitae::Array
+ */
+
+using std::forward_list;
+
+namespace Vitae {
+
+  template <typename T> struct Sequence {
+    // Must be used with POD types only
+    //static_assert( std::is_pod<T>::value == true );
+      
+    // amortised O(1) add
+    // Adds the element to the latest array, adding an array if required
+    void add(T t);
+   
+    // O(n) remove
+    // Returns whether element was in the array and succesfully removed
+    bool remove(T t);
+   
+    // O(n) contains
+    bool contains(T t);
+
+    struct Iterator {
+      Iterator( typename forward_list<Array<T>>::iterator arr,
+                typename Array<T>::Iterator iter,
+                typename forward_list<Array<T>>::iterator _end) :
+                   array( arr ), end( _end ), iterator( iter ) {}
+
+      T& operator * () { return *iterator; }
+
+      bool operator != (Iterator other) {
+        return (array != other.array) || (iterator != other.iterator);
+      }
+
+      void operator ++() {
+        ++iterator;
+        if ( iterator == array->end() ) {
+          ++array;
+          iterator = (array == end) ? nullptr : array->begin();
+          //if ( !( array == end ))
+            //iterator = array->begin();
+          //else
+            //iterator = nullptr;
+        }
+      }
+
+      private:
+        typename forward_list<Array<T>>::iterator array;
+        typename forward_list<Array<T>>::iterator end;
+        typename Array<T>::Iterator iterator;
+    };
+
+    Iterator begin() { return Iterator( arrays.begin(), arrays.begin()->begin(), arrays.end() ); }
+    Iterator end() { return Iterator( arrays.end(), nullptr, arrays.end() ); }
+    
+    static const size_t defaultArraySize = 32;
+
+    Sequence() : arraySize(defaultArraySize) {}
+    Sequence(size_t size) : arraySize(size) {}
+  
+    private:
+      forward_list<Array<T>> arrays;
+      size_t arraySize;
+  };
+
+  template <typename T>
+    void Sequence<T>::add(T t) {
+      // Add at the end (elements are contiguous)
+      // invariant: last array is never full
+      auto last = arrays.front();
+      last.add(t);
+      if (last.isFull()) {
+        arrays.push_front(Array<T>(arraySize)); // TODO - emplace
+      }
+    };
+
+  template <typename T>
+    bool Sequence<T>::remove(T t) {
+      auto last = arrays.front();
+      for ( auto& a : arrays ) {
+        if ( a.remove( t )) {
+          if ( &a != &last ) { // if a == last, don't switch, just remove from end
+            arrays.pop_front();
+            last = arrays.front();
+            // invariant: last is now nonEmpty
+            if ( &a != &last ) {
+              a.add(last.popBack());
+            }
+          }
+          return true;
+        }
+      }
+      return false;
+    };
+
+}

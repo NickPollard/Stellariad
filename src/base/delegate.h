@@ -9,6 +9,7 @@
  */
 
 #include "base/array.h"
+#include "base/sequence.h"
 #include <map>
 
 using std::make_pair;
@@ -24,21 +25,18 @@ namespace Vitae {
     typedef void (*Func)( T, Args... );
 
     virtual void call( Args... args ) {
-      T* ts = elems.asArray();
-      int count = elems.size();
-      for (int i = 0; i < count; ++i)
-        f( ts[i], args... );
+      for (auto& el : elems)
+        f( el, args... );
     }
 
     void add(T t)    { elems.add(t); }
     void remove(T t) { elems.remove(t); }
-    bool isFull()    { return elems.isFull(); }
 
     Delegate(size_t size, Func _f) : f(_f), elems(size) {}
 
     private:
       Func f; 
-      Array<T> elems;
+      Sequence<T> elems;
   };
 
   template <typename... Args> struct DelegateList {
