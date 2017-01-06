@@ -81,3 +81,4 @@ bool array_contains( void** array, int count, void* ptr );
 void array_add( void** array, int* count, void* ptr );
 #define arrayRemove( a, b, c ) array_remove( (void**)(a), (b), (c) )
 void array_remove( void** array, int* count, void* ptr );
+int array_find( void** array, int count, void* ptr );
