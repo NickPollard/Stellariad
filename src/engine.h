@@ -1,6 +1,7 @@
 // engine.h
 #pragma once
 
+#include "base/delegate.h"
 #include "base/list.h"
 #include "vlua.h"
 #include "ticker.h"
@@ -69,6 +70,7 @@ struct engine {
 	delegatelist* tickers;	
 	delegatelist* post_tickers;	
 	delegatelist* renders;
+  vitae::DelegateList<scene*> _renders;
 	delegatelist* inputs;
 
 	debugtextframe* debugtext;

@@ -19,7 +19,7 @@ int array_find( void** array, int count, void* ptr );
  * Designed for efficient cache use when iterating elements in-order, not for random access
  */
 
-namespace Vitae {
+namespace vitae {
   template <typename T> struct Array {
     // Must be used with POD types only
     //static_assert( std::is_pod<T>::value == true );
@@ -43,6 +43,8 @@ namespace Vitae {
 
     // O(1) isFull
     bool isFull() { return (count == max); }
+    // O(1) isEmpty
+    bool isEmpty() { return (count == 0); }
 
     // O(1) popBack
     T popBack();
@@ -54,8 +56,16 @@ namespace Vitae {
 
     T* asArray() { return buffer; }
 
-    Array(size_t maxItems) : buffer((T*)mem_alloc(sizeof(T) * maxItems)), max(maxItems), count(0) {}
-    ~Array() { mem_free( buffer ); }
+    Array(size_t maxItems) : buffer((T*)mem_alloc(sizeof(T) * maxItems)), max(maxItems), count(0) {
+			memset(buffer, 0, sizeof(T) * maxItems);
+		}
+
+    ~Array() { 
+			mem_free( buffer ); 
+		}
+
+		Array(const Array<T>& other) = delete;
+		void operator =(const Array<T>& other) = delete;
 
     private:
       T*     buffer;

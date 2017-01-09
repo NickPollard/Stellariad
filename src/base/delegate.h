@@ -14,7 +14,7 @@
 
 using std::make_pair;
 
-namespace Vitae {
+namespace vitae {
 
   // Existential in object type
   template <typename... Args> struct SomeDelegate {
@@ -33,6 +33,10 @@ namespace Vitae {
     void remove(T t) { elems.remove(t); }
 
     Delegate(size_t size, Func _f) : f(_f), elems(size) {}
+
+		// *** NOCOPY
+		Delegate(const Delegate<T, Args...>& other) = delete;
+		void operator = (const Delegate<T, Args...>& other) = delete;
 
     private:
       Func f; 
@@ -73,10 +77,16 @@ namespace Vitae {
         }
       };
 
+		//	TODO - bug when calling empty array (perhaps that isn't first?)
     void call(Args... args) {
       for ( auto d : delegates )
         d.second->call( args... );
     }
+
+		DelegateList() {}
+		// *** NOCOPY
+		DelegateList(const DelegateList<Args...>& other) = delete;
+		void operator = (const DelegateList<Args...>& other) = delete;
 
     private:
       std::map<SomeFunc, SomeDelegate<Args...>*> delegates;

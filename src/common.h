@@ -66,8 +66,8 @@
 #define xPTRf "%x"
 #endif
 
-#define then ?
-#define otherwise :
+//#define then ?
+//#define otherwise :
 
 // *** Units
 #define KILOBYTES 1024
@@ -105,10 +105,10 @@
 
 // Higher Order macros
 
-#define for_each( array, size, func, ... )  \
-	for ( int i = 0; i < size; ++i ) { \
-		func( array[i], __VA_ARGS__ ); \
-	}
+//#define for_each( array, size, func, ... )
+	//for ( int i = 0; i < size; ++i ) {
+		//func( array[i], __VA_ARGS__ );
+	//}
 
 
 

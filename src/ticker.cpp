@@ -75,34 +75,35 @@ void h(bool a, int b, bool d) {
 }
 
 void testD() {
-  using Vitae::Array;
-  using Vitae::Delegate;
-  using Vitae::DelegateList;
-  using Vitae::Sequence;
-  auto d = *(new Delegate<int,int>(32, f));
+  using vitae::Array;
+  using vitae::Delegate;
+  using vitae::DelegateList;
+  using vitae::Sequence;
+  auto& d = *(new Delegate<int,int>(32, f));
   d.add(1);
   d.add(2);
   d.call(12);
 
-  auto e = *(new Delegate<int,int,bool>(32, g));
+  auto& e = *(new Delegate<int,int,bool>(32, g));
   e.add(1);
   e.add(2);
   e.call(12,false);
 
-  auto dl = *(new DelegateList<int,bool>());
+  auto& dl = *(new DelegateList<int,bool>());
   dl.add(1, g);
   dl.add(2, g);
   dl.add(false, h);
   dl.call(12,false);
   dl.remove(false, h);
 
-  auto intArray = *(new Array<int>(32));
+  auto& intArray = *(new Array<int>(32));
   intArray.add(1);
   intArray.add(2);
   for (auto& i : intArray) {
     i += 1;
   }
-  auto intSequence = *(new Sequence<int>(32));
+
+  auto& intSequence = *(new Sequence<int>(32));
   intSequence.add(1);
   intSequence.add(2);
   for (auto& i : intSequence) {

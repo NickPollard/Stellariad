@@ -10,7 +10,6 @@ SRCS =	src/bounds.cpp \
 		src/light.cpp \
 		src/log.cpp \
 		src/vlua.cpp \
-		src/main.cpp \
 		src/model.cpp \
 		src/model_loader.cpp \
 		src/noise.cpp \

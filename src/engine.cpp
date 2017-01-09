@@ -462,12 +462,15 @@ void engine_tickPostTickers( engine* e, float dt ) {
 }
 
 void engine_renderRenders( engine* e ) {
+	e->_renders.call(e->_scene);
+/*
 	delegatelist* d = e->renders;
 	while (d != NULL) {
 		assert( d->head );	// Should never be NULL heads
 		delegate_render( d->head, e->_scene ); // render the whole of this delegate
 		d = d->tail;
 	}
+*/
 }
 
 // Process all inputs
@@ -571,14 +574,18 @@ void startInput( engine* e, void* entity, inputfunc in ) {
 }
 
 void engine_addRender( engine* e, void* entity, renderfunc render ) {
+	e->_renders.add<void*>(entity, render);
+/*
 	delegate* d = engine_findRenderDelegate( e, render );
 	if ( !d )
 		d = engine_addRenderDelegate( e, render );
 	delegate_add( d, entity );
+*/
 }
 
 void engine_removeRender( engine* e, void* entity, renderfunc render ) {
-	engine_removeDelegateEntry( e->renders, entity, (void*)render );
+	e->_renders.remove(entity, render);
+	//engine_removeDelegateEntry( e->renders, entity, (void*)render );
 }
 
 window engine_mainWindow( engine* e ) {

@@ -83,9 +83,21 @@ $(EXECUTABLE)_profile : $(SRCS) $(OBJS_PROF) $(MOON_LUA)
 
 debug : $(EXECUTABLE)_debug
 
-$(EXECUTABLE)_debug : $(SRCS) $(OBJS_DBG) $(MOON_LUA)
+$(EXECUTABLE)_debug : src/main.cpp $(SRCS) bin/debug/main.o $(OBJS_DBG) $(MOON_LUA)
 	@echo "- Linking $@"
-	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_debug $(OBJS_DBG) $(LIBS)
+	@$(C) -g $(LFLAGS) -O2 -o $(EXECUTABLE)_debug bin/debug/main.o $(OBJS_DBG) $(LIBS)
+
+build-test : test/src/test.cpp $(SRCS) test/bin/test.o $(OBJS_DBG) $(MOON_LUA)
+	@echo "- Linking Test"
+	@$(C) -g $(LFLAGS) -O2 -o test/bin/test test/bin/test.o $(OBJS_DBG) $(LIBS)
+
+test/bin/%.o : test/src/%.cpp
+	@echo "- Compiling $@"
+	@$(C) -g $(CFLAGS) -Itest -MD -D ARCH_64BIT -D DEBUG -c -o $@ $<
+
+test : build-test
+	@echo "-- running tests --"
+	@test/bin/test
 
 bin/debug/%.o : src/%.cpp
 #	Calculate the directory required and create it
