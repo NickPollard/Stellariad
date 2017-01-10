@@ -63,8 +63,6 @@ scene* theScene = NULL;
 // Function Declarations
 void engine_tickTickers( engine* e, float dt );
 void engine_tickPostTickers( engine* e, float dt );
-void engine_renderRenders( engine* e );
-void engine_inputInputs( engine* e );
 
 /*
  *
@@ -86,7 +84,7 @@ frame_timer* fps_timer;
 
 void engine_input( engine* e ) {
 	scene_input( e->_scene, e->_input );
-	engine_inputInputs( e );
+  e->inputs.call(e->_input);
 }
 
 float frame_times[30];
@@ -177,7 +175,6 @@ void engine_handleKeyPress(engine* e, uchar key, int x, int y) {
 	}
 }
 
-
 // Initialise the Lua subsystem so that it is ready for use
 void engine_initLua(engine* e, const char* script, int argc, char** argv) {
 	(void)argc;
@@ -188,10 +185,8 @@ void engine_initLua(engine* e, const char* script, int argc, char** argv) {
 
 // Create a new engine
 engine* engine_create() {
-	//engine* e = (engine*)mem_alloc(sizeof(engine));
 	void* eSpace = mem_alloc(sizeof(engine));
 	engine* e = new (eSpace) engine(); // placement new
-	//memset( e, 0, sizeof( engine ));
   // TODO - move to constructor
 	e->timer = (frame_timer*)mem_alloc(sizeof(frame_timer));
 	e->callbacks = luaInterface_create();
@@ -310,7 +305,7 @@ bool shouldRender( engine* e ) {
 void engine_render( engine* e ) {
 	if ( shouldRender( e )) {
 		render( &window_main, e->_scene );
-		engine_renderRenders( e );
+	  e->renders.call(e->_scene);
 		skybox_render( NULL );
 
 		// test
@@ -434,126 +429,48 @@ void engine_run( engine* e ) {
 	}
 }
 
-/*
- *
- * TODO - move and reimplement this section - Delegates
- *
- */
-
-void engine_tickDelegateList( delegatelist* d, engine* e, float dt ) {
-	while (d != NULL) {
-		assert( d->head );	// Should never be NULL heads
-		delegate_tick( d->head, dt, e ); // tick the whole of this delegate
-		d = d->tail;
-	}
-}
-
 // Run through all the delegates, ticking each of them
 void engine_tickTickers( engine* e, float dt ) {
-	//engine_tickDelegateList( e->tickers, e, dt );
-  e->_tickers.call(dt, e);
+  e->tickers.call(dt, e);
   for (auto& el : e->toStopTick)
-    e->_tickers.remove(el.first, el.second);
+    e->tickers.remove(el.first, el.second);
   e->toStopTick.clear();
 }
 
 // Run through all the post-tick delegates, ticking each of them
 void engine_tickPostTickers( engine* e, float dt ) {
-	//engine_tickDelegateList( e->post_tickers, e, dt );
-  e->_postTickers.call(dt, e);
-}
-
-void engine_renderRenders( engine* e ) {
-	e->_renders.call(e->_scene);
-}
-
-// Process all inputs
-void engine_inputInputs( engine* e ) {
-  e->_inputs.call(e->_input);
-}
-
-// Search the list of delegates for one with the matching tick func
-// and space to add a new entry
-delegate* engine_findDelegate( delegatelist* d, void* func ) {
-	while ( d != NULL ) {
-		if ( d->head->tick == func && !delegate_isFull(d->head) ) {
-			return d->head;
-		}
-		d = d->tail;
-	}
-	return NULL;
-}
-
-// Add a new delegate to the delegatelist
-// (a delegate is a list of entities to all receive the same tick function)
-// (the delegatelist contains all the delegates, ie. for each different tick function)
-delegate* engine_addDelegate( delegatelist** d, void* func ) {
-	delegatelist* dl = *d;
-	if ( !*d ) {
-		*d = delegatelist_create();
-		dl = *d;
-	}
-	else {
-		while ( dl->tail != NULL)
-			dl = dl->tail;
-		dl->tail = delegatelist_create();
-		dl = dl->tail;
-	}
-	dl->tail = NULL;
-	dl->head = delegate_create( func, kDefaultDelegateSize );
-	return dl->head;
-}
-
-void engine_addTicker( delegatelist** d_list, void* entity, tickfunc tick ) {
-	delegate* d = engine_findDelegate( *d_list, (void*)tick );
-	if ( !d )
-		d = engine_addDelegate( d_list, (void*)tick );
-	delegate_add( d, entity);
-}
-// Look for a delegate of the right type to add this entity too
-// If one is not found, create one
-
-void engine_removeDelegateEntry( delegatelist* d, void* entity, void* delegate_func ) {
-	delegatelist* d_list = d;
-	while ( d_list ) {
-		if ( d_list->head->tick == delegate_func ) {
-			delegate_remove( d_list->head, entity );
-		}
-		d_list = d_list->tail;
-	}
+  e->postTickers.call(dt, e);
+  for (auto& el : e->toStopPostTick)
+    e->postTickers.remove(el.first, el.second);
+  e->toStopPostTick.clear();
 }
 
 void startTick( engine* e, void* entity, tickfunc tick ) {
-  // TODO - ensure ticks can't be removed during tick (e.g. not re-entrant, defer kill messages)
-	//engine_addTicker( &e->tickers, entity, tick );
-  e->_tickers.add(entity, tick);
+  e->tickers.add(entity, tick);
 }
 
 void startPostTick( engine* e, void* entity, tickfunc tick ) {
-	//engine_addTicker( &e->post_tickers, entity, tick );
-  e->_postTickers.add(entity, tick);
+  e->postTickers.add(entity, tick);
 }
 
 void stopTick( engine* e, void* entity, tickfunc tick ) {
-  //e->_tickers.remove(entity, tick);
   e->toStopTick.push_front(make_pair(entity, tick));
 }
 
 void stopPostTick( engine* e, void* entity, tickfunc tick ) {
-	//engine_removeDelegateEntry( e->post_tickers, entity, (void*)tick );
-  e->_postTickers.remove(entity, tick);
+  e->toStopTick.push_front(make_pair(entity, tick));
 }
 
 void startInput( engine* e, void* entity, inputfunc in ) {
-	e->_inputs.add<void*>(entity, in);
+	e->inputs.add<void*>(entity, in);
 }
 
 void engine_addRender( engine* e, void* entity, renderfunc render ) {
-	e->_renders.add<void*>(entity, render);
+	e->renders.add<void*>(entity, render);
 }
 
 void engine_removeRender( engine* e, void* entity, renderfunc render ) {
-	e->_renders.remove(entity, render);
+	e->renders.remove(entity, render);
 }
 
 window engine_mainWindow( engine* e ) {

@@ -47,6 +47,9 @@ extern "C"
 using brando::concurrent::Executor;
 using brando::concurrent::ThreadPoolExecutor;
 
+using vitae::Delegate;
+using vitae::DelegateList;
+
 // TODO - remove this! No static scene
 extern scene* theScene;
 
@@ -71,14 +74,12 @@ struct engine {
 
   scene* _scene;
 
-  // TODO - write new templated delegate
-	//delegatelist* tickers;	
-	//delegatelist* post_tickers;	
-  vitae::DelegateList<float, engine*> _tickers;
-  vitae::DelegateList<float, engine*> _postTickers;
-  vitae::DelegateList<scene*> _renders;
-  vitae::DelegateList<input*> _inputs;
+  DelegateList<float, engine*> tickers;
+  DelegateList<float, engine*> postTickers;
+  DelegateList<scene*>         renders;
+  DelegateList<input*>         inputs;
   forward_list<std::pair<void*, tickfunc>> toStopTick;
+  forward_list<std::pair<void*, tickfunc>> toStopPostTick;
 
 	debugtextframe* debugtext;
 

@@ -136,7 +136,6 @@ void particleEmitter_spawnParticle( particleEmitter* e ) {
 void particleEmitter_kill( engine* eng, particleEmitter* e ) {
 	engine_removeRender( eng, e, particleEmitter_render );
 	stopTick( eng, e, particleEmitter_tick );
-	//stopPostTick( eng, e, particleEmitter_tick );
 	particleEmitter_delete( e );
 }
 
@@ -144,8 +143,6 @@ void particleEmitter_tick( void* data, float dt, engine* eng ) {
 	particleEmitter* e = (particleEmitter*)data;
 
 	if ( e->dead || ( e->dying && e->count <= 0 )) {
-    // TODO - don't kill during a tick! Or handle a better way of doing this (defer?)
-    //assert( false );
 		particleEmitter_kill( eng, e );
 		return;
 	}
