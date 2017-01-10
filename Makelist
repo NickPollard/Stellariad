@@ -20,7 +20,6 @@ SRCS =	src/bounds.cpp \
 		src/scene.cpp \
 		src/skybox.cpp \
 		src/test.cpp \
-		src/ticker.cpp \
 		src/vtime.cpp \
 		src/transform.cpp \
 		src/worker.cpp \

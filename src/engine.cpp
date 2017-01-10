@@ -49,9 +49,6 @@ extern "C"
 // System Libraries
 #include <stdlib.h>
 
-// TODO - move to new Delegate System
-IMPLEMENT_LIST(delegate)
-
 #define kNumWorkerThreads 4
 
 // System libraries

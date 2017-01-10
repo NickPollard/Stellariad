@@ -2,7 +2,6 @@
 #pragma once
 
 #include "vlua.h"
-#include "ticker.h"
 #include "vtime.h"
 #include "base/delegate.h"
 #include "base/list.h"
@@ -50,13 +49,17 @@ using brando::concurrent::ThreadPoolExecutor;
 using vitae::Delegate;
 using vitae::DelegateList;
 
+// Tick function signature
+typedef void (*tickfunc)( void*, float, engine* );
+// Render function signature
+typedef void (*renderfunc)( void*, scene* s );
+// Input function signature
+typedef void (*inputfunc)( void*, input* );
+
 // TODO - remove this! No static scene
 extern scene* theScene;
 
 extern int threadsignal_render;
-
-DEF_LIST(delegate)
-#define kDefaultDelegateSize 16
 
 struct engine {
   engine() : executor(new ThreadPoolExecutor(1)) {}
