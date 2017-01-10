@@ -49,10 +49,10 @@ namespace vitae {
     // O(1) popBack
     T popBack();
 
-    using Iterator = T*;
+    using iterator = T*;
 
-    Iterator begin() { return &buffer[0]; }
-    Iterator end() { return &buffer[count]; }
+    iterator begin() { return &buffer[0]; }
+    iterator end() { return &buffer[count]; }
 
     T* asArray() { return buffer; }
 

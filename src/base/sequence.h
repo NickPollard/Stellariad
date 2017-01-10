@@ -2,6 +2,7 @@
 #pragma once
 
 #include <forward_list>
+#include <type_traits>
 #include "base/array.h"
 
 /*
@@ -18,7 +19,7 @@ namespace vitae {
 
   template <typename T> struct Sequence {
     // Must be used with POD types only
-    //static_assert( std::is_pod<T>::value == true );
+    static_assert( std::is_pod<T>::value );
       
     // amortised O(1) add
     // Adds the element to the latest array, adding an array if required
@@ -31,54 +32,48 @@ namespace vitae {
     // O(n) contains
     bool contains(T t);
 
-    struct Iterator {
-      Iterator( typename forward_list<Array<T>>::iterator arr,
-                typename Array<T>::Iterator iter,
-                typename forward_list<Array<T>>::iterator _end) :
-                   array( arr ), end( _end ), iterator( iter ) {}
+    // forward iterators
+    struct iterator;
+    iterator begin();
+    iterator end();
 
-      T& operator * () { return *iterator; }
+    struct iterator {
+      using ListIterator = typename forward_list<Array<T>>::iterator;
+      using ArrayIterator = typename Array<T>::iterator;
 
-      bool operator != (Iterator other) {
-        return (array != other.array) || (iterator != other.iterator);
+      ArrayIterator resetArrayIter() {
+        return (array == end) ? nullptr : array->begin();
+      }
+
+      iterator( ListIterator arr, ListIterator _end ) : array( arr ), end( _end ), arrIter( resetArrayIter() ) {}
+
+      T& operator * () { return *arrIter; }
+
+      bool operator != (iterator other) {
+        return (array != other.array) || (arrIter != other.arrIter);
       }
 
       void operator ++() {
-        ++iterator;
-        if ( iterator == array->end() ) {
+        ++arrIter;
+        if ( arrIter == array->end() ) {
           ++array;
-          iterator = (array == end) ? nullptr : array->begin();
-          //if ( !( array == end ))
-            //iterator = array->begin();
-          //else
-            //iterator = nullptr;
+          arrIter = resetArrayIter();
         }
       }
 
       private:
-        typename       forward_list<Array<T>>::iterator array;
-        const typename forward_list<Array<T>>::iterator end;
-        typename       Array<T>::Iterator 						  iterator;
+        ListIterator  array;
+        ListIterator  end;
+        ArrayIterator arrIter;
     };
-
-    Iterator begin() { 
-			typename forward_list<Array<T>>::iterator first = arrays.begin();
-			if (first->isEmpty()) {
-				++first;
-			}
-			return Iterator( first, first->begin(), arrays.end() ); 
-		}
-    Iterator end() { return Iterator( arrays.end(), nullptr, arrays.end() ); }
     
     static const size_t defaultArraySize = 32;
 
-		// TODO - delete copy constructor/assignment op
-
     Sequence() : arraySize(defaultArraySize) {
-      arrays.emplace_front(arraySize); // TODO - emplace
+      arrays.emplace_front(arraySize);
 		}
     Sequence(size_t size) : arraySize(size) {
-      arrays.emplace_front(arraySize); // TODO - emplace
+      arrays.emplace_front(arraySize);
 		}
 
 		Sequence(const Sequence<T>& other) = delete;
@@ -88,6 +83,18 @@ namespace vitae {
       forward_list<Array<T>> arrays;
       size_t arraySize;
   };
+
+  template <typename T>
+    typename Sequence<T>::iterator Sequence<T>::begin() { 
+	    auto first = arrays.begin();
+	    if (first->isEmpty())
+			++first;
+		  return iterator( first, arrays.end() ); 
+	  };
+  template <typename T>
+    typename Sequence<T>::iterator Sequence<T>::end() { 
+      return iterator( arrays.end(), arrays.end() ); 
+    };
 
   template <typename T>
     void Sequence<T>::add(T t) {

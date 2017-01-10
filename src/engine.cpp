@@ -197,9 +197,6 @@ engine* engine_create() {
 	e->callbacks = luaInterface_create();
 	e->onTick = luaInterface_addCallback(e->callbacks, "onTick");
 	e->_input = input_create( e->timer );
-	e->tickers = NULL;
-	e->inputs = NULL;
-	e->renders = NULL;
 	e->frame_counter = -1;
 #ifdef LINUX_X
   e->xwin = { NULL, 0x0, false };
@@ -453,34 +450,26 @@ void engine_tickDelegateList( delegatelist* d, engine* e, float dt ) {
 
 // Run through all the delegates, ticking each of them
 void engine_tickTickers( engine* e, float dt ) {
-	engine_tickDelegateList( e->tickers, e, dt );
+	//engine_tickDelegateList( e->tickers, e, dt );
+  e->_tickers.call(dt, e);
+  for (auto& el : e->toStopTick)
+    e->_tickers.remove(el.first, el.second);
+  e->toStopTick.clear();
 }
 
 // Run through all the post-tick delegates, ticking each of them
 void engine_tickPostTickers( engine* e, float dt ) {
-	engine_tickDelegateList( e->post_tickers, e, dt );
+	//engine_tickDelegateList( e->post_tickers, e, dt );
+  e->_postTickers.call(dt, e);
 }
 
 void engine_renderRenders( engine* e ) {
 	e->_renders.call(e->_scene);
-/*
-	delegatelist* d = e->renders;
-	while (d != NULL) {
-		assert( d->head );	// Should never be NULL heads
-		delegate_render( d->head, e->_scene ); // render the whole of this delegate
-		d = d->tail;
-	}
-*/
 }
 
 // Process all inputs
 void engine_inputInputs( engine* e ) {
-	delegatelist* d = e->inputs;
-	while ( d != NULL ) {
-		assert( d->head );	// Should never be NULL heads
-		delegate_input( d->head, e->_input ); // render the whole of this delegate
-		d = d->tail;
-	}
+  e->_inputs.call(e->_input);
 }
 
 // Search the list of delegates for one with the matching tick func
@@ -493,14 +482,6 @@ delegate* engine_findDelegate( delegatelist* d, void* func ) {
 		d = d->tail;
 	}
 	return NULL;
-}
-
-delegate* engine_findRenderDelegate( engine* e, renderfunc render ) {
-	return engine_findDelegate( e->renders, (void*)render );
-}
-
-delegate* engine_findInputDelegate( engine* e, inputfunc in ) {
-	return engine_findDelegate( e->inputs, (void*)in );
 }
 
 // Add a new delegate to the delegatelist
@@ -523,14 +504,6 @@ delegate* engine_addDelegate( delegatelist** d, void* func ) {
 	return dl->head;
 }
 
-delegate* engine_addRenderDelegate( engine* e, renderfunc render ) {
-	return engine_addDelegate( &e->renders, (void*)render );
-}
-
-delegate* engine_addInputDelegate( engine* e, inputfunc in ) {
-	return engine_addDelegate( &e->inputs, (void*)in );
-}
-
 void engine_addTicker( delegatelist** d_list, void* entity, tickfunc tick ) {
 	delegate* d = engine_findDelegate( *d_list, (void*)tick );
 	if ( !d )
@@ -551,41 +524,36 @@ void engine_removeDelegateEntry( delegatelist* d, void* entity, void* delegate_f
 }
 
 void startTick( engine* e, void* entity, tickfunc tick ) {
-	engine_addTicker( &e->tickers, entity, tick );
+  // TODO - ensure ticks can't be removed during tick (e.g. not re-entrant, defer kill messages)
+	//engine_addTicker( &e->tickers, entity, tick );
+  e->_tickers.add(entity, tick);
 }
 
 void startPostTick( engine* e, void* entity, tickfunc tick ) {
-	engine_addTicker( &e->post_tickers, entity, tick );
+	//engine_addTicker( &e->post_tickers, entity, tick );
+  e->_postTickers.add(entity, tick);
 }
 
 void stopTick( engine* e, void* entity, tickfunc tick ) {
-	engine_removeDelegateEntry( e->tickers, entity, (void*)tick );
+  //e->_tickers.remove(entity, tick);
+  e->toStopTick.push_front(make_pair(entity, tick));
 }
 
 void stopPostTick( engine* e, void* entity, tickfunc tick ) {
-	engine_removeDelegateEntry( e->post_tickers, entity, (void*)tick );
+	//engine_removeDelegateEntry( e->post_tickers, entity, (void*)tick );
+  e->_postTickers.remove(entity, tick);
 }
 
 void startInput( engine* e, void* entity, inputfunc in ) {
-	delegate* d = engine_findInputDelegate( e, in );
-	if ( !d )
-		d = engine_addInputDelegate( e, in );
-	delegate_add( d, entity);
+	e->_inputs.add<void*>(entity, in);
 }
 
 void engine_addRender( engine* e, void* entity, renderfunc render ) {
 	e->_renders.add<void*>(entity, render);
-/*
-	delegate* d = engine_findRenderDelegate( e, render );
-	if ( !d )
-		d = engine_addRenderDelegate( e, render );
-	delegate_add( d, entity );
-*/
 }
 
 void engine_removeRender( engine* e, void* entity, renderfunc render ) {
 	e->_renders.remove(entity, render);
-	//engine_removeDelegateEntry( e->renders, entity, (void*)render );
 }
 
 window engine_mainWindow( engine* e ) {

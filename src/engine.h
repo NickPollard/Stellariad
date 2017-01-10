@@ -1,13 +1,18 @@
 // engine.h
 #pragma once
 
-#include "base/delegate.h"
-#include "base/list.h"
 #include "vlua.h"
 #include "ticker.h"
 #include "vtime.h"
-
+#include "base/delegate.h"
+#include "base/list.h"
 #include "concurrent/task.h"
+
+#include <utility>
+#include <forward_list>
+
+using std::forward_list;
+
 
 #ifdef ANDROID
 // Android Libraries
@@ -67,11 +72,13 @@ struct engine {
   scene* _scene;
 
   // TODO - write new templated delegate
-	delegatelist* tickers;	
-	delegatelist* post_tickers;	
-	delegatelist* renders;
+	//delegatelist* tickers;	
+	//delegatelist* post_tickers;	
+  vitae::DelegateList<float, engine*> _tickers;
+  vitae::DelegateList<float, engine*> _postTickers;
   vitae::DelegateList<scene*> _renders;
-	delegatelist* inputs;
+  vitae::DelegateList<input*> _inputs;
+  forward_list<std::pair<void*, tickfunc>> toStopTick;
 
 	debugtextframe* debugtext;
 
