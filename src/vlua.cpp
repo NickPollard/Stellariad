@@ -352,5 +352,6 @@ int lua_errorHandler( lua_State* l ) {
 }
 
 void lua_activeStateStack() {
-	lua_stacktrace( active_lua_state );
+  if (active_lua_state)
+	  lua_stacktrace( active_lua_state );
 }
