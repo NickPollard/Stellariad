@@ -33,7 +33,7 @@ struct property_s {
 
 typedef uint8_t particle_flags_t;
 
-typedef struct particleEmitterDef_s {
+struct particleEmitterDef_s {
 	float	lifetime;
 	vector	spawn_box;
 	// Properties
@@ -43,7 +43,7 @@ typedef struct particleEmitterDef_s {
 	vector	velocity;
 	texture*	texture_diffuse;
 	particle_flags_t	flags;
-} particleEmitterDef;
+};
 
 struct particleEmitter_s {
 	transform*	trans;
@@ -72,7 +72,8 @@ particleEmitterDef* particleEmitterDef_create();
 void particleEmitterDef_deInit( particleEmitterDef* def );
 
 // *** Emitter functions
-particleEmitter* particleEmitter_create();
+particleEmitter* particleEmitter_create(); // TODO - deprecate
+particleEmitter* particleEmitter_create( particleEmitterDef* d, transform* t );
 particleEmitter* particle_newEmitter( particleEmitterDef* definition );
 void particleEmitter_render( void* data, scene* s );
 void particleEmitter_tick( void* e, float dt, engine* eng );

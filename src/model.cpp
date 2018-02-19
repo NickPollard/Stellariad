@@ -26,6 +26,9 @@ model*		models[kMaxModels];
 const char*	modelFiles[kMaxModels];
 int 		modelIDs[kMaxModels];
 
+// *** Forward Declaration
+void mesh_buildBuffers( mesh* m );
+
 uintptr_t aligned_size( uintptr_t size, uintptr_t alignment ) {
 	return ( (size / alignment) + (( size % alignment > 0 ) ? 1 : 0) ) * alignment;
 }
@@ -34,18 +37,29 @@ void*	advance_align( void* ptr, uintptr_t alignment ) {
 	return (void*)aligned_size( (uintptr_t)ptr, alignment );
 }
 
-// create an empty mesh with vertCount distinct vertices and index_count vertex indices
-mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_count ) {
+// create an empty mesh with vertCount distinct vertices and indexCount vertex indices
+mesh* mesh_createMesh( 
+    int       vertCount, 
+    int       indexCount, 
+    int       normalCount, 
+    int       uvCount, 
+    vector*   vertices,
+    uint16_t* indices,
+    vector*   normals,
+    uint16_t* normalIndices,
+    vector*   uvs,
+    uint16_t* uvIndices
+  ) {
 	// We know that the whole data block will be 4-byte aligned
 	// We need to ensure each sub-array is also 4-byte aligned
 	unsigned int data_size = 
-						aligned_size( sizeof( mesh ), 						4 ) +
-						aligned_size( sizeof( vector )		* vertCount,	4 ) +	// Verts
-						aligned_size( sizeof( uint16_t )	* index_count,	4 ) +	// Indices
-						aligned_size( sizeof( vector )		* uv_count,		4 ) +	// UVs
-						aligned_size( sizeof( uint16_t )	* index_count,	4 ) +	// UV indices
-						aligned_size( sizeof( uint16_t )	* index_count,	4 ) +	// Normal indices
-						aligned_size( sizeof( vector )		* normal_count,	4 ) ;	// Normals
+						aligned_size( sizeof( mesh ), 			      			  4 ) +
+						aligned_size( sizeof( vector )		* vertCount,	  4 ) +	// Verts
+						aligned_size( sizeof( uint16_t )	* indexCount,	  4 ) +	// Indices
+						aligned_size( sizeof( vector )		* uvCount,		  4 ) +	// UVs
+						aligned_size( sizeof( uint16_t )	* indexCount,	  4 ) +	// UV indices
+						aligned_size( sizeof( uint16_t )	* indexCount,	  4 ) +	// Normal indices
+						aligned_size( sizeof( vector )		* normalCount,	4 ) ;	// Normals
 	
 	void* data = mem_alloc( data_size );
 	mesh* m = (mesh*)data;
@@ -54,18 +68,18 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 	m->verts = (vector*)data;
 	data = advance_align( (uint8_t*)data + sizeof( m->verts[0] ) * vertCount, 4 );			// Verts
 	m->indices = (uint16_t*)data;
-	data = advance_align( (uint8_t*)data + sizeof( m->indices[0] ) * index_count, 4 );	// Indices
+	data = advance_align( (uint8_t*)data + sizeof( m->indices[0] ) * indexCount, 4 );	// Indices
 	m->normals = (vector*)data;
-	data = advance_align( (uint8_t*)data + sizeof( m->normals[0] ) * normal_count, 4 );	// Normals	
-	m->normal_indices = (uint16_t*)data;
-	data = advance_align( (uint8_t*)data + sizeof( m->normal_indices[0] ) * index_count, 4 );	// Normal Indices
+	data = advance_align( (uint8_t*)data + sizeof( m->normals[0] ) * normalCount, 4 );	// Normals	
+	m->normalIndices = (uint16_t*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->normalIndices[0] ) * indexCount, 4 );	// Normal Indices
 	m->uvs = (vector*)data;
-	data = advance_align( (uint8_t*)data + sizeof( m->uvs[0] ) * uv_count, 4 );		// UVs
-	m->uv_indices = (uint16_t*)data;
+	data = advance_align( (uint8_t*)data + sizeof( m->uvs[0] ) * uvCount, 4 );		// UVs
+	m->uvIndices = (uint16_t*)data;
 
-	m->vert_count = vertCount;
-	m->index_count = index_count;
-	m->normal_count = normal_count;
+	m->vertCount = vertCount;
+	m->indexCount = indexCount;
+	m->normalCount = normalCount;
 	m->vertex_buffer = NULL;
 	m->element_buffer = NULL;
 	m->draw = NULL;
@@ -81,27 +95,17 @@ mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_
 
 	m->dontCache = false;
 
+	memcpy( m->verts,          vertices,	    vertCount  * sizeof( vector   ));
+	memcpy( m->indices,        indices,       indexCount  * sizeof( uint16_t ));
+	memcpy( m->normals,        normals,       normalCount * sizeof( vector   ));
+	memcpy( m->normalIndices,  normalIndices,	indexCount  * sizeof( uint16_t ));
+	memcpy( m->uvs,            uvs,           uvCount     * sizeof( vector   ));
+	memcpy( m->uvIndices,      uvIndices,			indexCount  * sizeof( uint16_t ));
+
+	mesh_buildBuffers( m );
+
 	return m;
 }
-
-// Precalculate flat normals for a mesh
-void mesh_calculateNormals( mesh* m ) {
-	int j = 0;
-	for ( int i = 0; i < m->index_count; i+=3 ) {
-		// For now, calculate the normals at runtime from the three points of the triangle
-		vector a, b, normal;
-		Sub( &a, &m->verts[m->indices[i]], &m->verts[m->indices[i + 1]] );
-		Sub( &b, &m->verts[m->indices[i]], &m->verts[m->indices[i + 2]] );
-		Cross( &normal, &a, &b );
-		Normalize( &normal, &normal );
-		m->normal_indices[i+0] = j;
-		m->normal_indices[i+1] = j;
-		m->normal_indices[i+2] = j;
-		m->normals[j++] = normal;
-	}
-}
-
-model* model_createTestCube( ) { return model_load( "dat/model/cityscape.obj" ); }
 
 // Create an empty model with meshCount submeshes
 model* model_createModel(int meshCount) {
@@ -119,19 +123,19 @@ void mesh_buildBuffers( mesh* m ) {
 	vAssert( m );
 	vAssert( !m->vertex_buffer );
 	vAssert( !m->element_buffer );
-	unsigned int size_vertex	= sizeof( vertex ) * m->index_count;
-	unsigned int size_element	= sizeof( GLushort ) * m->index_count;
+	unsigned int size_vertex	= sizeof( vertex ) * m->indexCount;
+	unsigned int size_element	= sizeof( GLushort ) * m->indexCount;
 	m->vertex_buffer	= (vertex*)mem_alloc( size_vertex );
 	m->element_buffer	= (GLushort*)mem_alloc( size_element );
 
 	// For each element index
 	// Unroll the vertex/index bindings
-	for ( int i = 0; i < m->index_count; i++ ) {
+	for ( int i = 0; i < m->indexCount; i++ ) {
 		// Copy the required vertex position, normal, and uv
 		m->vertex_buffer[i].position = m->verts[m->indices[i]];
-		m->vertex_buffer[i].normal = m->normals[m->normal_indices[i]];
-		m->vertex_buffer[i].uv.x = m->uvs[m->uv_indices[i]].coord.x;
-		m->vertex_buffer[i].uv.y = m->uvs[m->uv_indices[i]].coord.y;
+		m->vertex_buffer[i].normal = m->normals[m->normalIndices[i]];
+		m->vertex_buffer[i].uv.x = m->uvs[m->uvIndices[i]].coord.x;
+		m->vertex_buffer[i].uv.y = m->uvs[m->uvIndices[i]].coord.y;
 		m->element_buffer[i] = i;
 	}
 
@@ -144,9 +148,9 @@ void mesh_renderCached( mesh* m ) {
 	if (m->texture_diffuse->gl_tex == kInvalidGLTexture) return; // Early out if we don't have a texture to render with
 
 	if (!m->draw || m->draw->vitae_shader != *m->_shader) {
-		auto draw = drawCall::createCached( *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-		draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
-		draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
+		auto draw = drawCall::createCached( *m->_shader, m->indexCount, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+		draw->texture_b = static_texture_reflective->gl_tex;
+		draw->texture_normal = m->texture_normal->gl_tex;
 		draw->vertex_VBO = *m->vertex_VBO;
 		draw->element_VBO = *m->element_VBO;
 		m->draw = draw;
@@ -157,12 +161,12 @@ void mesh_renderCached( mesh* m ) {
 }
 
 void mesh_renderUncached( mesh* m ) {
-	drawCall* draw = drawCall::create( &renderPass_main, *m->_shader, m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
-	draw->texture_b = static_texture_reflective->gl_tex; //texture_reflective;
-	draw->texture_normal = m->texture_normal->gl_tex; //texture_reflective;
+	drawCall* draw = drawCall::create( &renderPass_main, *m->_shader, m->indexCount, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+	draw->texture_b = static_texture_reflective->gl_tex;
+	draw->texture_normal = m->texture_normal->gl_tex;
 	draw->vertex_VBO = *m->vertex_VBO;
 	draw->element_VBO = *m->element_VBO;
-	drawCall* drawDepth = drawCall::create( &renderPass_depth, *Shader::depth(), m->index_count, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
+	drawCall* drawDepth = drawCall::create( &renderPass_depth, *Shader::depth(), m->indexCount, m->element_buffer, m->vertex_buffer, m->texture_diffuse->gl_tex, modelview );
 	drawDepth->vertex_VBO = *m->vertex_VBO;
 	drawDepth->element_VBO = *m->element_VBO;
 }
@@ -210,22 +214,6 @@ const char* model_getFileNameFromID( int id ) {
 	return NULL;
 }
 
-modelHandle model_getHandleFromID( int id ) {
-	// If the model is already in the array, return it
-	for ( int i = 0; i < model_count; i++ ) {
-		if ( modelIDs[i] == id ) {
-			return (modelHandle)i;
-		}
-	}
-	// Otherwise add it and return
-	assert( model_count < kMaxModels );
-	modelHandle handle = (modelHandle)model_count;
-	modelIDs[handle] = id;
-	models[handle] = model_loadFromFileSync( model_getFileNameFromID( id ) );
-	model_count++;
-	return handle;
-}
-
 // TODO - debug; should be replaced with hashed ID
 modelHandle model_getHandleFromFilename( const char* filename ) {
 	// If the model is already in the array, return it
@@ -246,39 +234,42 @@ void model_preload( const char* filename ) {
 	model_getHandleFromFilename( filename );
 }
 
-model* model_fromInstance( modelInstance* instance ) {
-	return model_getByHandle( instance->model );
-}
+//model* model_fromInstance( modelInstance* instance ) {
+	//return model_getByHandle( instance->model );
+//}
 
 int model_transformIndex( model* m, transform* ptr ) {
 	for ( int i = 0; i < m->transform_count; i++ )
 		if ( m->transforms[i] == ptr )
-			return i;
+			return i
 	return -1;
 }
 
-void model_addTransform( model* m, transform* t ) {
-	//printf( "MODEL - adding transform\n" );
-	m->transforms[m->transform_count++] = t;
+int model_addTransform( model* m, transform* t ) {
+  int index = m->transform_count++;
+	m->transforms[index] = t;
+  return index;
 }
 
-void model_addParticleEmitter( model* m, particleEmitter* p ) {
-	m->emitters[m->emitter_count++] = p;
+void model_addParticleEmitter( model* m, particleEmitterDef* p, int index ) {
+	m->emitterDefs[m->emitter_count] = p;
+	m->emitterIndices[m->emitter_count] = index;
+  m->emitter_count++;
 }
 
-void model_addRibbonEmitter( model* m, ribbonEmitter* p ) {
-	m->ribbon_emitters[m->ribbon_emitter_count++] = p;
+void model_addRibbonEmitter( model* m, ribbonEmitterDef* p, int index ) {
+	m->ribbon_emitters[m->ribbon_emitter_count] = p;
+	m->ribbonIndices[m->ribbon_emitter_count] = index;
+  m->emitter_count++;
 }
 
-
-obb obb_calculate( int vert_count, vector* verts ) {
-	//printf( "obb calculate!\n" );
-	vAssert( vert_count > 1 );
+obb obb_calculate( int vertCount, vector* verts ) {
+	vAssert( vertCount > 1 );
 	obb bb;
 	vector vert = verts[0];
 	bb.min = vert;
 	bb.max = vert;
-	for ( int i = 1; i < vert_count; i++ ) {
+	for ( int i = 1; i < vertCount; i++ ) {
 		vert = verts[i];
 /*
    	INLINED:

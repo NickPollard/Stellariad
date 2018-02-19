@@ -562,8 +562,8 @@ void vertexBuffer_asPositionsOnly( vector* verts, vertex* src_verts, int vert_co
 
 collisionMesh* collisionMesh_fromRenderMesh( mesh* render_mesh ) {
 	collisionMesh* m = (collisionMesh*)mem_alloc( sizeof( collisionMesh ));
-	m->vert_count = render_mesh->vert_count;
-	m->index_count = render_mesh->index_count;
+	m->vert_count = render_mesh->vertCount;
+	m->index_count = render_mesh->indexCount;
 
 	// Allocate our buffers
 	m->verts = (vector*)mem_alloc( sizeof( vector ) * m->vert_count );

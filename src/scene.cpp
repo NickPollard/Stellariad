@@ -26,7 +26,7 @@
 // *** Private Declarations
 
 void scene_saveFile( scene* s, const char* filename );
-scene* scene_loadFile( const char* filename );
+//scene* scene_loadFile( const char* filename );
 
 void scene_removeTransform( scene* s, transform* e );
 void scene_removeEmitter( scene* s, particleEmitter* e );
@@ -398,6 +398,7 @@ void scene_saveFile( scene* s, const char* filename ) {
 }
 
 // TODO
+/*
 scene* scene_loadFile( const char* filename ) {
 	size_t buffer_length;
 	void* buffer = vfile_contents( filename, &buffer_length );
@@ -455,3 +456,4 @@ scene* scene_load( sceneData* data ) {
 
 	return s;
 }
+*/

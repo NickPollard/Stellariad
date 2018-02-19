@@ -71,12 +71,24 @@ void modelInstance_createSubTransforms( modelInstance* instance ) {
 	instance->transform_count = m->transform_count;
 }
 
+// TODO - dedup with the one in Model
+#define kIndexOffset 256
+int indexFromTransformIndexb( transform* index ) {
+  int i = (int)((uintptr_t)index);
+  return (i != -1) ? (i - kIndexOffset) : -1;
+}
+
+transform* modelInstance_transformFromIndex( modelInstance* m, transform* index ) {
+  int i = indexFromTransformIndexb(index);
+  vAssert(i != -1);
+  return m->transforms[i];
+}
+
 void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->emitter_count; i++ ) {
 		instance->emitters[i] = particleEmitter_create();
 #ifdef DEBUG_PARTICLE_SOURCES
-		model* m = model_fromInstance( instance );
 		char buffer[256];
 		sprintf( buffer, "modelInstance subEmitter for \"%s\"", m->filename );
 		instance->emitters[i]->debug_creator = string_createCopy( buffer );
@@ -87,12 +99,13 @@ void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 
 		// Take parent transform if in model
 		// This is stored as an index rather than a pointer
-		uintptr_t transform_index = (uintptr_t)m->emitters[i]->trans;
+    transform* tr = modelInstance_transformFromIndex(instance, m->emitters[i]->trans);
 		//printf( "transform_index = %d.\n", (int)transform_index );
-		if ( transform_index == NULL_INDEX )
+		if ( (uintptr_t)tr == NULL_INDEX )
 			instance->emitters[i]->trans = NULL;
 		else
-			instance->emitters[i]->trans = instance->transforms[transform_index];
+			instance->emitters[i]->trans = tr; //instance->transforms[transform_index];
+			//instance->emitters[i]->trans = tr; //instance->transforms[transform_index];
 	}
 	instance->emitter_count = m->emitter_count;
 }
@@ -100,15 +113,14 @@ void modelInstance_createSubParticleEmitters( modelInstance* instance ) {
 void modelInstance_createSubRibbonEmitters( modelInstance* instance ) {
 	model* m = model_fromInstance( instance );
 	for ( int i = 0; i < m->ribbon_emitter_count; i++ ) {
-		instance->ribbon_emitters[i] = ribbonEmitter_copy( m->ribbon_emitters[i]);
 
 		// Take parent transform if in model
 		// This is stored as an index rather than a pointer
-		uintptr_t transform_index = (uintptr_t)m->ribbon_emitters[i]->trans;
-		if ( transform_index == NULL_INDEX )
-			instance->ribbon_emitters[i]->trans = NULL;
-		else
-			instance->ribbon_emitters[i]->trans = instance->transforms[transform_index];
+		//    uintptr_t transform_index = (uintptr_t)m->ribbon_emitters[i]->trans - 16;
+    transform* t = modelInstance_transformFromIndex(instance, m->ribbon_emitters[i]->trans);
+    // TODO Fix this with model_transformFromIndex
+    //transform* t = transform_index == NULL_INDEX ? NULL : instance->transforms[transform_index];
+		instance->ribbon_emitters[i] = ribbonEmitter_copy( m->ribbon_emitters[i], t );
 	}
 	instance->ribbon_emitter_count = m->ribbon_emitter_count;
 }

@@ -36,8 +36,8 @@ struct ribbonEmitter_s {
 void ribbonEmitter_staticInit();
 
 // *** Emitter Instance
-ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def );
-ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src );
+ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def, transform* t );
+ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src, transform* t  );
 void ribbonEmitter_destroy( ribbonEmitter* r );
 
 // *** Definition

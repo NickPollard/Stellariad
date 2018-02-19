@@ -23,6 +23,7 @@ void transform_initPool();
 
 // Create a new default transform
 transform* transform_create();
+transform* transform_create(matrix _local);
 transform* transform_createAndAdd( scene* s );
 
 // Delete a transform

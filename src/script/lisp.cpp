@@ -1325,10 +1325,14 @@ void lisp_init() {
 #define NO_PARENT NULL
 
 void model_addSubElement( term* element_term, void* model_arg ) {
+  vAssert( false ); //DEPRECATED
+  (void)element_term;
+  (void)model_arg;
 	//printf( "MODEL - adding sub element.\n" );
 	//term_debugPrint( element_term );
 	//printf( "\n" );
 
+  /*
 	// For now, assume transform
 	// it has two children - the transform, and a list of children
 	lisp_assert( isType( element_term, typeList ));
@@ -1345,9 +1349,11 @@ void model_addSubElement( term* element_term, void* model_arg ) {
 			model_addParticleEmitter( m, p );
 			// Fix up particle trans into an index that can be unpacked later
 			p->trans = (transform*)(uintptr_t)model_transformIndex( m, p->trans );
+      vAssert( false ); // TODO - does this get hit?
 			children = tail( children );
 		}
 	}
+  */
 }
 
 /*
@@ -1376,7 +1382,7 @@ term* lisp_func_model( context* c, term* raw_args ) {
 
 	term* ret = term_create( typeObject, m );
 
-	m->_obb = obb_calculate( m->meshes[0]->vert_count, m->meshes[0]->verts );
+	m->_obb = obb_calculate( m->meshes[0]->vertCount, m->meshes[0]->verts );
 	//term_deref( args );	
 	return ret;
 }

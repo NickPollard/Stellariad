@@ -17,37 +17,68 @@
 struct mesh_s {
 	transform*	trans;
 	shader**		_shader;
-	//
-	int			vert_count;
-	vector*		verts;
-	//
-	int			index_count;
-	uint16_t*	indices;
-	//
-	int			normal_count;
-	vector*		normals;
-	//
-	uint16_t*	normal_indices;
-	//
-	vector*		uvs;
-	int			uv_count;
-	uint16_t*	uv_indices;
 
-	vertex*			vertex_buffer;
+	int			  vertCount;
+	vector*		verts;
+
+	int			  indexCount;
+	uint16_t*	indices;
+
+	int			  normalCount;
+	vector*		normals;
+
+	uint16_t*	normalIndices;
+
+	vector*		uvs;
+	int			  uvCount;
+	uint16_t*	uvIndices;
+
+	vertex*			    vertex_buffer;
 	unsigned short*	element_buffer;
 
-	texture*		texture_diffuse;
-	texture*		texture_normal;
+	texture*  texture_diffuse;
+	texture*  texture_normal;
 
-	//
 	GLuint*		vertex_VBO;
-	GLuint*		element_VBO;
-	//
+	GLuint*		element_VBO;	
+
 	drawCall*	draw;
 	drawCall*	drawDepth;
 
 	bool		dontCache; // prevent draw call caching for this mesh
 };
+
+/*
+struct Mesh {
+  using index = uint16_t;
+
+  Transform* transform;
+
+  Array<vector> verts;
+  Array<index>  indices;
+  Array<index>  normalIndices;
+  Array<vector> uvs;
+
+  Texture* diffuseMap;
+  Texture* normalMap;
+
+  bool     dontCache;
+};
+
+struct Model {
+  Array<Mesh*>            meshes;
+  Array<Transform*>       transforms;
+  Array<ParticleEmitter*> particles;
+  Array<RibbonEmitter*>   ribbons;
+
+  obb boundingBox;
+
+  IFDEBUG(const char* filename);
+};
+
+// Build a GLdraw struct for this mesh
+GLDraw makeDraw( Mesh* m );
+*/
 
 typedef struct obb_s {
 	vector min;
@@ -61,15 +92,20 @@ typedef struct obb_s {
 struct model_s {
 	int			meshCount;
 	mesh*		meshes[kMaxSubMeshes];
+
 	// Sub-elements
-//	transform*	hardpoints[kMaxHardPoints];
-	int	transform_count;
-	int emitter_count;
-	int ribbon_emitter_count;
-	transform*			transforms[kMaxSubTransforms];
-	particleEmitter*	emitters[kMaxSubEmitters];
-	ribbonEmitter*		ribbon_emitters[kMaxSubEmitters];
-	obb					_obb;
+	int	              transform_count;
+	int               emitter_count;
+	int               ribbon_emitter_count;
+	transform*			  transforms[kMaxSubTransforms];
+
+	particleEmitterDef*	emitterDefs[kMaxSubEmitters];
+  int                 emitterIndices;
+	ribbonEmitterDef*		ribbon_emitters[kMaxSubEmitters];
+  int                 ribbonIndices;
+
+	obb					      _obb;
+
 #ifdef DEBUG
 	const char*		filename;
 #endif
@@ -78,46 +114,55 @@ struct model_s {
 
 // *** Mesh Functions
 
-// Create an empty mesh with vertCount distinct vertices and index_count vertex indices
-mesh* mesh_createMesh( int vertCount, int index_count, int normal_count, int uv_count );
+// Create an empty mesh with vertCount distinct vertices and indexCount vertex indices
+//mesh* mesh_createMesh( int vertCount, int indexCount, int normalCount, int uvCount );
+mesh* mesh_createMesh( 
+    int       vertCount, 
+    int       indexCount, 
+    int       normalCount, 
+    int       uvCount, 
+    vector*   vertices,
+    uint16_t* indices,
+    vector*   normals,
+    uint16_t* normalIndices,
+    vector*   uvs,
+    uint16_t* uvIndices
+  );
 
 // Draw the verts of a mesh to the openGL buffer
-void mesh_render(mesh* m);
-
-// Precalculate flat normals for a mesh
-void mesh_calculateNormals( mesh* m );
-
-void mesh_buildBuffers( mesh* m );
+void mesh_render( mesh* m );
 
 // Build an oriented bounding box for the model
-obb obb_calculate( int vert_count, vector* verts );
+obb obb_calculate( int vertCount, vector* verts );
+
+
 
 
 // *** Model Functions
 
-// Create a test model of a cube
-model* model_createTestCube( );
-
 // Create an empty model with meshCount submeshes
 model* model_createModel(int meshCount);
 
+// TODO - remove in favour of RAII
 void model_addMesh( model* m, int i, mesh* msh );
 
 // Add a transform to the model
-void model_addTransform( model* m, transform* t );
-// Add a particle emitter to the model
-void model_addParticleEmitter( model* m, particleEmitter* p );
-void model_addRibbonEmitter( model* m, ribbonEmitter* p );
+// TODO tackle this too
+int model_addTransform( model* m, transform* t );
+
+void model_addParticleEmitter( model* m, particleEmitterDef* p, int index );
+void model_addRibbonEmitter( model* m, ribbonEmitterDef* p, int index );
 
 // Draw each submesh of a model
 void model_draw(model* m);
 
+// TODO - make a method on modelInstance
 model* model_fromInstance( modelInstance* instance );
 
 // Handle lookups
-modelHandle model_getHandleFromID( int id );
 modelHandle model_getHandleFromFilename( const char* filename );
-void model_preload( const char* filename );
+void        model_preload( const char* filename );
 
 // Sub-element lookups
-int model_transformIndex( model* m, transform* ptr );
+transform* model_transformIndex( model* m, transform* ptr );
+transform* model_transformFromIndex( model* m, transform* index );

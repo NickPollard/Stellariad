@@ -66,6 +66,12 @@ transform* transform_create() {
 	return t;
 }
 
+transform* transform_create(matrix _local) {
+  transform* t = transform_create();
+
+  matrix_cpy( t->local, local );
+}
+
 void transform_delete( transform* t ) {
 	pool_transform_free( static_transform_pool, t );
 }

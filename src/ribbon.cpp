@@ -53,7 +53,7 @@ void ribbonEmitterDef_deInit( ribbonEmitterDef* r ) {
 	property_delete( r->color );
 }
 
-ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def ) {
+ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def, transform* t ) {
 	ribbonEmitter* r = pool_ribbonEmitter_allocate( static_ribbon_pool );
 	memset( r, 0, sizeof( ribbonEmitter ));
 	for ( int i = 0; i < kMaxRibbonPairs * 2; i+=2 ) {
@@ -61,6 +61,8 @@ ribbonEmitter* ribbonEmitter_create( ribbonEmitterDef* def ) {
 		r->vertex_buffer[i+1].uv = Vec2( 1.f, 0.f );
 	}
 	r->next_tex_v = 0.f;
+  vAssert( t );
+  r->trans = t;
 
 	// Definition
 	r->definition = def;
@@ -223,8 +225,9 @@ ribbonEmitterDef* ribbon_loadAsset( const char* filename ) {
 	return def;
 }
 
-ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src ) {
-	return ribbonEmitter_create( src->definition );
+ribbonEmitter* ribbonEmitter_copy( ribbonEmitter* src, transform* t ) {
+  vAssert( (uintptr_t)t > 512 );
+	return ribbonEmitter_create( src->definition, t );
 }
 
 void ribbonEmitter_destroy( ribbonEmitter* r ) {

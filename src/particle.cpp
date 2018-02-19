@@ -458,6 +458,13 @@ particleEmitter* particle_newEmitter( particleEmitterDef* definition ) {
 	return p;
 }
 
+particleEmitter* particleEmitter_create( particleEmitterDef* d, transform* t ) {
+	particleEmitter* p = particleEmitter_create();
+	p->definition = d;
+  p->trans = t;
+	return p;
+}
+
 void particleEmitter_destroy( particleEmitter* e ) {
 	e->dead = true;
 }

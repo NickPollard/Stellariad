@@ -206,7 +206,7 @@ particleEmitter* sexpr_loadParticleEmitter( sexpr* s ) {
 	return NULL;
 }
 
-ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
+ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s, transform* t ) {
 	(void)s;
 	//printf( "Sexpr Loading ribbon emitter.\n" );
 	sexpr* fileterm = sexpr_findChildNamed( "filename", s );
@@ -214,7 +214,7 @@ ribbonEmitter* sexpr_loadRibbonEmitter( sexpr* s ) {
 		vAssert( fileterm->child );
 		const char* filename = fileterm->child->value;
 		ribbonEmitterDef* def = ribbon_loadAsset( filename );
-		ribbonEmitter* emitter = ribbonEmitter_create( def );
+		ribbonEmitter* emitter = ribbonEmitter_create( def, t );
 		return emitter;
 	}
 	vAssert( 0 );
@@ -278,10 +278,8 @@ ribbonEmitterDef* sexpr_loadRibbonEmitterDef( sexpr* s ) {
 }
 
 transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
-	(void)s;
-	//printf( "Adding transform!\n" );
 	transform* t = transform_create();
-	model_addTransform( m, t );
+	int index = model_addTransform( m, t );
 
 	sexpr* trans_term = sexpr_findChildNamed( "translation", s );
 	if ( trans_term ) {
@@ -294,14 +292,12 @@ transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 	while ( child ) {
 		if ( sexpr_named( "particleEmitter", child ) ) {
 			particleEmitter* emitter =  sexpr_loadParticleEmitter( child );
-			model_addParticleEmitter( m, emitter );
-			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
+			model_addParticleEmitter( m, emitter, index );
 		}
 		
 		if ( sexpr_named( "ribbonEmitter", child ) ) {
-			ribbonEmitter* emitter = sexpr_loadRibbonEmitter( child );
-			model_addRibbonEmitter( m, emitter );
-			emitter->trans = (transform*)(uintptr_t)model_transformIndex( m, t );
+			ribbonEmitter* ribbon = sexpr_loadRibbonEmitter( child, trans );
+			model_addRibbonEmitter( m, ribbon, index );
 		}
 
 		child = child->next;
@@ -310,22 +306,17 @@ transform* sexpr_loadModelTransform( model* m, sexpr* s ) {
 	return t;
 }
 
+// TODO - RAII - create the meshes, then create the model with the meshes
 model* sexpr_loadModel( sexpr* s ) {
 	int mesh_index = 0;
 	int mesh_count = sexpr_countChildrenByType( s, "mesh" );
 	model* m = model_createModel( mesh_count );
-	sexpr* child = s->child;
-	while ( child ) {
-		if ( sexpr_named( "mesh", child ) ) {
-			model_addMesh( m, mesh_index++, sexpr_loadMesh( child ));
-		}
-		else if ( sexpr_named( "transform", child )) {
-			// This will add the transform to the model
-			sexpr_loadModelTransform( m, child );
-		}
 
-		child = child->next;
+	for ( sexpr* child = s->child; child; child = child->next ) {
+		if ( sexpr_named( "mesh", child )) model_addMesh( m, mesh_index++, sexpr_loadMesh( child ));
+		else if ( sexpr_named( "transform", child )) sexpr_loadModelTransform( m, child );
 	}
+
 	return m;
 }
 

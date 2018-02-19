@@ -147,11 +147,9 @@ int LUA_modelPreload( lua_State* l ) {
 	if ( lua_isstring( l, 1 ) ) {
 		const char* filename = lua_tostring( l, 1 );
 		model_preload( filename );
-		return 0;
-	} else {
+	} else
 		printf( "Error: LUA: No filename specified for vmodel_preload().\n" );
-		return 0;
-	}
+	return 0;
 }
 
 int LUA_texturePreload( lua_State* l ) {
@@ -754,8 +752,7 @@ int LUA_ribbon_create( lua_State* l ) {
 	transform* t = lua_toTransform( l, 2 );
 	const char* filename = lua_tostring( l, 3 );
 
-	ribbonEmitter* emitter = ribbonEmitter_create( ribbon_loadAsset( filename ));
-	emitter->trans = t;
+	ribbonEmitter* emitter = ribbonEmitter_create( ribbon_loadAsset( filename ), t );
 
 	engine_addRender( e, emitter, ribbonEmitter_render );
 	startTick( e, emitter, ribbonEmitter_tick );

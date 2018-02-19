@@ -4,6 +4,8 @@
 //-------------------------
 #include "test.h"
 
+// TODO - remove these
+
 int array_find( void** array, int count, void* ptr ) {
 	for ( int i = 0; i < count; ++i ) {
 		if ( array[i] == ptr )

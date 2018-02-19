@@ -111,4 +111,25 @@ namespace vitae {
     T Array<T>::popBack() {
       return buffer[--count];
     };
+
+
+  /* 
+   * Fixed-sized immutable Array of elements
+   * TODO - owning vs. non-owning?
+   */
+  template <typename T> struct Slice {
+    public:
+      const T& operator [](size_t index) const { return elems[index]; }
+
+      size_t size() { return _size; }
+
+      //static Slice<T> fromVec( const Vector<T>& v ) {
+        //return Slice<T>( v.size(), v.elems() );
+      //}
+
+      Slice(size_t initialSize, T* ptr) : _size(initialSize), elems(ptr) {}
+    private:
+      size_t _size;
+      T*     elems;
+  };
 }

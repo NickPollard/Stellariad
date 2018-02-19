@@ -13,7 +13,7 @@
 mesh* mesh_loadObj( const char* filename ) {
 	//println("Loading Mesh: " + $(filename));
 	// Load the raw data
-	int vert_count = 0, index_count = 0, normal_count = 0, uv_count = 0;
+	int vertCount = 0, index_count = 0, normal_count = 0, uv_count = 0;
 	// Lets create these arrays on the heap, as they need to be big
 	// TODO: Could make these static perhaps?
 	vector* vertices	= (vector*)mem_alloc( sizeof( vector ) * kObjMaxVertices );
@@ -41,15 +41,15 @@ mesh* mesh_loadObj( const char* filename ) {
 	while ( !inputStream_endOfFile( stream )) {
 		char* token = inputStream_nextToken( stream );
 		if ( string_equal( token, "v" )) {
-			assert( vert_count < kObjMaxVertices );
+			assert( vertCount < kObjMaxVertices );
 			// Vertex
 			for ( int i = 0; i < 3; i++ ) {
 				inputStream_freeToken( stream, token );
 				token = inputStream_nextToken( stream );
-				vertices[vert_count].val[i] = strtof( token, NULL );
+				vertices[vertCount].val[i] = strtof( token, NULL );
 			}
-			vertices[vert_count].coord.w = 1.f; // Force 1.0 w value for all vertices.
-			vert_count++;
+			vertices[vertCount].coord.w = 1.f; // Force 1.0 w value for all vertices.
+			vertCount++;
 		}
 		if ( string_equal( token, "vn" )) {
 			assert( normal_count < kObjMaxVertices );
@@ -124,17 +124,10 @@ mesh* mesh_loadObj( const char* filename ) {
 		inputStream_nextLine( stream );
 	}
 	mem_free( (void*)file_buffer );
-	//printf( "MESH_LOAD: Parsed .obj file \"%s\" with %d verts, %d faces, %d normals, %d uvs.\n", filename, vert_count, index_count / 3, normal_count, uv_count );
+	//printf( "MESH_LOAD: Parsed .obj file \"%s\" with %d verts, %d faces, %d normals, %d uvs.\n", filename, vertCount, index_count / 3, normal_count, uv_count );
 
 	// Copy our loaded data into the Mesh structure
-	mesh* msh = mesh_createMesh( vert_count, index_count, index_count, uv_count );
-	memcpy( msh->verts,			vertices,			vert_count * sizeof( vector ));
-	memcpy( msh->indices,		indices,			index_count * sizeof( uint16_t ));
-	memcpy( msh->normals,		normals,			normal_count * sizeof( vector ));
-	memcpy( msh->normal_indices, normal_indices,	index_count * sizeof( uint16_t ));
-	memcpy( msh->uvs,			uvs,				uv_count * sizeof( vector ));
-	memcpy( msh->uv_indices,	uv_indices,			index_count * sizeof( uint16_t ));
-	mesh_buildBuffers( msh );
+	mesh* msh = mesh_createMesh( vertCount, index_count, index_count, uv_count, vertices, indices, normals, normal_indices, uvs, uv_indices );
 
 	mem_free(vertices);
 	mem_free(normals);
@@ -149,7 +142,7 @@ mesh* mesh_loadObj( const char* filename ) {
 model* model_load( const char* filename ) {
 	model* mdl = (model*)sexpr_loadFile( filename );
 	if ( mdl->meshCount > 0 )
-		mdl->_obb = obb_calculate( mdl->meshes[0]->vert_count, mdl->meshes[0]->verts );
+		mdl->_obb = obb_calculate( mdl->meshes[0]->vertCount, mdl->meshes[0]->verts );
 #if DEBUG
 	mdl->filename = string_createCopy(filename);
 #endif // DEBUG
