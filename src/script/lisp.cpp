@@ -1081,7 +1081,7 @@ term* lisp_func_color( context* c, term* raw_args ) {
 	assert( isType( head( args ), typeVector ) || isType( head( args ), typeList ) || isType( head( args ), typeString ) );
 	term* color = term_create( typeVector, NULL );
 	color->head = (term*)value_create( sizeof( vector ));
-	vector v;
+	vector v = Vector( 0.0f, 0.0f, 0.0f, 0.0f );
 	*(vector*)color->head = v;
 
 	term_deref( args );
