@@ -252,7 +252,7 @@ void lua_setPackagePath( lua_State* l, const char* path ) {
 
 // Create a Lua l and load it's initial contents from <filename>
 lua_State* vlua_create( engine* e, const char* filename ) {
-	lua_State* l = lua_open();
+	lua_State* l = luaL_newstate();
 
 	luaL_openlibs( l );	// Load the Lua libs into our lua l
 
