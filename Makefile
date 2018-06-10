@@ -2,11 +2,11 @@ C = g++
 #ARCH = -m32
 ARCH = -m64
 CPPSTD = c++17
-CFLAGS = -Wall -Wextra -Werror -fno-diagnostics-show-option $(ARCH) -std=$(CPPSTD) -I . -I/usr/include/lua5.1 -Idep/include -I/usr/local/include/brando -Isrc -pg
+CFLAGS = -Wall -Wextra -fno-diagnostics-show-option $(ARCH) -std=$(CPPSTD) -I . -I/usr/include/lua5.1 -Idep/include -I/usr/local/include/brando -Isrc -pg
 LFLAGS = $(ARCH) -pg
 #PLATFORM_LIBS = -L/usr/lib/i386-linux-gnu -L/usr/local/lib/i386-linux-gnu
 PLATFORM_LIBS = -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu
-LIBS = -L/usr/lib64 -L/usr/local/lib64 -L/usr/lib -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu/mesa -Ldep/lib $(PLATFORM_LIBS) -lGLESv2 -lEGL -llua5.1 -lm -lX11 -lpthread -ldl
+LIBS = -L/usr/lib64 -L/usr/local/lib64 -L/usr/lib -L/usr/local/lib -L/usr/lib/x86_64-linux-gnu/mesa -Ldep/lib $(PLATFORM_LIBS) -lGLESv2 -lEGL -llua-5.3 -lm -lX11 -lpthread -ldl
 EXECUTABLE = vitae
 include Makelist
 OBJS = $(SRCS:src/%.cpp=bin/release/%.o)
