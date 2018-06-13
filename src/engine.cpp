@@ -306,7 +306,7 @@ void engine_render( engine* e ) {
 		skybox_render( NULL );
 
 		// test
-		test_marching_draw();
+		//test_marching_draw();
 
 #ifdef GRAPH_FPS
 		graph_render( fpsgraph );
