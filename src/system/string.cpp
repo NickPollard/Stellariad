@@ -36,7 +36,7 @@ bool string_equal( const char* a, const char* b ) {
 }
 
 bool charset_contains( const char* charset, char c ) {
-	return ( index( charset, c ) != NULL );
+	return ( strchr( charset, c ) != NULL );
 }
 
 // Trim cruft from a string to return just the main alpha-numeric name
