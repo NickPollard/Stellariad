@@ -5,6 +5,11 @@
  (c) 2010
  */
 
+// Import the main brando implementations (need to be defined once)
+#define BRANDO_MAIN
+#include "brando.h"
+#undef BRANDO_MAIN
+
 #ifndef ANDROID
 
 #include "common.h"
@@ -20,11 +25,6 @@
 #include "system/string.h"
 #include "script/sexpr.h"
 #include "terrain/marching.h"
-
-// Import the main brando implementations (need to be defined once)
-#define BRANDO_MAIN
-#include "brando.h"
-#undef BRANDO_MAIN
 
 void test_lisp();
 
