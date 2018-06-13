@@ -37,13 +37,13 @@ struct Vec {
 	void clear() { underlying.clear(); }
 
 	Vec<A> operator +( const A& that ) {
-		auto neo = this.copy();
+		Vec<A>& neo = this->copy();
 		neo.underlying.push_back( that );
 		return neo;
 	}
 
 	Vec<A> operator +( const Vec<A>& that ) {
-		auto neo = this.copy();
+		Vec<A>& neo = this->copy();
 		for (const auto i : that.contents()) neo+= i;
 		return neo;
 	}
