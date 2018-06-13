@@ -84,6 +84,11 @@
 
 #define printf( ... )  LOGI( __VA_ARGS__ )
 
+#define for_each( array, size, func, ... ) \
+  for ( int i = 0; i < size; ++i ) { \
+    func( array[i], __VA_ARGS__ ); \
+  }
+
 #endif // ANDROID
 
 // *** Asserts
@@ -102,14 +107,6 @@
 						}
 
 #define NYI vAssert(0);
-
-// Higher Order macros
-
-#define for_each( array, size, func, ... ) \
-	for ( int i = 0; i < size; ++i ) { \
-		func( array[i], __VA_ARGS__ ); \
-	}
-
 
 
 #define stackArray( type, size )	alloca( sizeof( type ) * size );
