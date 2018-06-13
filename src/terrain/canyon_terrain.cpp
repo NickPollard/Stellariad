@@ -86,8 +86,8 @@ void canyonTerrain_updateBlocks( canyon* c, CanyonTerrain* t, engine* e ) {
 				}
 			}
 
-			CanyonTerrainBlock** blocks = (CanyonTerrainBlock**)stackArray( CanyonTerrainBlock*, t->total_block_count );
-			int blockCount = 0;
+			auto needsRegenerating = (CanyonTerrainBlock**)stackArray( CanyonTerrainBlock*, t->total_block_count );
+			int regenCount = 0;
 			for ( int v = 0; v < t->v_block_count; v++ ) {
 				for ( int u = 0; u < t->u_block_count; u++ ) {
 					absolute uu = Absolute(bounds[0][0] + u);
@@ -99,11 +99,11 @@ void canyonTerrain_updateBlocks( canyon* c, CanyonTerrain* t, engine* e ) {
 					const int oldLOD = t->blocks[i] ? t->blocks[i]->lod_level : LowestLod;
 					const int newLOD = canyonTerrain_lodLevelForBlock( c, t, uu, vv );
 					if ( !boundsContains( intersection, coord ) || t->firstUpdate || newLOD < oldLOD )
-						blocks[blockCount++] = newBlock( t, uu, vv, e );
+						needsRegenerating[regenCount++] = newBlock( t, uu, vv, e );
 				}
 			}
-			for ( int i = 0; i < blockCount; ++i ) {
-				CanyonTerrainBlock* b = blocks[i];
+			for ( int i = 0; i < regenCount; ++i ) {
+				CanyonTerrainBlock* b = needsRegenerating[i];
         Executor* exec = &e->ex();
         assert( exec != nullptr );
 				tell( b->actor, generateVertices( b, e->ex() ));
@@ -237,8 +237,24 @@ void canyonTerrain_createBlocks( canyon* c, CanyonTerrain* t ) {
 CanyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int u_samples, int v_samples, float u_radius, float v_radius ) {
 	bool b = u_blocks % 2 == 1 && v_blocks % 2 == 1;
 	vAssert( b );
-	CanyonTerrain* t = (CanyonTerrain*)mem_alloc( sizeof( CanyonTerrain ));
-	memset( t, 0, sizeof( CanyonTerrain ));
+	void* mem = (CanyonTerrain*)mem_alloc( sizeof( CanyonTerrain ));
+	memset( mem, 0, sizeof( CanyonTerrain ));
+
+  // Init w*h*3 buffers that we can use for vertex_buffers
+  const int numberOfBuffers = u_blocks * v_blocks * 3;
+#if CANYON_TERRAIN_INDEXED
+  const int vertBufferSize = ( u_samples + 1 ) * ( v_samples + 1 );
+#else
+  const int vertBufferSize = u_samples * v_samples * 6;
+#endif // CANYON_TERRAIN_INDEX
+	const int elemBufferSize = u_samples * v_samples * 6;
+	//if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
+  //
+  BufferPool<vertex>& vertBuffers = BufferPool<vertex>::init( numberOfBuffers, vertBufferSize );
+  // Technically we don't need this if we're not using index buffers, as then we share the constant one
+  BufferPool<unsigned short>& elemBuffers = BufferPool<unsigned short>::init( numberOfBuffers, elemBufferSize );
+
+	CanyonTerrain* t = new(mem) CanyonTerrain(vertBuffers, elemBuffers);
 	t->_canyon = c;
 	t->u_block_count = u_blocks;
 	t->v_block_count = v_blocks;
@@ -253,8 +269,7 @@ CanyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 	vmutex_init( &t->mutex );
 	t->cache = terrainCache_create();
 
-	canyonTerrain_initVertexBuffers( t );
-	if ( CANYON_TERRAIN_INDEXED ) canyonTerrain_initElementBuffers( t );
+
 	canyonTerrain_createBlocks( c, t );
 
 	t->trans = transform_create();

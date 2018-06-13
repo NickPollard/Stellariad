@@ -158,68 +158,6 @@ void canyonTerrainBlock_fillTrianglesForVertex( CanyonTerrainBlock* b, vector* p
 }
 #endif
 
-vertex* canyonTerrain_allocVertexBuffer( CanyonTerrain* t ) {
-#if CANYON_TERRAIN_INDEXED
-	int max_vert_count = ( t->uSamplesPerBlock + 1 ) * ( t->vSamplesPerBlock + 1 );
-	return (vertex*)mem_alloc( sizeof( vertex ) * max_vert_count );
-#else
-	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
-	return (vertex*)mem_alloc( sizeof( vertex ) * max_element_count );
-#endif // CANYON_TERRAIN_INDEX
-}
-
-void canyonTerrain_initVertexBuffers( CanyonTerrain* t ) {
-	// Init w*h*2 buffers that we can use for vertex_buffers
-	vAssert( t->vertex_buffers == 0 );
-	const int count = t->u_block_count * t->v_block_count * 2;
-	t->vertex_buffers = (vertex**)mem_alloc( count * sizeof( vertex* ));
-	for ( int i = 0; i < count; i++ ) {
-		t->vertex_buffers[i] = canyonTerrain_allocVertexBuffer( t );
-	}
-}
-void canyonTerrain_freeVertexBuffer( CanyonTerrain* t, vertex* buffer ) {
-  // Find the buffer in the list
-  // Switch it with the last
-  int count = t->vertex_buffer_count;
-  int i = array_find( (void**)t->vertex_buffers, count, buffer );
-  t->vertex_buffers[i] = t->vertex_buffers[count-1];
-  t->vertex_buffers[count-1] = buffer;
-  --t->vertex_buffer_count;
-}
-vertex* canyonTerrain_nextVertexBuffer( CanyonTerrain* t ) {
-	vAssert( t->vertex_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
-	void* buffer = t->vertex_buffers[t->vertex_buffer_count++];
-	return (vertex*)buffer;
-}
-
-unsigned short* canyonTerrain_allocElementBuffer( CanyonTerrain* t ) {
-	int max_element_count = t->uSamplesPerBlock * t->vSamplesPerBlock * 6;
-	return (unsigned short*)mem_alloc( sizeof( unsigned short ) * max_element_count );
-}
-void canyonTerrain_initElementBuffers( CanyonTerrain* t ) {
-	// Init w*h*2 buffers that we can use for element_buffers
-	vAssert( t->element_buffers == 0 );
-	int count = t->u_block_count * t->v_block_count * 3;
-	t->element_buffers = (unsigned short**)mem_alloc( count * sizeof( unsigned short* ));
-	for ( int i = 0; i < count; i++ ) {
-		t->element_buffers[i] = canyonTerrain_allocElementBuffer( t );
-	}
-}
-void canyonTerrain_freeElementBuffer( CanyonTerrain* t, unsigned short* buffer ) {
-  // Find the buffer in the list
-	// Switch it with the last
-	int count = t->element_buffer_count;
-	int i = array_find( (void**)t->element_buffers, count, buffer );
-	t->element_buffers[i] = t->element_buffers[count-1];
-	t->element_buffers[count-1] = buffer;
-	--t->element_buffer_count;
-}
-short unsigned int* canyonTerrain_nextElementBuffer( CanyonTerrain* t ) {
-	//printf( "Allocate\n" );
-	vAssert( t->element_buffer_count < ( t->u_block_count * t->v_block_count * 3 ));
-	void* buffer = t->element_buffers[t->element_buffer_count++];
-	return (short unsigned int*)buffer;
-}
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
 brando::concurrent::Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
@@ -343,11 +281,11 @@ void canyonTerrainBlock_createBuffers( CanyonTerrainBlock* b ) {
 	vAssert( r->element_count <= kMaxTerrainBlockElements );
 
 #if CANYON_TERRAIN_INDEXED
-	if ( !r->element_buffer ) r->element_buffer = canyonTerrain_nextElementBuffer( b->terrain );
+	if ( !r->element_buffer ) r->element_buffer = b->terrain->elementBuffers.takeBuffer();
 #else
 	r->element_buffer = elementBuffer;
 #endif // CANYON_TERRAIN_INDEXED
-	if ( !r->vertex_buffer ) r->vertex_buffer = canyonTerrain_nextVertexBuffer( b->terrain );
+	if ( !r->vertex_buffer ) r->vertex_buffer = b->terrain->vertexBuffers.takeBuffer();
 }
 
 terrainRenderable* terrainRenderable_create( CanyonTerrainBlock* b ) {
@@ -359,7 +297,8 @@ terrainRenderable* terrainRenderable_create( CanyonTerrainBlock* b ) {
 }
 
 void terrainRenderable_delete( terrainRenderable* r ) {
-	canyonTerrain_freeElementBuffer( r->block->terrain, r->element_buffer );
-	canyonTerrain_freeVertexBuffer( r->block->terrain, (vertex*)r->vertex_buffer );
+  r->block->terrain->elementBuffers.releaseBuffer( r->element_buffer );
+  r->block->terrain->vertexBuffers.releaseBuffer( r->vertex_buffer );
+
 	pool_terrainRenderable_free( static_renderable_pool, r );
 }

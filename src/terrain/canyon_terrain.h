@@ -4,6 +4,7 @@
 #include "actor/actor.h"
 #include "render/render.h"
 #include "system/thread.h"
+#include "terrain/bufferpool.h"
 
 #include "concurrent/future.h"
 
@@ -91,15 +92,13 @@ struct CanyonTerrain {
 	int lod_interval_u;
 	int lod_interval_v;
 	
-	int				bounds[2][2];
-	vector			sample_point;
+	int    bounds[2][2];
+	vector sample_point;
 
   TerrainCache* cache;
-	canyon*				_canyon;
-	vertex**			vertex_buffers;
-	int					vertex_buffer_count;
-	unsigned short**	element_buffers;
-	int					element_buffer_count;
+	canyon*   _canyon;
+  BufferPool<vertex>& vertexBuffers;
+  BufferPool<unsigned short>& elementBuffers;
 
 	bool firstUpdate;
 	vmutex mutex;
@@ -111,6 +110,8 @@ struct CanyonTerrain {
 
 	void setBlock( absolute u, absolute v, CanyonTerrainBlock* b );
 	void positionsFromUV( int u_index, int v_index, float* u, float* v );
+
+  CanyonTerrain( BufferPool<vertex>& vs, BufferPool<unsigned short>& es ) : vertexBuffers( vs ), elementBuffers( es ) {}
 };
 
 extern texture* terrain_texture;
