@@ -14,6 +14,7 @@ OBJS_DBG = $(SRCS:src/%.cpp=bin/debug/%.o)
 OBJS_PROF = $(SRCS:src/%.cpp=bin/profile/%.o)
 include Makemoon
 MOON_LUA = $(MOON_SRCS:%.moon=SpaceSim/lua/compiled/%.lua)
+ARM_ABI = armeabi-v7a
 
 all : $(EXECUTABLE)_release
 
@@ -40,6 +41,7 @@ cleandebug :
 	@-rm -vf $(EXECUTABLE)_debug;
 
 android : $(MOON_LUA)
+	@cp ~/projects/android/android-ndk-profiler/obj/local/armeabi-v7a/libandroid-ndk-profiler.a android/libs/$(ARM_ABI)/libandprof.a
 	@echo "--- Building Native Code for Android NDK ---"
 	@ndk-build -C android NDK_DEBUG=1 APP_OPTIM=debug
 	@echo "--- Compiling Android Java and packaging APK ---"
@@ -49,7 +51,7 @@ android : $(MOON_LUA)
 
 cleanandroid :
 	@echo "--- Cleaning Android ---"
-	@find /home/nick/Projects/Vitae/android/obj/local/armeabi/objs-debug -name '*.o' -exec rm {} \;
+	@find android/obj/local/armeabi/objs-debug -name '*.o' -exec rm {} \;
 	@ant clean -f android/build.xml
 
 android_release : 
@@ -68,7 +70,7 @@ android_release :
 
 cleanandroid_release :
 	@echo "--- Cleaning Android ---"
-	@find /home/nick/Projects/Vitae/android/obj/local/armeabi/objs -name '*.o' -exec rm {} \;
+	@find android/obj/local/armeabi/objs -name '*.o' -exec rm {} \;
 	@ant clean -f android/build.xml
 
 $(EXECUTABLE)_release : $(SRCS) $(OBJS) $(MOON_LUA)

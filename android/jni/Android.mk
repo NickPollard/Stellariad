@@ -67,7 +67,8 @@ NDK_TOOLCHAIN_VERSION := clang
 LOCAL_MODULE    := vitae
 include ../Makelist
 LOCAL_SRC_FILES := android/jni/android.cpp
-LOCAL_SRC_FILES	+= $(SRCS)
+LOCAL_SRC_FILES += $(SRCS)
+LOCAL_SRC_FILES += src/main.cpp
 LOCAL_LDLIBS    := -llog -landroid -lEGL -lGLESv2 -L$(SYSROOT)/usr/lib -lz 
 LOCAL_STATIC_LIBRARIES := android_native_app_glue lua zip 
 
@@ -78,11 +79,12 @@ MY_LIBZIP_PATH := 3rdparty/libzip-0.10/lib
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/src
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_LUA_PATH)
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/$(MY_LIBZIP_PATH)
+LOCAL_C_INCLUDES += /usr/local/include/brando
 
 LOCAL_CFLAGS := -g -D DEBUG #debug #no profile (-pg) as library not cpp compatible?
 LOCAL_LDFLAGS := -Wl,-Map,xxx.map #create map file
 LOCAL_CFLAGS += -std=gnu99 -D __STDC_LIMIT_MACROS
-LOCAL_CPPFLAGS += -std=c++11
+LOCAL_CPPFLAGS += -std=c++14
 include $(BUILD_SHARED_LIBRARY)
 
 $(call import-module,android/native_app_glue)
