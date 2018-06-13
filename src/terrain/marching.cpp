@@ -401,11 +401,15 @@ void test_interp() {
 	float b = -5.9f;
 	vector r1 = interpD(va, a, vb, b);
 	vector r2 =	interpD(vb, b, va, a);
+#if UNIT_TEST
 	test( vector_equal(&r1, &r2), "interpD is commutative", "interpD is NOT commutative" ); 
+#endif
 }
 
 void buildMarchingCubes(canyon* c) {
+#if UNIT_TEST
 	test_interp();
+#endif
 
 	if ( !marching_texture )       { marching_texture       = texture_load( "dat/img/terrain/grass.tga" ); }
 	if ( !marching_texture_cliff ) { marching_texture_cliff = texture_load( "dat/img/terrain/cliff_grass.tga" ); }
