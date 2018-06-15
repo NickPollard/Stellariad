@@ -15,6 +15,8 @@
 #include "render/texture.h"
 #include "concurrent/future.h"
 
+using Brando::Concurrent::Future;
+
 const float texture_scale = 0.0325f;
 const float texture_repeat = 10.f;
 
@@ -66,9 +68,9 @@ bool canyonTerrainBlock_triangleInvalid( CanyonTerrainBlock* b, int u_index, int
 // As this is just renderable verts, we dont have the extra buffer space for normal generation
 int canyonTerrainBlock_renderVertCount( CanyonTerrainBlock* b ) {
 #if CANYON_TERRAIN_INDEXED
-   	return ( b->u_samples ) * ( b->v_samples );
+  return ( b->u_samples ) * ( b->v_samples );
 #else
-	return b->element_count;
+  return b->element_count;
 #endif // CANYON_TERRAIN_INDEXED
 }
 
@@ -160,15 +162,17 @@ void canyonTerrainBlock_fillTrianglesForVertex( CanyonTerrainBlock* b, vector* p
 
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
-brando::concurrent::Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
+Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
 	terrainRenderable* r = b->renderable;
-	r->vertex_VBO_alt	= render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
-	r->element_VBO_alt	= render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	r->element_buffer,	sizeof( GLushort ) 	* r->element_count );
+	r->vertex_VBO_alt = render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
+	r->element_VBO_alt = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, 	r->element_buffer,	sizeof( GLushort ) 	* r->element_count );
 	return b->ready();
 }
 
 bool canyonTerrainBlock_render( CanyonTerrainBlock* b, scene* s ) {
+  b->currentRenderable.draw();
+  /*
 	terrainRenderable* r = b->renderable;
 	// If we have new render buffers, free the old ones and switch to the new
 	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt )) {
@@ -203,6 +207,7 @@ bool canyonTerrainBlock_render( CanyonTerrainBlock* b, scene* s ) {
 		drawDepth->vertex_VBO = *r->vertex_VBO;
 		drawDepth->element_VBO = *r->element_VBO;
 	}
+  */
 	return true;
 }
 
@@ -288,6 +293,8 @@ void canyonTerrainBlock_createBuffers( CanyonTerrainBlock* b ) {
 	if ( !r->vertex_buffer ) r->vertex_buffer = b->terrain->vertexBuffers.takeBuffer();
 }
 
+
+/*
 terrainRenderable* terrainRenderable_create( CanyonTerrainBlock* b ) {
 	terrainRenderable* r = pool_terrainRenderable_allocate( static_renderable_pool ); 
 	memset( r, 0, sizeof( terrainRenderable ));
@@ -300,5 +307,6 @@ void terrainRenderable_delete( terrainRenderable* r ) {
   r->block->terrain->elementBuffers.releaseBuffer( r->element_buffer );
   r->block->terrain->vertexBuffers.releaseBuffer( r->vertex_buffer );
 
-	pool_terrainRenderable_free( static_renderable_pool, r );
+  pool_terrainRenderable_free( static_renderable_pool, r );
 }
+*/

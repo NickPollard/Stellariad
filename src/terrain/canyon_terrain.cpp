@@ -146,7 +146,7 @@ CanyonTerrainBlock::CanyonTerrainBlock( CanyonTerrain* t, absolute _u, absolute 
 	_engine( e ),
   readyP( e->ex() ) {
 	actor = spawnActor( t->system );
-	renderable = terrainRenderable_create( this );
+	//renderable = terrainRenderable_create( this );
 	canyonTerrainBlock_calculateExtents( this, terrain, u, v );
 	startTick( _engine, this, canyonTerrainBlock_tick );
 }
@@ -156,7 +156,7 @@ void deleteBlock( CanyonTerrainBlock* b ) {
 	stopTick( b->_engine, b, canyonTerrainBlock_tick );
 	terrainBlock_removeCollision( b );
 	stopActor( b->actor );
-	terrainRenderable_delete( b->renderable );
+	//terrainRenderable_delete( b->renderable );
 	pool_CanyonTerrainBlock_free( static_block_pool, b );
 }
 

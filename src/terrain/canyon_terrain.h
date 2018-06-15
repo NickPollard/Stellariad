@@ -19,6 +19,23 @@ struct absolute {
 	int coord;
 };
 
+/* struct TerrainBlock {
+ *   vec2<int> samples;
+ *   vec2<absolute> coord;
+ *   vec2<vec2<float>> uvDimensions;
+ *   int lodLevel;
+ *   body& collision;
+ *
+ *   const TerrainProperties &const terrain;
+ *   canyon& _canyon;
+ *
+ *   ActorRef actor;
+ *   // renderable?
+ *   engine &const engine;
+ *   Promise<bool> readyP;
+ * }
+ */
+
 struct CanyonTerrainBlock {
 
   CanyonTerrainBlock( CanyonTerrain* t, absolute _u, absolute _v, engine* e );
@@ -40,7 +57,7 @@ struct CanyonTerrainBlock {
 	int	lod_level;	// Current lod-level
 
 	// *** Collision
-	body*			collision;
+	body* collision;
 
 	CanyonTerrain* terrain;
 	canyon* _canyon;
@@ -66,21 +83,41 @@ struct terrainRenderable_s {
 	unsigned short* element_buffer;
 	vertex* vertex_buffer;
 
-	aabb	bb;
+	aabb bb;
 
 	// *** GPU We double-buffer the terrain blocks for LOD purposes, so we can switch instantaneously
-	GLuint*			vertex_VBO;
-	GLuint*			element_VBO;
-	GLuint*			vertex_VBO_alt;
-	GLuint*			element_VBO_alt;
+	GLuint* vertex_VBO;
+	GLuint* element_VBO;
+	GLuint* vertex_VBO_alt;
+	GLuint* element_VBO_alt;
 };
+
+/*
+ * struct CanyonTerrain {
+ *   const TerrainProperties& const props;
+ *   TerrainCache& const cache;
+ *   actorSystem& const system;
+ *
+ *   int bounds[2][2];
+ *   vector sampleOrigin;
+ *
+ *   BufferPool<vertex>& vertexBuffers;
+ *   BufferPool<unsigned short>& elementBuffers;
+ * };
+ *
+ * struct TerrainProperties {
+ *   const vec2<int> blockCount;
+ *   const vec2<int> blockDimensions;
+ *   const vec2<int> lodIntervals;
+ * };
+ */
 
 struct CanyonTerrain {
 	transform* trans;
 	actorSystem* system;
 
-	float	u_radius;
-	float	v_radius;
+	float u_radius;
+	float v_radius;
 	int u_block_count;
 	int v_block_count;
 	int total_block_count;

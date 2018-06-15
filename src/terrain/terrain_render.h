@@ -15,5 +15,5 @@ int canyonTerrainBlock_renderVertCount( CanyonTerrainBlock* b );
 void canyonTerrain_render( void* data, scene* s );
 
 // *** Terrain Renderable
-terrainRenderable*	terrainRenderable_create( CanyonTerrainBlock* b );
-void				terrainRenderable_delete( terrainRenderable* r );
+terrainRenderable* terrainRenderable_create( CanyonTerrainBlock* b );
+void terrainRenderable_delete( terrainRenderable* r );
