@@ -30,6 +30,7 @@
 #include "terrain/marching.h"
 #include "terrain/canyon_terrain.h"
 #include "terrain/terrain_render.h"
+#include "terrain/terrain.h"
 #include "ui/panel.h"
 
 #define DEBUG_SANITY_CHECK_POINTERS
@@ -773,7 +774,7 @@ int LUA_canyonPosition( lua_State* l ) {
 	float v = lua_tonumber( l, 3 );
 	float x, y, z;
 	terrain_worldSpaceFromCanyon( c, u, v, &x, &z );
-	y = canyonTerrain_sampleUV( u, v );
+	y = canyon_sampleUV( u, v );
 	lua_pushnumber( l, x );
 	lua_pushnumber( l, y );
 	lua_pushnumber( l, z );

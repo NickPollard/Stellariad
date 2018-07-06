@@ -60,7 +60,6 @@ float curvestep( float in, float step ) {
 	return (floorf(in / step) + delta) * step;
 }
 
-
 // Sample the canyon height (Y) at a given world X and Z
 float terrain_canyonHeight( float u, float v ) {
 	(void)v;
@@ -77,7 +76,7 @@ float terrain_canyonHeight( float u, float v ) {
 }
 
 // The procedural function
-float canyonTerrain_sampleUV( float u, float v ) {
+float canyon_sampleUV( float u, float v ) {
 	const float detail = terrain_detailHeight( u, v ) * 0.5f;
 	const float scale = 0.435f;
 	const float cliff = terrain_detailHeight( u * scale, v * scale );

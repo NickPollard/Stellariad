@@ -363,7 +363,7 @@ auto fromHeightFieldWithCache(function<float(vector)> heightfield) -> function<f
 float densityFn(canyon* c, vector pos) {
 	float u, v;
 	canyonSpaceFromWorld( c, pos.x, pos.z, &u, &v );
-	float height = canyonTerrain_sampleUV( u, v );
+	float height = canyon_sampleUV( u, v );
 	return height - pos.y;
 }
 

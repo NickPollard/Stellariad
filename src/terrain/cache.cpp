@@ -3,13 +3,14 @@
 #include "src/terrain/cache.h"
 //---------------------
 #include "canyon.h"
-#include "terrain/canyon_terrain.h"
 #include "future.h"
 #include "terrain_generate.h"
 #include "worker.h"
 #include "base/pair.h"
 #include "mem/allocator.h"
 #include "system/thread.h"
+#include "terrain/canyon_terrain.h"
+#include "terrain/terrain.h"
 
 // Brando
 #include "unit.h"
@@ -186,7 +187,7 @@ cacheBlock* terrainCacheBlock( canyon* c, CanyonTerrain* t, int uMin, int vMin, 
 			float u, v;
 			t->positionsFromUV( uMin + uOffset, vMin + vOffset, &u, &v );
 			vector vec = vecSample( (vector*)worldSpace, LodVerts, LodVerts, ((float)uOffset) / f, ((float)vOffset) / f );
-			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyonTerrain_sampleUV( u, v ), vec.coord.z, 1.f );
+			b->positions[uOffset][vOffset] = Vector( vec.coord.x, canyon_sampleUV( u, v ), vec.coord.z, 1.f );
 		}
 	}
 	b->refCount = 1;

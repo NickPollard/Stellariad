@@ -10,11 +10,6 @@
 #include "terrain_collision.h"
 #include "terrain/cache.h"
 
-int vertCount( CanyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_samples + 2); }
-
-// Adjusted as we have a 1-vert margin for normal calculation at edges
-int indexFromUV( CanyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
-
 // if it's in p, return the cached version
 vector pointForUV( vertPositions* p, int u, int v ) {
 	vAssert(u >= p->uMin && u < p->uMin + p->uCount && v >= p->vMin && v < p->vMin + p->vCount );
@@ -127,8 +122,8 @@ void canyonTerrainBlock_generate( vertPositions* vs, CanyonTerrainBlock* b ) {
 	terrainBlock_calculateCollision( b );
 	terrainBlock_calculateAABB( b->renderable );
 
-	terrainBlock_initVBO( b ).foreach( [=](bool data){ 
-		(void)data;  
-		b->terrain->setBlock( b->u, b->v, b ); 
-	});
+  terrainBlock_initVBO( b ).foreach( [=](bool data){
+    (void)data;
+    b->terrain->setBlock( b->u, b->v, b );
+  });
 }

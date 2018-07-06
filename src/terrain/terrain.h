@@ -1,3 +1,3 @@
 // terrain.h
 
-float canyonTerrain_sampleUV( float u, float v );
+float canyon_sampleUV( float u, float v );

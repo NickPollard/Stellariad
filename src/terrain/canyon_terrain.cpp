@@ -46,6 +46,9 @@ void canyonTerrain_staticInit() {
 // ***
 int canyonTerrain_blockIndexFromUV( CanyonTerrain* t, int u, int v ) { return u + v * t->u_block_count; }
 int canyonTerrain_blockIndexFromAbsoluteUV( CanyonTerrain* t, absolute u, absolute v ) { return u.coord - t->bounds[0][0] + (v.coord - t->bounds[0][1]) * t->u_block_count; }
+int vertCount( CanyonTerrainBlock* b ) { return ( b->u_samples + 2 ) * ( b->v_samples + 2); }
+// Adjusted as we have a 1-vert margin for normal calculation at edges
+int indexFromUV( CanyonTerrainBlock* b, int u, int v ) { return u + 1 + ( v + 1 ) * ( b->u_samples + 2 ); }
 
 int blockCoord( int coord[2], int bounds[2][2], int uCount ) {
 	return (coord[0] - bounds[0][0]) + (coord[1] - bounds[0][1]) * uCount;
@@ -292,7 +295,7 @@ void canyonTerrain_tick( void* data, float dt, engine* eng ) {
 	canyonTerrain_updateBlocks( t->_canyon, t, eng );
 }
 
-void CanyonTerrain::positionsFromUV( int u_index, int v_index, float* u, float* v ) {
+void CanyonTerrain::positionsFromUV( int u_index, int v_index, float* u, float* v ) const {
 	float uPerBlock = (2 * u_radius) / (float)u_block_count;
 	float vPerBlock = (2 * v_radius) / (float)v_block_count;
 	*u = (float)u_index * uPerBlock / (float)(uSamplesPerBlock);

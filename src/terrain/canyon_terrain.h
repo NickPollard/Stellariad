@@ -146,7 +146,7 @@ struct CanyonTerrain {
 	}
 
 	void setBlock( absolute u, absolute v, CanyonTerrainBlock* b );
-	void positionsFromUV( int u_index, int v_index, float* u, float* v );
+	void positionsFromUV( int u_index, int v_index, float* u, float* v ) const; // TerrainSpec
 
   CanyonTerrain( BufferPool<vertex>& vs, BufferPool<unsigned short>& es ) : vertexBuffers( vs ), elementBuffers( es ) {}
 };
@@ -161,7 +161,8 @@ CanyonTerrain* canyonTerrain_create( canyon* c, int u_blocks, int v_blocks, int 
 
 void canyonTerrain_tick( void* data, float dt, engine* eng );
 
-float canyonTerrain_sample( canyon* c, float u, float v );
-float canyonTerrain_sampleUV( float u, float v );
-
-int canyonTerrainBlock_renderIndexFromUV( CanyonTerrainBlock* b, int u, int v );
+// *** TerrainBlock
+// Total number of real (not rendered) verts in this block
+int vertCount( CanyonTerrainBlock* b );
+// Turn local u,v pair into a vert-array index
+int indexFromUV( CanyonTerrainBlock* b, int u, int v );
