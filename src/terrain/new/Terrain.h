@@ -1,54 +1,60 @@
 // Terrain.h
+#include "concurrentqueue/concurrentqueue.h"
 
-namespace Terrain {
+using moodycamel::ConcurrentQueue;
+
+namespace terrain {
 
   struct Terrain {
     const TerrainSpec spec;
-    Bounds renderBounds;
+    Bounds bounds;
+    vector<MaybeBlock> blocks;
+    ConcurrentQueue<Block> pendingBlocks;
 
-    auto updateBlocks() -> void;
-    auto render() -> void;
+    void updateBlocks();
+    void render();
+    auto blockContaining( canyon* c, vector* point ) const -> vec2i
+
+    private:
+      auto generateNewSpecs( newBounds ) -> unique_ptr<vector<BlockSpec>>
+      void applyPendingBlocks();
   };
-
-  struct vec2i {
-    int x;
-    int y;
-
-    auto u() -> int { return x; }
-    auto v() -> int { return y; }
-  }
-
-  struct vec2f {
-    float x;
-    float y;
-
-    auto u() -> float { return x; }
-    auto v() -> float { return y; }
-  }
-
-  struct Bounds {
-    vec2i min;
-    vec2i max;
-
-    auto operator==(const Bounds& b) const -> Bool
-    auto operator!=(const Bounds& b) const -> Bool
-
-    auto intersect(const Bounds& b) const -> Bounds
-    auto contains(vec2i c) const -> Bool
-  }
 
   // Constant terrain properties
   struct TerrainSpec {
-    const vec2f dimensions;
-    const vec2i blockDimensions;
-
-    const vec2i samplesPerBlock;
-    const vec2i lodIntervals;
+    const vec2f radius;             // How wide and deep (in world space) the terrain is
+    const vec2i blockDimensions;    // How many block subdivisions in u and v space
+    const vec2i blockResolution;    // Vertex resolution of blocks
+    const vec2i lodIntervals;       // Distances at which we adjust LoD of blocks
 
     const canyon& canyon;
 
     auto totalBlocks() const -> int { return blockDimensions.x * blockDimensions.y; }
     auto boundsAt(vector origin) const -> Bounds;
+    auto uPerBlock() const -> float { return radius.u() * 2 / static_cast<float>(blockDimensions.u()); }
+    auto vPerBlock() const -> float { return radius.v() * 2 / static_cast<float>(blockDimensions.v()); }
+    auto uScale() const -> float { uPerBlock() / static_cast<float>(blockResolution.u()); }
+    auto vScale() const -> float { vPerBlock() / static_cast<float>(blockResolution.v()); }
+  };
+
+  class MaybeBlock {
+    virtual auto lodLevel() const -> int
+    virtual void draw() const
+  };
+
+  struct BuiltBlock : public MaybeBlock {
+    unique_ptr<Block> block;
+
+    virtual void draw() {
+      block->draw();
+    }
   }
 
-} // Terrain::
+  struct PendingBlock : public MaybeBlock {
+    //unique_ptr<BlockSpec> spec;
+    BlockSpec spec;
+
+    virtual void draw() {}
+  }
+
+} // terrain::

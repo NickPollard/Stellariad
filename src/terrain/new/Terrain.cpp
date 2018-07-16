@@ -1,43 +1,86 @@
 // Terrain.cpp
 
-namespace Terrain {
+namespace terrain {
 
-  Terrain::updateBlocks ()
-  {
-    /* We have a set of current blocks, B, and a set of projected blocks based on the new position, B'
-       All blocks ( b | b is in B n B' ) we keep, shifting their pointers to the correct position
-       All other blocks fill up the empty spaces, then are recalculated */
+  // Add all pending blocks that will still be valid with our new bounds calculation
+  void Terrain::applyPendingBlocks(Bounds newBounds) {
+    const auto approx_count = pendingBlocks.size_approx(); // Estimated size, this is not guaranteed to drain all
+    Block* pending = stackArray(Block, approx_count);
+    const auto count = pendingBlocks.try_dequeue_bulk(item, approx_count);
+    for (int i = 0; i < count; ++i) {
+      auto& b = pending[i];
+      if ( newBounds.contains(b) )
+        blocks[b.coord] = BuiltBlock(b);
+    }
+  }
 
-    Bounds bounds = t.boundsAt( sampleOrigin );
+  auto Terrain::boundsAt(vector origin) const -> Bounds {
+    const auto radius = (blockDimensions - 1) / 2;
+    const auto block = blockContaining( spec->canyon, origin );
+    return Bounds(block - radius, block + radius);
+  }
 
-    if ( bounds != t->bounds ) {
-      Bounds intersection = t->bounds.intersect(newBounds);
+  auto blockContaining( canyon* c, vector* point ) const -> vec2i {
+    float u, v;
+    canyonSpaceFromWorld( c, point->coord.x, point->coord.z, &u, &v );
+    return vec2i(
+      fround( u / uPerBlock(), 1.f ),
+      fround( v / vPerBlock(), 1.f )
+    );
+  }
 
-      for (b : allBlocks) {
+  void Terrain::updateBlocks() {
+    Bounds newBounds = boundsAt( sampleOrigin );
+
+    applyPendingBlocks(newBounds);
+
+    if ( newBounds != bounds ) {
+      Bounds intersection = bounds.intersect(newBounds);
+
+      unordered_map<vec2i, MaybeBlock>& oldBlocks = blocks;
+
+      for (b : oldBlocks) {
         if (!intersection.contains(coord(b))) {
-          // newBlock
-        }
-        else {
-          // dropBlock
+          delete b;
+          // Don't need to remove from oldBlocks - will be cleared at the end of this function
         }
       }
 
-      for (b : allBlocks) {
-        if (b.lodLevel() < b.currentLodLevel || !intersection.contains(block)) {
-          // regenerate()
-        }
+      // - or -
+      //
+      // unordered_map<vec2i, MaybeBlock> newBlocks = oldBlocks.filter(newBounds.contains);
+      //
+      //
+      // TODO - could stack array this?
+      const auto newSpecs = generateNewSpecs( newBounds );
+      for (spec : (*newSpecs)) {
+        if (!newBlocks.contains(spec.blockPosition) || newBlocks[spec.blockPosition].lodLevel() < spec.lodLevel())
+          spec.generateBlock().foreach( [this&](auto block) { this.setBlock(block); })
+        newBlocks[spec.BlockPosition] = PendingBlock(spec);
       }
 
-      t.blocks = blocks;
-      t.bounds = bounds;
+      blocks = newBlocks;
+      bounds = newBounds;
     }
   }
 
-  Terrain::render() {
-    for (b : allBlocks) {
-      // TODO - test if renderable is nonEmpty?
-      b.renderable.draw();
-    }
+  // From min->max generate all u,v `BlockSpec`s with appropriate lod levels
+  auto Terrain::generateNewSpecs( newBounds ) -> unique_ptr<vector<BlockSpec>> {
+    size_t expectedSize = 50; // calculate from bounds width/height
+    auto specs = make_unique<vector<BlockSpec>>( expectedSize );
+
+    for (int u = newBounds.min.u(); u < newBounds.max.u(); ++u )
+      for (int v = newBounds.min.v(); v < newBounds.max.v(); ++v )
+        specs.emplace_back<BlockSpec>(vec2i(u, v), blockResolution, this); // TODO - calculate LoD here
   }
 
-} // Terrain::
+  void Terrain::render() {
+    for (b : blocks) b.draw();
+  }
+
+  void Terrain::setBlock(Block& b) {
+    // Append to our concurrent queue
+    pendingBlocks.enqueue(b);
+  }
+
+} // terrain::

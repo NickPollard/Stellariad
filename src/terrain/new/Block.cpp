@@ -1,63 +1,26 @@
 // Block.cpp
 
-namespace Terrain {
+namespace terrain {
 
-bool GLRenderable::draw( scene* s ) {
-  if ( frustum_cull( &bb, s->cam->frustum ) )
-    return false;
-
-  // TODO - use a cached drawcall
-  drawCall* draw = drawCall::create(
-    &renderPass_main,
-    *shader,
-    elementCount,
-    null, // use VBO
-    null, // use EBO
-    texture,
-    modelview );
-  draw->texture_b = textureB;
-  draw->texture_c = textureC;
-  draw->texture_d = textureD;
-  draw->texture_normal = terrain_texture->gl_tex;
-  draw->texture_b_normal = terrain_texture->gl_tex;
-  draw->vertex_VBO = vertexBufferObject;
-  draw->element_VBO = elementBufferObject;
-
-  drawCall* drawDepth = drawCall::create(
-    &renderPass_depth,
-    *Shader::depth(),
-    elementCount,
-    null, // use VBO
-    null, // use EBO
-    texture,
-    modelview );
-  drawDepth->vertex_VBO = vertexBufferObject;
-  drawDepth->element_VBO = elementBufferObject;
-  return true;
-}
-
-Future<GLRenderable> createRenderable(Block& block) {
-  auto elementCount = block.elementCount();
-  auto buffers = createBuffers( block.vertexBuffer, elementCount, block.elementBuffer );
-  buffers.map([](bs){
-    return new GLRenderable(bs.get<0>(), bs.get<1>(), block.terrainShader, elementCount);
-  })
-}
+// TODO - newtype?
+//
+// #ifdef NEWTYPE_SAFE
+// #define NEWTYPE( alias, inner ) \
+      struct alias { \
+        inner value; \
+      } \
+   #define unwrap( newtype ) newtype.value \
+   #else \
+   #define NEWTYPE( alias, inner ) \
+      typedef alias = inner; \
+   #define unwrap( newtype ) newtype \
+   #endif
 
 struct VBO {
   GLuint value;
 }
 struct EBO {
   GLuint value;
-}
-
-// Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
-// If we've already allocated a buffer at some point, just re-use it
-Future<Pair<VBO,EBO>> createBuffers( vertCount, vertex* verts, int elementCount, unsigned short* elements ) {
-  // TODO implement
-  Future<VBO> vs = render_requestBuffer( GL_ARRAY_BUFFER,         verts,    sizeof( vertex )   * vertCount    );
-  Future<EBO> es = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, elements, sizeof( GLushort ) * elementCount );
-  return fpair(vs, es); // TODO - pair two futures together
 }
 
 // Generate Normals
@@ -98,8 +61,8 @@ auto BlockSpec::generatePoints( vector* verts ) -> vector* {
 }
 
 auto BlockSpec::generateBlock() -> Future<Block> {
-  vector* verts = (vector*)stackArray( vector, vertCount());
-  vector* normals = (vector*)stackArray( vector, vertCount());
+  vector* verts = stackArray( vector, vertCount());
+  vector* normals = stackArray( vector, vertCount());
 
   lodVectors( generatePoints( vertSources, verts ));
   lodVectors( generateNormals( verts, normals ));
@@ -139,42 +102,73 @@ void BlockSpec::lodVectors( vector* vectors ) {
     }
 }
 
+auto BlockSpec::positionsFromUV( int u, int v ) -> vec2f {
+  const int lod = lodRatio();
+  if ( u == -1          ) u = -lod;
+  if ( u == samples.u() ) u = samples.u() -1 + lod;
+  if ( v == -1          ) v = -lod;
+  if ( v == samples.v() ) v = samples.v() -1 + lod;
+
+  const float step = 4 / lod;
+  const vec2f out = {
+    static_cast<float>(blockSpaceMinU() + u * step) * terrain.uScale(),
+    static_cast<float>(blockSpaceMinV() + v * step) * terrain.vScale()
+  };
+  return out;
+}
+
+auto BlockSpec::textureUV(vector& position, float v_pos) -> vector {
+  return Vector( position.coord.x * texture_scale,
+                 position.coord.y * texture_scale,
+                 position.coord.z * texture_scale,
+                 // TODO - do we need u_min? Can we calculate it?
+                 canyon_uvMapped( v_min * texture_scale, v_pos * texture_scale ));
+}
+
 auto BlockSpec::generateRenderable( vector* verts, vector* normals ) -> Future<GLRenderable> {
+  // We need to allocate these buffers here.
+  // They can't be stack allocated as we're going to pass them to the
+  // GPU thread to upload (asynchronously) to the GPU, and then free
+  // once they're done.
+  // Use unique_ptr so ownership is passed to the closure and they 
+  // are cleaned up correctly.
+  auto vertexBuffer = make_unique<Vector<Vertex>>(); // TODO
+  auto elementBuffer = make_unique<Vector<short>>(); // TODO
+  vertex* vertices = &vertexBuffer[0];
+  short* elements = &elementBuffer[0];
   #if CANYON_TERRAIN_INDEXED
   for ( int v_index = 0; v_index < samples.v(); ++v_index ) {
     for ( int u_index = 0; u_index < samples.u(); ++u_index ) {
       int i = indexFromUV( u_index, v_index );
-      float u,v;
-      canyonTerrainBlock_positionsFromUV( b, u_index, v_index, &u, &v );
+      float v = positionsFromUV( u_index, v_index ).v();
       if (validIndex( b, u_index, v_index )) {
-        int buffer_index = canyonTerrainBlock_renderIndexFromUV( b, u_index, v_index );
-        vAssert( buffer_index < canyonTerrainBlock_renderVertCount( b ));
-        vAssert( buffer_index >= 0 );
-        r->vertex_buffer[buffer_index].position = verts[i];
-        vector uv = calcUV( b, &verts[i], v );
-        r->vertex_buffer[buffer_index].uv = Vec2( uv.coord.x, uv.coord.y );
-        r->vertex_buffer[buffer_index].color = intFromVector(Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f ));
-        r->vertex_buffer[buffer_index].normal = normals[i];
-        r->vertex_buffer[buffer_index].normal.coord.w = uv.coord.z;
+        int vertIndex = renderIndexFromUV( u_index, v_index );
+        vAssert( vertIndex < renderVertCount()); vAssert( vertIndex >= 0 );
+        vertices[vertIndex].position = verts[i];
+        vector uv = textureUV( b, &verts[i], v );
+        vertices[vertIndex].uv = Vec2( uv.coord.x, uv.coord.y );
+        vertices[vertIndex].color = intFromVector(Vector( canyonZone_terrainBlend( v ), 0.f, 0.f, 1.f ));
+        vertices[vertIndex].normal = normals[i];
+        vertices[vertIndex].normal.coord.w = uv.coord.z;
       }
     }
   }
-  int triangleCount = canyonTerrainBlock_triangleCount( b );
+  // TODO couldn't this be one static buffer we re-use, like non-indexed?
   int i = 0;
   for ( int v = 0; v + 1 < samples.v(); ++v ) {
     for ( int u = 0; u + 1 < samples.u(); ++u ) {
-      vAssert( i * 3 + 5 < r->element_count );
-      vAssert( canyonTerrainBlock_renderIndexFromUV( b, u + 1, v + 1 ) < canyonTerrainBlock_renderVertCount( b ) );
-      r->element_buffer[ i * 3 + 0 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v );
-      r->element_buffer[ i * 3 + 1 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v );
-      r->element_buffer[ i * 3 + 2 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v + 1 );
-      r->element_buffer[ i * 3 + 3 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v );
-      r->element_buffer[ i * 3 + 4 ] = canyonTerrainBlock_renderIndexFromUV( b, u + 1, v + 1 );
-      r->element_buffer[ i * 3 + 5 ] = canyonTerrainBlock_renderIndexFromUV( b, u, v + 1 );
+      vAssert( i * 3 + 5 < r->element_count ); // TODO lift out of the loop
+      vAssert( renderIndexFromUV( u + 1, v + 1 ) < renderVertCount() );
+      elements[ i * 3 + 0 ] = renderIndexFromUV( u,     v     );
+      elements[ i * 3 + 1 ] = renderIndexFromUV( u + 1, v     );
+      elements[ i * 3 + 2 ] = renderIndexFromUV( u,     v + 1 );
+      elements[ i * 3 + 3 ] = renderIndexFromUV( u + 1, v     );
+      elements[ i * 3 + 4 ] = renderIndexFromUV( u + 1, v + 1 );
+      elements[ i * 3 + 5 ] = renderIndexFromUV( u,     v + 1 );
       i+=2;
     }
   }
-  vAssert( i == triangleCount );
+  vAssert( i == triangleCount() );
 #else
   for ( int v = 0; v < samples.v(); v ++ ) {
     for ( int u = 0; u < samples.u(); u ++  ) {
@@ -182,9 +176,8 @@ auto BlockSpec::generateRenderable( vector* verts, vector* normals ) -> Future<G
       vertex vert;
       vert.position = verts[i];
       vert.normal = normals[i];
-      float u_pos, v_pos;
-      canyonTerrainBlock_positionsFromUV( b, u, v, &u_pos, &v_pos );
-      vert.uv = calcUV( b, &vert.position, v_pos );
+      float vPos = positionsFromUV( u, v ).v();
+      vert.uv = calcUV( b, &vert.position, vPos );
       canyonTerrainBlock_fillTrianglesForVertex( b, verts, b->vertex_buffer, u, v, &vert );
     }
   }
@@ -193,7 +186,19 @@ auto BlockSpec::generateRenderable( vector* verts, vector* normals ) -> Future<G
   // We've created our buffers; copy them to the GPU for optimized rendering
   // as we know they're static
   // TODO return the actual future
-  return copyToStaticGpuBuffers(vertex_buffer, element_buffer);
+  return copyToStaticGpuBuffers(vertCount, vertexBuffer, elementCount, elementBuffer).map([](auto buffers) {
+    auto shader = Shader::byName("dat/shaders/terrain.s");
+    return GLRenderable( buffers.get<0>(), buffers.get<1>(), shader, elementCount);
+  });
 }
 
-} // Terrain::
+// Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
+// If we've already allocated a buffer at some point, just re-use it
+auto copyToStaticGpuBuffers( int vertCount, vertex* verts, int elementCount, unsigned short* elements ) -> Future<Pair<VBO,EBO>> {
+  // TODO implement
+  Future<VBO> vs = render_requestBuffer( GL_ARRAY_BUFFER,         verts,    sizeof( vertex )   * vertCount    );
+  Future<EBO> es = render_requestBuffer( GL_ELEMENT_ARRAY_BUFFER, elements, sizeof( GLushort ) * elementCount );
+  return fpair(vs, es); // TODO - pair two futures together
+}
+
+} // terrain::

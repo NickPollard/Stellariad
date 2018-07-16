@@ -15,7 +15,7 @@
 #include "render/texture.h"
 #include "concurrent/future.h"
 
-using Brando::Concurrent::Future;
+using namespace brando;
 
 const float texture_scale = 0.0325f;
 const float texture_repeat = 10.f;
@@ -162,7 +162,7 @@ void canyonTerrainBlock_fillTrianglesForVertex( CanyonTerrainBlock* b, vector* p
 
 // Create GPU vertex buffer objects to hold our data and save transferring to the GPU each frame
 // If we've already allocated a buffer at some point, just re-use it
-Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
+concurrent::Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
 	int vert_count = canyonTerrainBlock_renderVertCount( b );
 	terrainRenderable* r = b->renderable;
 	r->vertex_VBO_alt = render_requestBuffer( GL_ARRAY_BUFFER,			r->vertex_buffer,	sizeof( vertex )	* vert_count );
@@ -171,8 +171,9 @@ Future<bool> terrainBlock_initVBO( CanyonTerrainBlock* b ) {
 }
 
 bool canyonTerrainBlock_render( CanyonTerrainBlock* b, scene* s ) {
-  b->currentRenderable.draw();
+  (void)b, (void)s;
   /*
+  b->currentRenderable.draw();
 	terrainRenderable* r = b->renderable;
 	// If we have new render buffers, free the old ones and switch to the new
 	if (( r->vertex_VBO_alt && *r->vertex_VBO_alt ) && ( r->element_VBO_alt && *r->element_VBO_alt )) {

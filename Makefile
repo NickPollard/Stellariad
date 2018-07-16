@@ -2,7 +2,7 @@ C = g++
 #ARCH = -m32
 ARCH = -m64
 CPPSTD = c++17
-CFLAGS = -Wall -Wextra -fno-diagnostics-show-option $(ARCH) -std=$(CPPSTD) -I . -I/usr/include/lua5.1 -Idep/include -I/usr/local/include/brando -Isrc -pg
+CFLAGS = -Wall -Wextra -fno-diagnostics-show-option $(ARCH) -std=$(CPPSTD) -I . -I/usr/include/lua5.1 -Idep/include -I/usr/local/include/brando -Isrc -Idependencies -pg
 LFLAGS = $(ARCH) -pg
 #PLATFORM_LIBS = -L/usr/lib/i386-linux-gnu -L/usr/local/lib/i386-linux-gnu
 PLATFORM_LIBS = -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib/x86_64-linux-gnu

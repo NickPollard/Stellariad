@@ -109,7 +109,7 @@
 #define NYI vAssert(0);
 
 
-#define stackArray( type, size )	alloca( sizeof( type ) * size );
+#define stackArray( type, size )	(type*)alloca( sizeof( type ) * size );
 
 // types
 //typedef unsigned int uint;
