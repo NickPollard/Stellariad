@@ -1,5 +1,14 @@
 // GLRenderable.cpp
 
+#include "common.h"
+#include "GLRenderable.h"
+#include "camera.h"
+#include "render/shader.h"
+#include "render/texture.h"
+#include "terrain/canyon_terrain.h" // for terrain_texture
+
+namespace terrain {
+
 bool GLRenderable::draw( scene* s ) {
   if ( frustum_cull( &bb, s->cam->frustum ) )
     return false;
@@ -7,10 +16,10 @@ bool GLRenderable::draw( scene* s ) {
   // TODO - use a cached drawcall
   drawCall* draw = drawCall::create(
     &renderPass_main,
-    *shader,
+    *_shader,
     elementCount,
-    null, // use VBO
-    null, // use EBO
+    nullptr, // use VBO
+    nullptr, // use EBO
     texture,
     modelview );
   draw->texture_b = textureB;
@@ -25,11 +34,13 @@ bool GLRenderable::draw( scene* s ) {
     &renderPass_depth,
     *Shader::depth(),
     elementCount,
-    null, // use VBO
-    null, // use EBO
+    nullptr, // use VBO
+    nullptr, // use EBO
     texture,
     modelview );
   drawDepth->vertex_VBO = vertexBufferObject;
   drawDepth->element_VBO = elementBufferObject;
   return true;
 }
+
+} // terrain::

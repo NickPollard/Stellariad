@@ -76,4 +76,5 @@ SRCS =	src/bounds.cpp \
 		src/terrain/terrain_render.cpp \
 		src/ui/panel.cpp \
 		src/external/murmur.cpp \
-    src/new/terrain/Bounds.cpp
+    src/new/terrain/Bounds.cpp \
+    src/new/terrain/GLRenderable.cpp

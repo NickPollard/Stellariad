@@ -16,13 +16,6 @@ namespace terrain {
    #define unwrap( newtype ) newtype \
    #endif
 
-struct VBO {
-  GLuint value;
-}
-struct EBO {
-  GLuint value;
-}
-
 // Generate Normals
 //
 // Reads position information from `verts` and produces resulting normals in

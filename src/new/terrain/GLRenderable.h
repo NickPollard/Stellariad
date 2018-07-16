@@ -1,8 +1,14 @@
 // GLRenderable.h
 
-namespace Terrain {
+#include "render/render.h"
+#include "frustum.h"
+
+namespace terrain {
+  struct VBO { GLuint value; };
+  struct EBO { GLuint value; };
+
   struct GLRenderable {
-    shader** shader;
+    shader** _shader;
     GLuint vertexBufferObject;
     GLuint elementBufferObject;
     int   elementCount;
@@ -13,10 +19,10 @@ namespace Terrain {
 
     aabb bb;
 
-    bool draw();
+    bool draw( scene* s );
 
     GLRenderable( VBO vs, EBO es, shader** s, int elems ) :
-      shader(s),
+      _shader(s),
       vertexBufferObject(vs.value),
       elementBufferObject(es.value),
       elementCount(elems) {}
