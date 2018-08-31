@@ -212,7 +212,7 @@ int terrainCanyon_segmentAtDistance( float v ) {
 }
 
 // Convert canyon-space U and V coords into world space X and Z
-void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float* z ) {
+void terrain_worldSpaceFromCanyon( const canyon* c, float u, float v, float* x, float* z ) {
 	vmutex_lock( &terrainMutex ); {
 	int i = max(0, terrainCanyon_segmentAtDistance( v ));
 	float segment_position = ( v - (float)i * CanyonSegmentLength ) / CanyonSegmentLength; 

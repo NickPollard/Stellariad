@@ -38,7 +38,7 @@ void canyon_seekForWorldPosition( canyon* c, vector position );
 // Convert world-space X and Z coords into canyon space U and V
 void canyonSpaceFromWorld( canyon* c, float x, float z, float* u, float* v );
 // Convert canyon-space U and V coords into world space X and Z
-void terrain_worldSpaceFromCanyon( canyon* c, float u, float v, float* x, float* z );
+void terrain_worldSpaceFromCanyon( const canyon* c, float u, float v, float* x, float* z );
 
 void canyonBuffer_generatePoints( canyon* c, size_t from, size_t to );
 void canyonBuffer_seek( canyon* c, size_t seek_position );

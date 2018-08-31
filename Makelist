@@ -1,4 +1,4 @@
-SRCS =	src/bounds.cpp \
+SRCS =  src/bounds.cpp \
 		src/camera.cpp \
 		src/canyon.cpp \
 		src/canyon_zone.cpp \
@@ -76,5 +76,7 @@ SRCS =	src/bounds.cpp \
 		src/terrain/terrain_render.cpp \
 		src/ui/panel.cpp \
 		src/external/murmur.cpp \
+    src/new/terrain/Block.cpp \
     src/new/terrain/Bounds.cpp \
-    src/new/terrain/GLRenderable.cpp
+    src/new/terrain/GLRenderable.cpp \
+    src/new/terrain/Terrain.cpp

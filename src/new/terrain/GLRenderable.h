@@ -1,4 +1,5 @@
 // GLRenderable.h
+#pragma once
 
 #include "render/render.h"
 #include "frustum.h"
