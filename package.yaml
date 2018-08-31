@@ -1,3 +1,5 @@
 dependencies:
   - name: ConcurrentQueue
-    git: git@github.com:cameron314/concurrentqueue.git
+    git: 
+      repo: git@github.com:cameron314/concurrentqueue.git
+      branch: master
