@@ -1,0 +1,15 @@
+[package]
+name = "gfx"
+version = "0.1.0"
+authors = ["Nick Pollard <nickedwardpollard@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tobj = "0.1.6"
+vulkano = "0.18.0"
+vulkano-shaders = "0.18"
+vulkano-win = "0.18"
+cgmath = "0.16"
+winit = "0.22"
