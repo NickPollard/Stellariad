@@ -111,7 +111,9 @@ impl VulkanSystem {
         println!("Using device: {} (type: {:?})", physical.name(), physical.ty());
 
         let events_loop = EventLoop::new();
-        let surface = WindowBuilder::new().build_vk_surface(&events_loop, instance.clone()).expect("Could not create surface");
+        let surface = WindowBuilder::new()
+            .with_inner_size(winit::dpi::LogicalSize::new(320, 240))
+            .build_vk_surface(&events_loop, instance.clone()).expect("Could not create surface");
 
         // Get a queue for submitting draw commands (we'll just use one, for simplicity)
         let queue_family = physical.queue_families().find(|&q|

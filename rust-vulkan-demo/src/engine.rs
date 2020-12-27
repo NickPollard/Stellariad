@@ -60,6 +60,7 @@ impl<P: Clone> Engine<P> {
     fn process_window_events(&mut self) -> (bool, bool) {
         let mut done = false;
         let mut recreate_swapchain = false;
+        /*
         self.event_loop.poll_events(|ev| {
             match ev {
                 Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => done = true,
@@ -77,6 +78,8 @@ impl<P: Clone> Engine<P> {
             }
         });
         (done, recreate_swapchain)
+        */
+        (false, false)
     }
 }
 
