@@ -10,7 +10,7 @@ pub mod window;
 
 use vulkano::{
     buffer::{BufferUsage, cpu_pool::CpuBufferPool},
-    command_buffer::{AutoCommandBufferBuilder},
+    command_buffer::{AutoCommandBufferBuilder, SubpassContents},
     descriptor::{
         descriptor_set::{
             DescriptorSet,
@@ -96,10 +96,11 @@ impl Gfx {
         //   - create the depth image and store it
         //   - update the size of the depth image
         //   - bind the depth image here
-        let command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(self.system.device.clone(), self.system.queue.family()).unwrap()
-            .begin_render_pass(framebuffers.0[image_num].clone(), false, clear_values).unwrap();
-        let command_buffer = scene.draw_all(self.system.device.clone(), &self.window.dynamic_state, self.pass.clone(), command_buffer);
-        let command_buffer = command_buffer.end_render_pass().unwrap().build().unwrap();
+        let mut buffer_builder = AutoCommandBufferBuilder::primary_one_time_submit(self.system.device.clone(), self.system.queue.family()).unwrap();
+        buffer_builder.begin_render_pass(framebuffers.0[image_num].clone(), SubpassContents::Inline, clear_values).unwrap();
+        scene.draw_all(self.system.device.clone(), &self.window.dynamic_state, self.pass.clone(), &mut buffer_builder);
+        let _ = buffer_builder.end_render_pass().unwrap();
+        let command_buffer = buffer_builder.build().unwrap();
 
         let mut previous_frame = Box::new(sync::now(self.system.device.clone())) as Box<_>;
 

@@ -1,13 +1,11 @@
-use {
-    //cgmath::Matrix4,
-};
-
 use crate::scene::space::{self, Projection};
 
 /// A Camera is a type which supports a mapping from World space to Camera Space, and a mapping
 /// from Camera Space to Screen Space
 pub struct Camera {
+    #[allow(unused)]
     camera_space: Projection<space::Camera, space::World>,
+    #[allow(unused)]
     projection: Projection<space::Screen, space::Camera>,
 }
 

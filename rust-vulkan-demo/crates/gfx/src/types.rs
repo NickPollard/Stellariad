@@ -97,6 +97,7 @@ pub struct VulkanSystem {
     pub device: Arc<Device>,
     pub queue: Arc<vulkano::device::Queue>,
     pub surface: Arc<vulkano::swapchain::Surface<Window>>,
+    // TODO(nickpollard) This probably doesn't belong here
     pub events_loop: EventLoop<()>,
 }
 

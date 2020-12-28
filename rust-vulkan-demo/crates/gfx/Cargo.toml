@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 tobj = "0.1.6"
-vulkano = "0.18.0"
-vulkano-shaders = "0.18"
-vulkano-win = "0.18"
+vulkano = "0.20.0"
+vulkano-shaders = "0.20"
+vulkano-win = "0.20"
 cgmath = "0.16"
-winit = "0.22"
+winit = "0.24"

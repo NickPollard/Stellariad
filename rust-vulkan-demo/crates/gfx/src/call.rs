@@ -41,7 +41,7 @@ impl<Layout, P> CallT<Layout, P> {
 
 pub trait Call<P> where {
   /// Draw this call
-  fn draw(&self, dynamic_state: &DynamicState, cmd_buffer: AutoCommandBufferBuilder) -> AutoCommandBufferBuilder;
+  fn draw(&self, dynamic_state: &DynamicState, cmd_buffer: &mut AutoCommandBufferBuilder);
   // TODO - needs some way of identifying its pipeline to look up correct batch
 }
 
@@ -51,7 +51,7 @@ impl<Layout, P> Call<P> for CallT<Layout, P>
     Layout: Send + Sync + 'static,
     GraphicsPipeline<VertDef, Layout, P>: GraphicsPipelineAbstract //+ VertexSource<Verts> + Clone
 {
-    fn draw(&self, dynamic_state: &DynamicState, cmd_buffer: AutoCommandBufferBuilder) -> AutoCommandBufferBuilder {
+    fn draw(&self, dynamic_state: &DynamicState, cmd_buffer: &mut AutoCommandBufferBuilder) {
         match self.descriptors.as_ref().cloned() {
             Some(descriptors) => {
                 let r = cmd_buffer.draw(
@@ -61,7 +61,7 @@ impl<Layout, P> Call<P> for CallT<Layout, P>
                     descriptors,
                     () /*constants*/,
                     );
-                r.unwrap() // TODO
+                let _ =r.unwrap(); // TODO
             }
             None => {
                 let r = cmd_buffer.draw(
@@ -71,7 +71,7 @@ impl<Layout, P> Call<P> for CallT<Layout, P>
                     () /*descriptor sets*/,
                     () /*constants*/,
                     );
-                r.unwrap() // TODO
+                let _ = r.unwrap(); // TODO
             }
         }
     }

@@ -16,7 +16,7 @@ pub mod space;
 
 // A Gfx scene is some collection of Renderables
 pub trait Scene<P> {
-  fn draw_all(&self, device: Arc<Device>, dynamic_state: &DynamicState, pass: P, cmd_buffer: AutoCommandBufferBuilder) -> AutoCommandBufferBuilder;
+  fn draw_all(&self, device: Arc<Device>, dynamic_state: &DynamicState, pass: P, cmd_buffer: &mut AutoCommandBufferBuilder);
 }
 
 /*
