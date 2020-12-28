@@ -37,11 +37,16 @@ struct Config {
 }
 
 fn main() {
+    // TODO(nickpollard) - find a good way to easily work with configs for different modules
     let config: Config = argh::from_env();
 
     println!("Starting up");
 
+    // TODO(nickpollard)
+    // let window = WindowSystem::new();
+    // // then pass window to Gfx::init();
     let gfx = Gfx::init();
+    // TODO(nickpollard) - use config to load different scenes or different levels
     let scene = load_model_demo_scene(&gfx, &config.model);
     //let scene = load_model_demo_scene(&gfx, "assets/ship_hd_2.obj");
     let mut engine = Engine::init(gfx, scene);

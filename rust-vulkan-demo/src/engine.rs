@@ -148,11 +148,10 @@ impl<P: Clone> gfx::scene::Scene<P> for Scene<P> {
       device: Arc<Device>,
       dynamic_state: &DynamicState,
       pass: P,
-      mut cmd_buffer: AutoCommandBufferBuilder
-  ) -> AutoCommandBufferBuilder {
+      cmd_buffer: &mut AutoCommandBufferBuilder
+  ) {
       for drawable in self.drawables.iter() {
-          cmd_buffer = drawable.draw_call(device.clone(), pass.clone()).draw(dynamic_state, cmd_buffer);
+          drawable.draw_call(device.clone(), pass.clone()).draw(dynamic_state, cmd_buffer);
       }
-      cmd_buffer
   }
 }
