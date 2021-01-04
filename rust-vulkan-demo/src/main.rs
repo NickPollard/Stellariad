@@ -43,9 +43,10 @@ fn main() {
     println!("Starting up");
 
     // TODO(nickpollard)
-    // let window = WindowSystem::new();
-    // // then pass window to Gfx::init();
-    let gfx = Gfx::init();
+    let mut gfx = Gfx::init();
+    // Create the swapchain initially
+    assert!(gfx.recreate_swapchain());
+
     // TODO(nickpollard) - use config to load different scenes or different levels
     let scene = load_model_demo_scene(&gfx, &config.model);
     //let scene = load_model_demo_scene(&gfx, "assets/ship_hd_2.obj");
@@ -77,7 +78,7 @@ fn init_test_scene<RPass: RenderPassAbstract + Send + Sync + 'static + Clone>(gf
        let particle = particle::Emitter::new(particle_def, gfx.system.device.clone(), gfx.uniform_buffers.clone());
        let scene: Scene<RPass> = Scene{ drawables: vec![ Box::new(particle) ] };
        */
-    let model = RotatingObj::new(Model::from_obj(gfx.system.device.clone(), "assets/ship_hd_2.obj").unwrap(), gfx.uniform_buffers.clone());
+    let model = RotatingObj::new(Model::from_obj(gfx.device(), "assets/ship_hd_2.obj").unwrap());
     let camera = Camera::origin();
     let scene: Scene<RPass> = Scene{ camera, drawables: vec![ Box::new(model) ] };
     scene
@@ -85,6 +86,6 @@ fn init_test_scene<RPass: RenderPassAbstract + Send + Sync + 'static + Clone>(gf
 
 /// Create our test scene showcasing the given model
 fn load_model_demo_scene<RPass: RenderPassAbstract + Send + Sync + 'static + Clone>(gfx: &Gfx, model: &str) -> Scene<RPass> {
-    let model = RotatingObj::new(Model::from_obj(gfx.system.device.clone(), model).unwrap(), gfx.uniform_buffers.clone());
+    let model = RotatingObj::new(Model::from_obj(gfx.device(), model).unwrap());
     Scene{ camera: Camera::origin(), drawables: vec![ Box::new(model) ] }
 }

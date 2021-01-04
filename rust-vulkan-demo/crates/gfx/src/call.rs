@@ -1,4 +1,5 @@
 use vulkano::{
+    buffer::CpuBufferPool,
     command_buffer::{AutoCommandBufferBuilder, DynamicState},
     descriptor::{
         descriptor_set::{DescriptorSet},
@@ -12,11 +13,14 @@ use vulkano::{
 
 use std::sync::Arc;
 
-use crate::types::{VertDef, VertexBuffer};
+use crate::{
+    shaders::vs,
+    types::vertex::{VertDef, VertexBuffer},
+};
 
 /// An object which is drawable in a given pass
 pub trait Drawable<P> {
-    fn draw_call(&self, device: Arc<Device>, pass: P) -> Box<dyn Call<P>>;
+    fn draw_call(&self, device: Arc<Device>, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>>;
 }
 
 pub struct CallT<Layout, P> {

@@ -1,5 +1,6 @@
 use tobj;
 use vulkano::{
+    buffer::CpuBufferPool,
     device::Device,
     framebuffer::RenderPassAbstract,
 };
@@ -12,14 +13,14 @@ use std::{
 use crate::{
     call::{Drawable, Call, CallT},
     create_pipeline,
-    shaders,
-    types::{Vertex, vertex_buffer},
+    shaders::{vs, fs},
+    types::vertex::{Vertex, vertex_buffer},
 };
 
 pub struct Mesh {
     pub verts: Vec<Vertex>,
-    pub vs: shaders::vs::Shader,
-    pub fs: shaders::fs::Shader,
+    pub vs: vs::Shader,
+    pub fs: fs::Shader,
 }
 
 pub struct Model {
@@ -45,18 +46,17 @@ impl Model {
             normal: [normals[i], normals[i+1], normals[i+2]],
             color: default_color }
         }).collect();
-        let vs = shaders::vs::Shader::load(device.clone()).unwrap();
-        let fs = shaders::fs::Shader::load(device.clone()).unwrap();
+        let vs = vs::Shader::load(device.clone()).unwrap();
+        let fs = fs::Shader::load(device.clone()).unwrap();
         let mesh = Mesh{ verts, fs, vs };
         Ok(Model{ mesh })
     }
 }
 
-impl<P: RenderPassAbstract + Send + Sync + 'static + Clone>
-  Drawable<P> for Model {
-    fn draw_call(&self, device: Arc<Device>, pass: P) -> Box<dyn Call<P>> {
+impl<P: RenderPassAbstract + Send + Sync + 'static + Clone> Drawable<P> for Model {
+    fn draw_call(&self, device: Arc<Device>, pass: P, _buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
         let verts = vertex_buffer(device.clone(), &self.mesh.verts);
-        let pipeline = create_pipeline(device, &self.mesh.vs, &self.mesh.fs, pass);
+        let pipeline = create_pipeline(device, &self.mesh.vs, &self.mesh.fs, pass.clone());
         // TODO bind the descriptor
         //let descriptors =
         //Arc::new(PersistentDescriptorSet::start(pipeline.clone(), 0).build().unwrap());

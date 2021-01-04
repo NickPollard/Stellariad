@@ -4,10 +4,13 @@ use {
         //time::Duration,
     },
     vulkano::{
+        buffer::CpuBufferPool,
         device::Device,
         command_buffer::{AutoCommandBufferBuilder, DynamicState},
     },
 };
+
+use crate::shaders::vs;
 
 // Static scene camera definition
 pub mod camera;
@@ -16,7 +19,15 @@ pub mod space;
 
 // A Gfx scene is some collection of Renderables
 pub trait Scene<P> {
-  fn draw_all(&self, device: Arc<Device>, dynamic_state: &DynamicState, pass: P, cmd_buffer: &mut AutoCommandBufferBuilder);
+    // TODO - don't pass in `device`, as the renderpass will be `DeviceOwned` and therefore provide
+    // `.device()`
+    fn draw_all(&self,
+        device: Arc<Device>,
+        dynamic_state: &DynamicState,
+        pass: P,
+        cmd_buffer: &mut AutoCommandBufferBuilder,
+        buffer_pool: &CpuBufferPool<vs::ty::Data>,
+    );
 }
 
 /*

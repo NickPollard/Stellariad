@@ -6,7 +6,10 @@ use {
         call::{Drawable, Call, CallT},
         model::Model,
         shaders::{self, vs},
-        types::{Vertex, SubBuffer, vertex_buffer},
+        types::{
+            SubBuffer,
+            vertex::{Vertex, vertex_buffer},
+        },
     },
     std::{
         sync::Arc,
@@ -33,24 +36,24 @@ pub struct Mesh {
 pub struct RotatingObj {
     model: Model,
     rotation_start: Instant,
-    uniform_buffers: CpuBufferPool<vs::ty::Data>,
 }
 
 impl RotatingObj {
-    pub fn new(model: Model, uniform_buffers: CpuBufferPool<vs::ty::Data>) -> RotatingObj {
+    pub fn new(model: Model) -> RotatingObj {
         let rotation_start = Instant::now();
-        RotatingObj{ model, rotation_start, uniform_buffers }
+        RotatingObj{ model, rotation_start }
     }
 }
 
 impl<P: RenderPassAbstract + Send + Sync + 'static + Clone>
   Drawable<P> for RotatingObj {
-    fn draw_call(&self, device: Arc<Device>, pass: P) -> Box<dyn Call<P>> {
+    // TODO(nickpollard) - this uniform buffer is shader specific
+    fn draw_call(&self, device: Arc<Device>, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
         let verts = vertex_buffer(device.clone(), &self.model.mesh.verts);
         let pipeline = create_pipeline(device, &self.model.mesh.vs, &self.model.mesh.fs, pass);
         let desc_layout = pipeline.layout().descriptor_set_layout(0).unwrap();
 
-        let uniform_buffer_subbuffer = rotation_buffer(&self.uniform_buffers, self.rotation_start);
+        let uniform_buffer_subbuffer = rotation_buffer(buffer_pool, self.rotation_start);
         let descriptors = descriptors_for(uniform_buffer_subbuffer, desc_layout.clone());
 
         Box::new(CallT::new(pipeline, verts, Some(descriptors)))

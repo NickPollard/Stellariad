@@ -1,38 +1,34 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
+use {
+    gfx::{
+        Gfx,
+        scene::camera::Camera,
+        shaders::vs,
+        types::DynPass,
+    },
+    input::{self, InputDevices, Inputs},
+    property::Property,
+    std::{
+        sync::Arc,
+        time::{Duration, Instant},
+    },
+    vulkano::{
+        buffer::CpuBufferPool,
+        device::Device,
+        command_buffer::{AutoCommandBufferBuilder, DynamicState},
+    },
+    winit::{
+        event::{Event, WindowEvent, WindowEvent::KeyboardInput},
+        event_loop::EventLoop,
+    },
 };
 
 use crate::{
     physics::collision,
     particle,
-    rotating_obj::{RotatingObj},
+    rotating_obj::RotatingObj,
     types::{vec4, DrawAndTick},
 };
-use gfx::{
-    Gfx,
-    scene::camera::Camera,
-    shaders::vs,
-    types::DynPass,
-};
-use input::{self, InputDevices, Inputs};
-use property::Property;
 
-use vulkano::{
-        device::Device,
-        command_buffer::{AutoCommandBufferBuilder, DynamicState},
-};
-
-use winit::{
-    event::{
-        Event,
-        WindowEvent,
-        WindowEvent::KeyboardInput
-    },
-    event_loop::{
-        EventLoop,
-    },
-};
 
 const KEY_ESCAPE: u32 = 1;
 
@@ -105,9 +101,11 @@ impl Engine<DynPass> {
         let (quit, window_was_resized) = self.process_window_events();
 
         // TODO - properly handle recreating swapchain
-        let mut should_recreate_swapchain = window_was_resized;
+        if window_was_resized {
+            assert!(self.gfx.recreate_swapchain());
+        }
         // *** Render all Gfx Objects
-        let result = self.gfx.render(&mut self.scene, &mut should_recreate_swapchain);
+        let result = self.gfx.render(&mut self.scene);
 
         if let Err(e) = result {
             println!("{:?}", e);
@@ -115,6 +113,10 @@ impl Engine<DynPass> {
         }
 
         !quit
+    }
+
+    // Run the engine, using the windows event loop to do the driving
+    pub fn run(self) {
     }
 
     pub fn init(gfx: Gfx, scene: Scene<DynPass>) -> Engine<DynPass> {
@@ -148,10 +150,11 @@ impl<P: Clone> gfx::scene::Scene<P> for Scene<P> {
       device: Arc<Device>,
       dynamic_state: &DynamicState,
       pass: P,
-      cmd_buffer: &mut AutoCommandBufferBuilder
+      cmd_buffer: &mut AutoCommandBufferBuilder,
+      buffer_pool: &CpuBufferPool<vs::ty::Data>,
   ) {
       for drawable in self.drawables.iter() {
-          drawable.draw_call(device.clone(), pass.clone()).draw(dynamic_state, cmd_buffer);
+          drawable.draw_call(device.clone(), pass.clone(), buffer_pool).draw(dynamic_state, cmd_buffer);
       }
   }
 }

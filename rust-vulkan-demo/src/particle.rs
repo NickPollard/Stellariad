@@ -1,6 +1,6 @@
 use vulkano::{
     device::Device,
-    buffer::cpu_pool::CpuBufferPool,
+    buffer::CpuBufferPool,
     framebuffer::RenderPassAbstract,
 };
 
@@ -20,7 +20,10 @@ use crate::{
 use gfx::{
     call::{Call, CallT, Drawable},
     shaders::{self, vs},
-    types::{Vertex, SubBuffer, vertex_buffer},
+    types::{
+        SubBuffer,
+        vertex::{Vertex, vertex_buffer},
+    },
     create_pipeline,
     descriptors_for,
 };
@@ -202,7 +205,7 @@ impl Emitter {
 
 impl<P: RenderPassAbstract + Send + Sync + 'static + Clone>
   Drawable<P> for Emitter {
-    fn draw_call(&self, device: Arc<Device>, pass: P) -> Box<dyn Call<P>> {
+    fn draw_call(&self, device: Arc<Device>, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
         let verts = self.render();
         let vbuffer = vertex_buffer(device.clone(), &verts);
         let pipeline = create_pipeline(device, &self.vs, &self.fs, pass);
