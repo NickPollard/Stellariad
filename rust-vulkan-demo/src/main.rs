@@ -42,19 +42,17 @@ fn main() {
 
     println!("Starting up");
 
-    // TODO(nickpollard)
-    let mut gfx = Gfx::init();
+    let (mut gfx, mut event_loop) = Gfx::init();
+    // TODO(nickpollard) - we should create the window here afterwards
+    // let (window, event_loop) = gfx.new_window();
+
     // Create the swapchain initially
     assert!(gfx.recreate_swapchain());
 
     // TODO(nickpollard) - use config to load different scenes or different levels
     let scene = load_model_demo_scene(&gfx, &config.model);
-    //let scene = load_model_demo_scene(&gfx, "assets/ship_hd_2.obj");
     let mut engine = Engine::init(gfx, scene);
-    let mut cont = true;
-    while cont {
-        cont = engine.tick();
-    }
+    engine.run(event_loop);
 }
 
 /// Create our example test scene

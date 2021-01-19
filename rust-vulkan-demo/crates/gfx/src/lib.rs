@@ -24,6 +24,7 @@ use {
         sync::{FlushError, GpuFuture},
     },
     std::sync::Arc,
+    winit::event_loop::EventLoop,
 };
 
 use crate::{
@@ -58,11 +59,11 @@ pub struct Gfx {
 
 impl Gfx {
     /// Initialize the Graphics subsystem
-    pub fn init() -> Gfx {
+    pub fn init() -> (Gfx, EventLoop<()>) {
         // initialize the base vulkan system
         let vulkan = GfxVulkan::init();
         // create a vulkan-backed window
-        let os_window = vulkan.new_window();
+        let (os_window, event_loop) = vulkan.new_window();
         // set up a virtual vulkan device to render to `os_window`
         let render_device = GfxDevice::new(vulkan.physical(), os_window.surface());
 
@@ -70,7 +71,7 @@ impl Gfx {
         let render_targets = RenderTargets::new(os_window, &render_device).expect("error");
         // create a render pass to define our drawing
         let pass = render_device.create_render_pass(render_targets.swapchain.format());
-        Gfx { vulkan, render_device, render_targets, pass }
+        (Gfx { vulkan, render_device, render_targets, pass }, event_loop)
     }
 
     /// Recreate the swapchain and framebuffers - only do this if necessary
@@ -88,12 +89,10 @@ impl Gfx {
             Ok(r) => r,
             Err(AcquireError::OutOfDate) => {
                 //should_recreate_swapchain = true;
-                panic!("FATAL: out of date");
                 return Err(());
             },
             Err(err) => panic!("FATAL: Could not acquire next swapchain image: {:?}", err)
         };
-        println!("Acquiring image {}, is_suboptimal {}", image_num, _is_suboptimal);
         let frame_buffer = self.render_targets.frame_buffer(image_num);
 
         // 2. Build the command buffer
@@ -121,7 +120,6 @@ impl Gfx {
                 //should_recreate_swapchain = true;
             }
             Err(error) => {
-                panic!();
                 println!("Error executing GPU future: {:?}", error);
             }
         };

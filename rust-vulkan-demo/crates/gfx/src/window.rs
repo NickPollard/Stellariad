@@ -22,13 +22,10 @@ pub struct SysWindow {
     /// Capabilities for drawing to this surface via our physical device
     /// (The GFX library only supports a single physical device currently)
     capabilities: Capabilities,
-
-    /// Where our events come from
-    pub events_loop: EventLoop<()>,
 }
 
 impl SysWindow {
-    pub fn new<'a>(instance: Arc<vulkano::instance::Instance>, physical: PhysicalDevice<'a>) -> Self {
+    pub fn new<'a>(instance: Arc<vulkano::instance::Instance>, physical: PhysicalDevice<'a>) -> (Self, EventLoop<()>) {
         // Create a new event loop to handle window events
         let events_loop = EventLoop::new();
         // Build the Vulkan surface from our window
@@ -40,7 +37,7 @@ impl SysWindow {
         let capabilities = surface.capabilities(physical)
             .expect("No capabilities retrieved for new window surface");
 
-        SysWindow { surface, capabilities, events_loop }
+        (SysWindow { surface, capabilities }, events_loop)
     }
 
     pub fn surface(&self) -> Arc<Surface<winit::window::Window>> {

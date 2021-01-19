@@ -17,8 +17,8 @@ use {
         command_buffer::{AutoCommandBufferBuilder, DynamicState},
     },
     winit::{
-        event::{Event, WindowEvent, WindowEvent::KeyboardInput},
-        event_loop::EventLoop,
+        event::{Event, VirtualKeyCode, WindowEvent, WindowEvent::KeyboardInput},
+        event_loop::{ControlFlow, EventLoop},
     },
 };
 
@@ -47,8 +47,8 @@ pub struct Engine<P> {
     input_devices: InputDevices,
     inputs: Inputs,
 
-    /// The window event loop
-    event_loop: EventLoop<()>,
+//    /// The window event loop
+//    event_loop: EventLoop<()>,
 }
 
 impl<P: Clone> Engine<P> {
@@ -115,19 +115,56 @@ impl Engine<DynPass> {
         !quit
     }
 
+    /// Handle an event that comes in from the systems EventLoop
+    /// If it's `MainEventsCleared`, tick our game loop
+    fn handle_event(&mut self, event: Event<()>, window: &winit::event_loop::EventLoopWindowTarget<()>) -> ControlFlow {
+        match event {
+            Event::WindowEvent{window_id: _, event: win_event} => {
+                match &win_event {
+                    WindowEvent::KeyboardInput{ device_id: _, input, is_synthetic: _ } => {
+                        // Press `CTRL + Q` to quit
+                        if input.virtual_keycode == Some(VirtualKeyCode::Q) && input.modifiers.ctrl() {
+                            return ControlFlow::Exit;
+                        }
+                    }
+                    WindowEvent::CloseRequested => {
+                        return ControlFlow::Exit;
+                    }
+                    _ => {}
+                }
+                ControlFlow::Poll
+            }
+            Event::MainEventsCleared => {
+                if self.tick() {
+                    ControlFlow::Poll
+                } else {
+                    ControlFlow::Exit
+                }
+            }
+            _ => {
+                ControlFlow::Poll
+            }
+        }
+    }
+
     // Run the engine, using the windows event loop to do the driving
-    pub fn run(self) {
+    pub fn run(mut self, mut loop_: EventLoop<()>) {
+        // TODO(nickpollard) - not really the way to go
+        loop_.run(move |event, window, control_flow| {
+            *control_flow = self.handle_event(event, window);
+            // set control_flow to exit in order to exit
+        })
     }
 
     pub fn init(gfx: Gfx, scene: Scene<DynPass>) -> Engine<DynPass> {
         println!("Starting Engine");
         let last_frame = Instant::now();
-        let event_loop = EventLoop::new();
+        //let event_loop = EventLoop::new();
 
         let input_devices = InputDevices {};
         let inputs = Inputs {};
 
-        Engine { last_frame, scene, gfx, input_devices, inputs, event_loop }
+        Engine { last_frame, scene, gfx, input_devices, inputs }
     }
 }
 

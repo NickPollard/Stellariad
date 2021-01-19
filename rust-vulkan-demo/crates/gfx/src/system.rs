@@ -9,6 +9,7 @@ use {
         sync::{self, GpuFuture},
     },
     std::sync::Arc,
+    winit::event_loop::EventLoop,
 };
 
 use crate::{
@@ -37,7 +38,7 @@ impl GfxVulkan {
         GfxVulkan { instance, physical_index }
     }
 
-    pub fn new_window(&self) -> SysWindow {
+    pub fn new_window(&self) -> (SysWindow, EventLoop<()>) {
         SysWindow::new(self.instance.clone(), self.physical())
     }
 
