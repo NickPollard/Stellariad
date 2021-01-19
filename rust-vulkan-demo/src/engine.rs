@@ -8,12 +8,11 @@ use {
     input::{self, InputDevices, Inputs},
     property::Property,
     std::{
-        sync::Arc,
         time::{Duration, Instant},
     },
     vulkano::{
         buffer::CpuBufferPool,
-        device::Device,
+        device::DeviceOwned,
         command_buffer::{AutoCommandBufferBuilder, DynamicState},
     },
     winit::{
@@ -181,17 +180,16 @@ impl<P: Clone> Scene<P> {
   }
 }
 
-impl<P: Clone> gfx::scene::Scene<P> for Scene<P> {
+impl<P: DeviceOwned + Clone> gfx::scene::Scene<P> for Scene<P> {
   fn draw_all(
       &self,
-      device: Arc<Device>,
       dynamic_state: &DynamicState,
       pass: P,
       cmd_buffer: &mut AutoCommandBufferBuilder,
       buffer_pool: &CpuBufferPool<vs::ty::Data>,
   ) {
       for drawable in self.drawables.iter() {
-          drawable.draw_call(device.clone(), pass.clone(), buffer_pool).draw(dynamic_state, cmd_buffer);
+          drawable.draw_call(pass.device(), pass.clone(), buffer_pool).draw(dynamic_state, cmd_buffer);
       }
   }
 }

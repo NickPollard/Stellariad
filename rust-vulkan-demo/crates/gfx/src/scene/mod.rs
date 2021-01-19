@@ -1,11 +1,7 @@
 use {
-    std::{
-        sync::Arc,
-        //time::Duration,
-    },
     vulkano::{
         buffer::CpuBufferPool,
-        device::Device,
+        device::DeviceOwned,
         command_buffer::{AutoCommandBufferBuilder, DynamicState},
     },
 };
@@ -18,11 +14,10 @@ pub mod camera;
 pub mod space;
 
 // A Gfx scene is some collection of Renderables
-pub trait Scene<P> {
+pub trait Scene<P: DeviceOwned> {
     // TODO - don't pass in `device`, as the renderpass will be `DeviceOwned` and therefore provide
     // `.device()`
     fn draw_all(&self,
-        device: Arc<Device>,
         dynamic_state: &DynamicState,
         pass: P,
         cmd_buffer: &mut AutoCommandBufferBuilder,

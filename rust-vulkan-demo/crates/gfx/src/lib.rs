@@ -96,12 +96,11 @@ impl Gfx {
         let frame_buffer = self.render_targets.frame_buffer(image_num);
 
         // 2. Build the command buffer
-        let device = self.render_device.device();
         let pass = self.pass.pass();
         let dyn_state = &self.render_targets.dynamic_state;
         let buffer_pool = &self.pass.uniform_buffers;
         let command_buffer = self.render_device.build_command_buffer(frame_buffer, |builder| {
-            scene.draw_all(device, dyn_state, pass, builder, buffer_pool);
+            scene.draw_all(dyn_state, pass, builder, buffer_pool);
         });
 
         // 3. Execute and wait
