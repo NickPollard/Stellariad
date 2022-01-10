@@ -1,4 +1,5 @@
 pub mod call;
+pub mod material;
 pub mod model;
 pub mod scene;
 pub mod shaders;
@@ -18,9 +19,7 @@ use {
             },
         },
         device::Device,
-        framebuffer::{RenderPassAbstract, Subpass},
         swapchain::{self, AcquireError},
-        pipeline::{ blend::AttachmentBlend, GraphicsPipeline },
         sync::{FlushError, GpuFuture},
     },
     std::sync::Arc,
@@ -34,9 +33,7 @@ use crate::{
     targets::RenderTargets,
     types::{
         DynPass,
-        Pipe,
         SubBuffer,
-        vertex::{Vertex, VertDef},
     },
 };
 
@@ -129,29 +126,6 @@ impl Gfx {
     pub fn device(&self) -> Arc<Device> {
         self.render_device.device()
     }
-}
-
-/// Helper - create a simple GraphicsPipeline for using a given vertex shader and fragment shader
-/// A GraphicsPipeline is a collection of shaders and settings for executing a draw call
-pub fn create_pipeline<P: RenderPassAbstract>(
-    device: Arc<Device>,
-    vs: &shaders::vs::Shader,
-    fs: &shaders::fs::Shader,
-    render_pass: P
-  ) -> Arc<GraphicsPipeline<VertDef, Pipe, P>> {
-
-    Arc::new(GraphicsPipeline::start()
-             .vertex_input_single_buffer::<Vertex>()
-             .vertex_shader(vs.main_entry_point(), ())
-             // Our vertex buffer is a triangle list
-             .triangle_list()
-             .viewports_dynamic_scissors_irrelevant(1)
-             .fragment_shader(fs.main_entry_point(), ())
-             .depth_stencil_simple_depth()
-             .render_pass(Subpass::from(render_pass, 0).unwrap())
-             .blend_collective(AttachmentBlend::alpha_blending())
-             .build(device.clone())
-             .unwrap())
 }
 
 // TODO - where is this used and why

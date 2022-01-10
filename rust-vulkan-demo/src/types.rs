@@ -34,6 +34,6 @@ pub fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vector4<f32> {
     Vector4::new(x, y, z, w)
 }
 
-pub trait DrawAndTick<P> : Drawable<P> + Tickable {}
+pub trait DrawAndTick<P: RenderPassAbstract> : Drawable<P> + Tickable {}
 
-impl<P, T : Drawable<P> + Tickable> DrawAndTick<P> for T {}
+impl<P: RenderPassAbstract, T : Drawable<P> + Tickable> DrawAndTick<P> for T {}

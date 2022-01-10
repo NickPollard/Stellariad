@@ -19,12 +19,12 @@ use crate::{
 
 use gfx::{
     call::{Call, CallT, Drawable},
+    model::create_pipeline,
     shaders::{self, vs},
     types::{
         SubBuffer,
         vertex::{Vertex, vertex_buffer},
     },
-    create_pipeline,
     descriptors_for,
 };
 
@@ -205,10 +205,10 @@ impl Emitter {
 
 impl<P: RenderPassAbstract + Send + Sync + 'static + Clone>
   Drawable<P> for Emitter {
-    fn draw_call(&self, device: Arc<Device>, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
+    fn draw_call(&self, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
         let verts = self.render();
-        let vbuffer = vertex_buffer(device.clone(), &verts);
-        let pipeline = create_pipeline(device, &self.vs, &self.fs, pass);
+        let vbuffer = vertex_buffer(pass.device().clone(), &verts);
+        let pipeline = create_pipeline(&self.vs, &self.fs, pass);
         let subbuffer = uniform_buffer(&self.uniform_buffers);
         let descriptors = descriptors_for(subbuffer, pipeline.layout().descriptor_set_layout(0).unwrap().clone());
         Box::new(CallT::new(pipeline, vbuffer, Some(descriptors)))

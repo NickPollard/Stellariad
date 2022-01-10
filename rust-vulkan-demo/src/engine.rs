@@ -14,6 +14,7 @@ use {
         buffer::CpuBufferPool,
         device::DeviceOwned,
         command_buffer::{AutoCommandBufferBuilder, DynamicState},
+        framebuffer::RenderPassAbstract,
     },
     winit::{
         event::{Event, VirtualKeyCode, WindowEvent, WindowEvent::KeyboardInput},
@@ -180,7 +181,7 @@ impl<P: Clone> Scene<P> {
   }
 }
 
-impl<P: DeviceOwned + Clone> gfx::scene::Scene<P> for Scene<P> {
+impl<P: RenderPassAbstract + Clone> gfx::scene::Scene<P> for Scene<P> {
   fn draw_all(
       &self,
       dynamic_state: &DynamicState,
@@ -189,7 +190,7 @@ impl<P: DeviceOwned + Clone> gfx::scene::Scene<P> for Scene<P> {
       buffer_pool: &CpuBufferPool<vs::ty::Data>,
   ) {
       for drawable in self.drawables.iter() {
-          drawable.draw_call(pass.device(), pass.clone(), buffer_pool).draw(dynamic_state, cmd_buffer);
+          drawable.draw_call(pass.clone(), buffer_pool).draw(dynamic_state, cmd_buffer);
       }
   }
 }

@@ -1,26 +1,33 @@
-use tobj;
-use vulkano::{
-    buffer::CpuBufferPool,
-    device::Device,
-    framebuffer::RenderPassAbstract,
-};
-
-use std::{
-    sync::Arc,
-    path::Path,
+use {
+    std::{
+        sync::Arc,
+        path::Path,
+    },
+    tobj,
+    vulkano::{
+        buffer::CpuBufferPool,
+        device::Device,
+        framebuffer::{RenderPassAbstract, Subpass},
+        pipeline::{ blend::AttachmentBlend, GraphicsPipeline },
+    },
 };
 
 use crate::{
     call::{Drawable, Call, CallT},
-    create_pipeline,
+    material::Material,
     shaders::{vs, fs},
-    types::vertex::{Vertex, vertex_buffer},
+    types::{
+        DynPass,
+        Pipe,
+        vertex::{Vertex, vertex_buffer, VertDef},
+    },
 };
 
 pub struct Mesh {
     pub verts: Vec<Vertex>,
     pub vs: vs::Shader,
     pub fs: fs::Shader,
+    material: Material<DynPass>,
 }
 
 pub struct Model {
@@ -48,18 +55,42 @@ impl Model {
         }).collect();
         let vs = vs::Shader::load(device.clone()).unwrap();
         let fs = fs::Shader::load(device.clone()).unwrap();
-        let mesh = Mesh{ verts, fs, vs };
+        let material = Material::new(vs, fs);
+        let vs = vs::Shader::load(device.clone()).unwrap();
+        let fs = fs::Shader::load(device.clone()).unwrap();
+        let mesh = Mesh{ verts, fs, vs, material };
         Ok(Model{ mesh })
     }
 }
 
 impl<P: RenderPassAbstract + Send + Sync + 'static + Clone> Drawable<P> for Model {
-    fn draw_call(&self, device: Arc<Device>, pass: P, _buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
-        let verts = vertex_buffer(device.clone(), &self.mesh.verts);
-        let pipeline = create_pipeline(device, &self.mesh.vs, &self.mesh.fs, pass.clone());
+    fn draw_call(&self, pass: P, _buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
+        let verts = vertex_buffer(pass.device().clone(), &self.mesh.verts);
+        //let pipeline = create_pipeline(&self.mesh.vs, &self.mesh.fs, pass.clone());
+        let pipeline = self.mesh.material.pipeline(pass);
         // TODO bind the descriptor
-        //let descriptors =
-        //Arc::new(PersistentDescriptorSet::start(pipeline.clone(), 0).build().unwrap());
         Box::new(CallT::new(pipeline, verts, None))
     }
+}
+
+/// Create a simple GraphicsPipeline for using a given vertex shader and fragment shader
+/// A GraphicsPipeline is a collection of shaders and settings for executing a draw call
+pub fn create_pipeline<P: RenderPassAbstract>(
+    vs: &vs::Shader,
+    fs: &fs::Shader,
+    render_pass: P
+  ) -> Arc<GraphicsPipeline<VertDef, Pipe, P>> {
+    let device = render_pass.device().clone();
+    Arc::new(GraphicsPipeline::start()
+             .vertex_input_single_buffer::<Vertex>()
+             .vertex_shader(vs.main_entry_point(), ())
+             // Our vertex buffer is a triangle list
+             .triangle_list()
+             .viewports_dynamic_scissors_irrelevant(1)
+             .fragment_shader(fs.main_entry_point(), ())
+             .depth_stencil_simple_depth()
+             .render_pass(Subpass::from(render_pass, 0).unwrap())
+             .blend_collective(AttachmentBlend::alpha_blending())
+             .build(device)
+             .unwrap())
 }

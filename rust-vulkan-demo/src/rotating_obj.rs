@@ -1,10 +1,9 @@
 use {
     cgmath::{Matrix3, Matrix4, Vector3, Rad, PerspectiveFov},
     gfx::{
-        create_pipeline,
         descriptors_for,
         call::{Drawable, Call, CallT},
-        model::Model,
+        model::{create_pipeline, Model},
         shaders::{self, vs},
         types::{
             SubBuffer,
@@ -45,12 +44,11 @@ impl RotatingObj {
     }
 }
 
-impl<P: RenderPassAbstract + Send + Sync + 'static + Clone>
-  Drawable<P> for RotatingObj {
+impl<P: RenderPassAbstract + Send + Sync + 'static> Drawable<P> for RotatingObj {
     // TODO(nickpollard) - this uniform buffer is shader specific
-    fn draw_call(&self, device: Arc<Device>, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
-        let verts = vertex_buffer(device.clone(), &self.model.mesh.verts);
-        let pipeline = create_pipeline(device, &self.model.mesh.vs, &self.model.mesh.fs, pass);
+    fn draw_call(&self, pass: P, buffer_pool: &CpuBufferPool<vs::ty::Data>) -> Box<dyn Call<P>> {
+        let verts = vertex_buffer(pass.device().clone(), &self.model.mesh.verts);
+        let pipeline = create_pipeline(&self.model.mesh.vs, &self.model.mesh.fs, pass);
         let desc_layout = pipeline.layout().descriptor_set_layout(0).unwrap();
 
         let uniform_buffer_subbuffer = rotation_buffer(buffer_pool, self.rotation_start);
